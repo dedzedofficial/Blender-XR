@@ -1,0 +1,45 @@
+name: Package and release Blender XR
+on:
+  push:
+    branches: [main]
+    paths: ["blender_xr/**", "scripts/build.py", ".github/workflows/release.yml"]
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: blender-xr-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build extension
+        run: python scripts/build.py
+      - name: Download test Blender
+        run: |
+          curl -fsSL https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz -o /tmp/blender.tar.xz
+          tar -xf /tmp/blender.tar.xz -C /tmp
+      - name: Verify before publishing
+        run: |
+          /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+          /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
+      - name: Publish version once
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('blender_xr/blender_manifest.toml','rb'))['version'])")
+          tag="v${version}"
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "$tag" ]]; then
+            echo "Release tag and manifest version do not match" >&2
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release already exists. Bump the manifest and updater version for another release."
+          else
+            gh release create "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "Blender XR v${version}" --notes-file RELEASE_NOTES.md --latest
+          fi

@@ -1,0 +1,40 @@
+name: Validate Blender XR
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        blender: ["5.0.0", "5.2.2"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build installer
+        run: python scripts/build.py
+      - name: Download Blender
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: |
+          series="${BLENDER_VERSION%.*}"
+          curl -fsSL "https://download.blender.org/release/Blender${series}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" -o /tmp/blender.tar.xz
+          tar -xf /tmp/blender.tar.xz -C /tmp
+      - name: Mesh and registration tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+      - name: Updater tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blender-xr-${{ matrix.blender }}
+          path: dist/*
