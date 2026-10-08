@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Finger protocol and profile tests
+        run: python tests/test_gestures.py
       - name: Build extension
         run: python scripts/build.py
       - name: Download test Blender

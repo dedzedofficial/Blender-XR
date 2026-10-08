@@ -132,13 +132,13 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.19,-0.22,0.38,0.45,(0.025,0.04,0.06,0.97))
-        text('BLENDER XR 0.3',-0.17,0.205,0.0032)
+        rect(-0.19,-0.22,0.48,0.45,(0.025,0.04,0.06,0.97))
+        text('BLENDER XR 0.4',-0.17,0.205,0.0032)
         text('STEP '+format(step,'.4f'),-0.17,0.177,0.0026)
         for i,(label,action) in enumerate(BUTTONS):
             bx,by,w,h=button_rect(i)
             color=(0.06,0.12,0.18,1)
-            if action==tool: color=(0.04,0.31,0.43,1)
+            if action==tool: color=(0.04,0.41,0.43,1)
             if action==hover: color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             text(label,bx+0.009,by+0.027,0.00245)

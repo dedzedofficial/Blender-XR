@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,3,0),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,0),
     'blender': (5,0,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free basic VR mesh editing with a hand-mounted menu',
     'category': '3D View',
@@ -16,6 +16,16 @@ class BXR_Settings(bpy.types.PropertyGroup):
     dominant_hand: EnumProperty(name='Dominant hand',items=[
         ('RIGHT','Right','Right edits, left holds the menu'),
         ('LEFT','Left','Left edits, right holds the menu')],default='RIGHT')
+    controller_family: EnumProperty(name='Controller family', items=[
+        ('AUTO','Automatic','Touch, Index, Vive and simple controller bindings'),
+        ('META','Meta','Touch-compatible controllers and simple fallback'),
+        ('VALVE','Valve / SteamVR','Index, Touch-compatible, Vive and simple bindings')], default='AUTO')
+    input_source: EnumProperty(name='Input', items=[
+        ('CONTROLLERS','Controllers','Use trigger and grip controls'),
+        ('STEAMVR_HANDS','Finger bridge (experimental)','Requires external SteamVR skeletal bridge and tracked hand poses')], default='CONTROLLERS')
+    finger_touch: bpy.props.BoolProperty(name='Finger-touch shortcuts', default=False,
+        description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel')
+    bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535)
     step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
                         description='Initial tool amount in local mesh units')
     bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8)
@@ -52,7 +62,7 @@ class BXR_OT_session(bpy.types.Operator):
             self.report({'ERROR'},'Use object mode or mesh edit mode')
             return {'CANCELLED'}
         if len(context.objects_in_mode)>1:
-            self.report({'ERROR'},'v0.3 supports editing one mesh at a time')
+            self.report({'ERROR'},'v0.4 supports editing one mesh at a time')
             return {'CANCELLED'}
         runtime.START_ERROR = ''
         session = runtime.Runtime(context)
@@ -146,8 +156,29 @@ class BXR_OT_tool(bpy.types.Operator):
             return {'CANCELLED'}
 
 
+
+class BXR_OT_bridge_command(bpy.types.Operator):
+    bl_idname = 'blender_xr.bridge_command'
+    bl_label = 'Copy Hand Bridge Command'
+    def execute(self, context):
+        import os
+        import shlex
+        import subprocess
+        from pathlib import Path
+        session = runtime.CURRENT
+        if not session or not session.bridge:
+            return {'CANCELLED'}
+        arguments = [('py' if os.name == 'nt' else 'python3'),
+                     str(Path(__file__).with_name('steamvr_hand_bridge.py')),
+                     '--key', session.bridge.key, '--port', str(session.bridge.port)]
+        context.window_manager.clipboard = (subprocess.list2cmdline(arguments)
+                                           if os.name == 'nt' else shlex.join(arguments))
+        self.report({'INFO'}, 'Paste into a terminal with openvr installed in system Python')
+        return {'FINISHED'}
+
+
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.3'
+    bl_label='Blender XR v0.4'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -162,6 +193,15 @@ class BXR_PT_panel(bpy.types.Panel):
         layout.label(text='Menu on the other hand',icon='HAND')
         col=layout.column()
         col.enabled=not active
+        col.prop(settings,'controller_family')
+        col.prop(settings,'input_source')
+        if settings.input_source == 'CONTROLLERS':
+            col.prop(settings,'finger_touch')
+        else:
+            col.prop(settings,'bridge_port')
+            col.label(text='SteamVR skeletal input required')
+            if active and runtime.CURRENT.bridge:
+                layout.operator('blender_xr.bridge_command', text='Copy Hand Bridge Command', icon='COPYDOWN')
         col.prop(settings,'step')
         col.prop(settings,'bevel_segments')
         col.prop(settings,'move_speed')
@@ -199,7 +239,7 @@ def load_pre(*_args):
         runtime.CURRENT=None
 
 
-CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_tool,BXR_PT_panel)
+CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_tool,BXR_OT_bridge_command,BXR_PT_panel)
 
 def register():
     updater.register()

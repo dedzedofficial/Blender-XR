@@ -1,15 +1,16 @@
-# Blender XR v0.3.0
+# Blender XR v0.4.0
 
-Initial free development release by Ded Zed.
+Free development release by Ded Zed.
 
-- Dominant-hand selection before entering VR.
-- Non-dominant hand menu and dominant hand selection/control.
-- Face extrusion, bevel, inset, and object movement/rotation.
-- Continuous previews, cancel, and 20-step VR-local undo/redo.
-- GitHub update buttons with private repository authentication, checksum verification, rollback, and restart prompt.
+- Automatic, Meta and Valve/SteamVR controller presets, with Touch, Index, Vive and simple bindings.
+- Expanded compatibility target matrix for Quest/Rift and Valve Index/Steam Frame. Newer native controller profiles depend on runtime compatibility; all physical combinations remain unverified.
+- Optional Touch/Index finger-touch hold shortcuts for menu access and cancellation.
+- Experimental free SteamVR skeletal helper: thumb/index pinch for selection/tool previews, finger curl for MOVE grab, other-hand pinch for menu/cancel.
+- Input-loss cancellation, release-before-arming, session-key loopback input and hardware-free regression tests.
+- Existing extrude, bevel, inset, move/rotate, VR history and GitHub updater remain included.
 
-Install **blender-xr-v0.3.0.zip**, not GitHub's source-code ZIP.
+Install **blender-xr-v0.4.0.zip**, not GitHub's source-code ZIP. Restart Blender after updating.
 
-Automated checks run in Blender 5.0.0 and 5.2.2. Physical Quest 3, Air Link, SteamVR, Virtual Desktop, and Windows updater testing remain pending. The OpenXR connection paths are intended targets, not verified compatibility claims.
+Controller mode is the default. Finger bridge mode requires system Python, the optional openvr package, SteamVR skeletal input, and tracked controller/hand poses. It does not implement native Air Link controller-free hand tracking. Consult the README before enabling it.
 
-Requires a Blender build with OpenXR. Blender 5.0.1 is blocked because of its known VR crash. v0.3 edits one local, single-user mesh without shape keys. Use the VR menu for undo/redo during a session.
+Automated checks cover Blender 5.0.0 and 5.2.2. Real headsets, Windows and the experimental bridge's simultaneous SteamVR input need user testing. Requires OpenXR; Blender 5.0.1 is blocked due to its known VR crash.

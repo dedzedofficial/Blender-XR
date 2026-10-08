@@ -3,7 +3,7 @@ import math
 import time
 import bpy
 from mathutils import Matrix, Vector, Quaternion
-from . import actions, drawing, mesh
+from . import actions, drawing, mesh, gestures
 
 CURRENT = None
 PENDING = False
@@ -60,8 +60,14 @@ class Runtime:
         self.error = ''
         self.last_amount = None
         self.navigation_initialized = False
+        self.bridge = None
+        self.touch_holds = [gestures.HoldGesture(), gestures.HoldGesture()]
+        self.input_source = self.settings.input_source
+        self.finger_touch = self.settings.finger_touch
 
     def configure(self):
+        if self.input_source == 'STEAMVR_HANDS':
+            self.bridge = gestures.HandBridge(self.settings.bridge_port)
         settings = self.context.window_manager.xr_session_settings
         values = dict(show_controllers=True, show_custom_overlays=True,
                       show_selection=True, use_positional_tracking=True,
@@ -95,6 +101,9 @@ class Runtime:
 
     def cleanup(self, context):
         self.active = False
+        if self.bridge:
+            self.bridge.close()
+            self.bridge = None
         self.cancel_work()
         if self.draw_handle is not None:
             bpy.types.SpaceView3D.draw_handler_remove(self.draw_handle, 'XR')
@@ -224,7 +233,13 @@ class Runtime:
         pose = Quaternion(state.controller_aim_rotation_get(context, self.dom))
         off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
         if pose.magnitude < 0.5 or off_pose.magnitude < 0.5:
-            self.status = 'WAITING FOR CONTROLLERS'
+            self.cancel_work()
+            self.trigger = Button()
+            self.off_trigger = Button()
+            self.grip = Button()
+            if self.bridge:
+                self.bridge.armed = False
+            self.status = 'WAITING FOR TRACKED HAND POSES'
             return
         origin = Vector(state.controller_aim_location_get(context, self.dom))
         direction = pose @ Vector((0,0,-1))
@@ -233,9 +248,36 @@ class Runtime:
         self.menu.position(hand, Vector(state.viewer_pose_location), scale)
         self.ray = (origin, direction)
         self.hover, self.pointer = self.menu.hit(origin, direction)
-        press, release = self.trigger.update(actions.read(context,'trigger',self.dom)[0])
-        off_press, _ = self.off_trigger.update(actions.read(context,'trigger',self.off)[0])
-        grab_press, grab_release = self.grip.update(actions.read(context,'grab',self.dom)[0])
+        if self.bridge:
+            inputs = self.bridge.read()
+            if inputs is None:
+                self.cancel_work()
+                self.trigger = Button()
+                self.off_trigger = Button()
+                self.grip = Button()
+                self.status = 'WAITING FOR FINGERS / RELEASE BOTH HANDS'
+                return
+            trigger_value, grab_value = inputs[self.dom]
+            off_value = inputs[self.off][0]
+        else:
+            trigger_value = actions.read(context, 'trigger', self.dom)[0]
+            grab_value = actions.read(context, 'grab', self.dom)[0]
+            off_value = actions.read(context, 'trigger', self.off)[0]
+            if self.finger_touch:
+                # Holding both touch sensors fires once, until the fingers lift.
+                touch_events = [self.touch_holds[i].update(actions.touch(context, i), now)
+                                for i in range(2)]
+                if touch_events[self.dom] and (self.transaction or self.grab):
+                    self.cancel_work()
+                    return
+                if touch_events[self.off]:
+                    if self.transaction or self.grab:
+                        self.cancel_work()
+                        return
+                    self.menu.visible = not self.menu.visible
+        press, release = self.trigger.update(trigger_value)
+        off_press, _ = self.off_trigger.update(off_value)
+        grab_press, grab_release = self.grip.update(grab_value)
         obj = context.view_layer.objects.active
         if off_press:
             if self.transaction or self.grab:
@@ -282,11 +324,11 @@ class Runtime:
             if not obj or obj.mode != 'OBJECT':
                 raise ValueError('Use MODE to enter object mode')
             if obj.library or obj.parent or obj.constraints:
-                raise ValueError('v0.3 movement requires a local unparented object without constraints')
+                raise ValueError('v0.4 movement requires a local unparented object without constraints')
             self.grab = (obj,obj.matrix_world.copy(),grip_matrix.inverted())
             self.status = 'GRAB OBJECT'
         # Off-hand stick moves the viewer horizontally. Disabled during editing.
-        stick = actions.read(context,'stick',self.off)
+        stick = (0, 0) if self.bridge else actions.read(context,'stick',self.off)
         if abs(stick[0])>0.2 or abs(stick[1])>0.2:
             viewer_rotation = Quaternion(state.viewer_pose_rotation)
             forward = viewer_rotation @ Vector((0,0,-1))

@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "blender_xr"
-version = "0.3.0"
+version = "0.4.0"
 name = "Blender XR"
 tagline = "Basic mesh editing with a hand-mounted VR menu"
 maintainer = "Ded Zed"
@@ -10,7 +10,7 @@ blender_version_min = "5.0.0"
 license = ["SPDX:GPL-3.0-or-later"]
 platforms = ["windows-x64", "linux-x64"]
 [permissions]
-network = "Check and download Blender XR releases from GitHub"
+network = "Read local hand input and download GitHub updates"
 files = "Install verified updates into the Blender XR add-on folder"
 [build]
 paths_exclude_pattern = ["__pycache__/", "*.pyc"]

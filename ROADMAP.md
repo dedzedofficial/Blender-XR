@@ -29,13 +29,26 @@ Release gate still requiring real hardware:
 
 v0.3 is an initial development release. Headless mesh tests do not establish headset compatibility.
 
-## v0.4: dependable everyday control
+## v0.4.0: Meta/Valve targets and optional fingers
 
-- Fix reported v0.3 headset/runtime issues first.
-- Snap turning, recentering improvements, and adjustable menu position/size.
-- Joystick amount adjustment, visible selected tool amounts, and axis snapping.
-- Better tracking-loss handling and actionable runtime diagnostics.
-- Test native Blender undo integration and outside-VR edits before replacing local history.
+Implemented:
+
+- Automatic, Meta and Valve/SteamVR controller binding presets.
+- Documented Quest, Rift, Index and conditional Steam Frame compatibility targets.
+- Opt-in controller finger-touch hold for menu/cancel.
+- Experimental external SteamVR skeletal bridge: pinch selection/tool use and finger-curl object grab.
+- Loopback-only session-key protocol, bounded packet processing, input freshness and release-before-arming checks.
+- Tracking loss cancels unfinished work; estimated skeletal data cannot drive finger tools.
+- Automated profile, skeletal sample, gesture, malformed packet, replay and reconnection tests.
+
+Pending physical release validation: every headset/runtime combination above, controller touch behavior, skeletal measurements and background SteamVR input. Native OpenXR hand joints are not exposed through Blender's current Python API. Native Air Link hand tracking and native Steam Frame controller extensions need upstream integration or a different backend.
+
+## v0.4.x: follow-up after headset testing
+
+- Fix reported runtime/profile issues first; publish actual hardware results.
+- Improve gesture thresholds from measured headset behavior.
+- Snap turning, adjustable menu position/size, axis snapping and diagnostics.
+- Test native Blender undo integration before replacing local history.
 
 ## v0.5: expand mesh editing
 

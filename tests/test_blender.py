@@ -122,6 +122,34 @@ def run():
     menu.visible=False
     assert menu.hit(Vector((0,-1,0)),Vector((0,1,0)))[0] is None
     print('PASS face selection, guards, button hysteresis, all menu targets')
+    # Exercise the actual modal input-loss branch, not just the packet receiver.
+    from types import SimpleNamespace as NS
+    import time
+    session=runtime.Runtime.__new__(runtime.Runtime)
+    session.last_tick=time.monotonic();session.started=session.last_tick
+    session.navigation_initialized=True;session.dom=1;session.off=0
+    session.transaction=NS(cancel=lambda:events.append('cancel'),
+                           finish=lambda:events.append('COMMIT'))
+    session.grab=None;session.trigger=runtime.Button();session.trigger.down=True
+    session.off_trigger=runtime.Button();session.grip=runtime.Button()
+    session.menu=drawing.Menu();session.bridge=NS(read=lambda:None)
+    events=[]
+    state=NS(controller_aim_rotation_get=lambda c,h:(1,0,0,0),
+             controller_grip_rotation_get=lambda c,h:(1,0,0,0),
+             controller_aim_location_get=lambda c,h:(0,0,0),
+             controller_grip_location_get=lambda c,h:(0,0,0),
+             viewer_pose_location=(0,-1,0.25),viewer_scale=1)
+    fake_context=NS(window_manager=NS(xr_session_state=state))
+    original_bpy=runtime.bpy
+    try:
+        runtime.bpy=NS(types=NS(XrSessionState=NS(is_running=lambda c:True)))
+        session.tick(fake_context)
+    finally:
+        runtime.bpy=original_bpy
+    assert events==['cancel'] and session.transaction is None
+    assert not session.trigger.down
+    assert 'WAITING' in session.status
+    print('PASS actual runtime cancels preview on finger input loss without committing')
     # RNA map construction does not require a connected headset.
     state=bpy.context.window_manager.xr_session_state
     if state is not None:

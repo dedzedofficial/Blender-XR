@@ -19,7 +19,7 @@ from bpy.props import StringProperty
 
 REPOSITORY='dedzedofficial/Blender-XR'
 API='https://api.github.com/repos/'+REPOSITORY
-VERSION=(0,3,0)
+VERSION=(0,4,0)
 MAX_BYTES=16*1024*1024
 JOB=None
 LATEST=None
@@ -44,7 +44,7 @@ def request(url,token='',binary=False):
     parsed=urllib.parse.urlparse(url)
     if parsed.scheme!='https' or parsed.hostname!='api.github.com':
         raise ValueError('Only official GitHub API requests are allowed')
-    headers={'User-Agent':'DedZed-Blender-XR/0.3','Accept':
+    headers={'User-Agent':'DedZed-Blender-XR/0.4','Accept':
              'application/octet-stream' if binary else 'application/vnd.github+json',
              'X-GitHub-Api-Version':'2022-11-28'}
     if token:
@@ -199,7 +199,7 @@ def poll_job():
     LATEST=job['release']
     v=LATEST['version']
     if v<=VERSION:
-        settings.status='Blender XR v0.3.0 is up to date'
+        settings.status='Blender XR v0.4.0 is up to date'
     elif job.get('path'):
         from . import runtime
         try:
