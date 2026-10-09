@@ -69,8 +69,8 @@ jobs:
           VERSION: ${{ steps.github_release.outputs.version }}
         run: |
           if [[ -z "$BLENDER_EXTENSIONS_TOKEN" ]]; then
-            echo "::error::Missing repository secret BLENDER_EXTENSIONS_TOKEN"
-            exit 1
+            echo "::warning::BLENDER_EXTENSIONS_TOKEN is not configured; skipping Blender Extensions submission."
+            exit 0
           fi
           package="dist/blender-xr-v${VERSION}.zip"
           test -f "$package"
