@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,7),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,0),
     'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
-    'description': 'Free basic VR mesh editing with a hand-mounted menu',
+    'description': 'Free VR mesh modeling with a hand-mounted OpenXR menu',
     'category': '3D View',
 }
 import bpy
@@ -10,7 +10,8 @@ import textwrap
 import webbrowser
 from bpy.props import EnumProperty, FloatProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import runtime, mesh, project
+from . import runtime, mesh, project, v05
+v05.patch(runtime.Runtime)
 
 
 class BXR_Settings(bpy.types.PropertyGroup):
@@ -77,7 +78,7 @@ class BXR_OT_session(bpy.types.Operator):
             self.report({'ERROR'},'Use object mode or mesh edit mode')
             return {'CANCELLED'}
         if len(context.objects_in_mode)>1:
-            self.report({'ERROR'},'v0.4 supports editing one mesh at a time')
+            self.report({'ERROR'},'Blender XR currently edits one mesh at a time')
             return {'CANCELLED'}
         runtime.START_ERROR = ''
         session = runtime.Runtime(context)
@@ -233,7 +234,7 @@ class BXR_OT_link(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.4.7'
+    bl_label='Blender XR v0.5.0'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -277,7 +278,7 @@ class BXR_PT_panel(bpy.types.Panel):
         grid.prop(settings,'bevel_segments')
         grid.prop(settings,'primitive_size')
         grid.prop(settings,'placement_distance')
-        modeling.label(text='0.5 preview: object scale + face move/scale',icon='MODIFIER')
+        modeling.label(text='v0.5: vertex / edge / face editing',icon='MODIFIER')
 
         movement=layout.box()
         movement.label(text='Movement',icon='ORIENTATION_VIEW')
@@ -297,6 +298,7 @@ class BXR_PT_panel(bpy.types.Panel):
         help_box=layout.box()
         help_box.label(text='Quick Controls',icon='QUESTION')
         help_box.label(text='Trigger: select / use tool')
+        help_box.label(text='Grip + trigger: add/remove selection')
         help_box.label(text='Grip: grab object or empty space')
         help_box.label(text='Left stick: move  |  Right stick: turn / height')
         help_box.label(text='Other trigger: menu / cancel')
