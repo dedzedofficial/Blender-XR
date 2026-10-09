@@ -76,33 +76,6 @@ Pending physical release validation: every headset/runtime combination above, co
 - Adjustable menu position/size, axis snapping and improved diagnostics.
 - Test native Blender undo integration before replacing local history.
 
-## v0.5: expand mesh editing
-
-- Vertex and edge selection alongside faces.
-- Delete, merge, loop cuts, and proportional movement.
-- Object scaling and axis-constrained transforms.
-- Multi-face extrusion improvements for disconnected/complex selections.
-
-## v0.6: scene creation
-
-- Expand the existing hand-menu primitives with more creation options.
-- Duplicate objects, basic snapping, and world scale controls.
-- Controller profiles and validation beyond Quest Touch controllers.
-
-## v0.7: workflow polish
-
-- Better interaction with existing modifiers and material previews.
-- Minimal UI refinements, accessibility, and language support.
-- Improve update diagnostics and authenticated private-release setup.
-
-## v1.0: reliable basic VR modeling
-
-- Published compatibility matrix with physical headset test results.
-- Stable basic modeling workflow across tested Blender versions and OpenXR runtimes.
-- Documentation, reproducible installers, and complete regression coverage for supported tools.
-
-Sculpt brushes, UV editing, texture/weight painting, node editors, shape-key-safe topology changes, and multiplayer need separate design and are not promised by v0.3.
-
 ## v0.4.4: easier building and public updates
 
 - [x] Ray-picked XYZ movement and extrusion handles.
@@ -111,5 +84,76 @@ Sculpt brushes, UV editing, texture/weight painting, node editors, shape-key-saf
 - [x] Separate Edit Tools menu.
 - [x] One public updater button without authentication.
 - [x] Verified current release replaces older downloads.
+- [x] Face selection and direct face movement/scaling workflows.
+- [x] Whole-object scaling support.
+- [x] Distance-aware transform handles for easier VR targeting.
+- [x] Cleaner VR menus with duplicate options removed.
 - [ ] Quest and Valve headset usability testing for ray dragging and menu placement.
-- [ ] Mesh vertex/edge selection and object scale/rotation handles.
+
+# Future roadmap
+
+| Version | Main goal | Ideal features |
+| --- | --- | --- |
+| **v0.5** | **Complete mesh modeling** | Vertex, edge and face selection; switch selection modes in VR; multi-select; move, rotate and scale selected geometry; extrude vertices, edges and faces; inset; bevel vertices and edges; loop cut; subdivide; merge vertices; dissolve geometry; delete vertices, edges and faces; duplicate geometry; bridge edge loops; fill faces and holes; separate selected geometry; join meshes; flip and recalculate normals; Shade Smooth / Flat; Global / Local / Normal transform orientation; improved XYZ gizmos. |
+| **v0.6** | **Materials + UV mapping** | Create and delete materials; material slots; assign materials to selected faces; Base Color, Metallic, Roughness, Alpha and Emission controls; texture image selection; UV unwrap; Smart UV Project; cube and planar projection; move, rotate and scale UVs; reset UVs; simple VR UV preview; material preview mode. |
+| **v0.7** | **Object transforms + modifiers** | Direct numeric Position X/Y/Z, Rotation X/Y/Z and Scale X/Y/Z; uniform scale; reset and apply transforms; copy/paste transforms; VR transform gizmos; set object origin; Origin to Geometry; Geometry to Origin; snap object to cursor; duplicate and linked duplicate; improved object snapping; Mirror modifier with X/Y/Z, Clipping, Merge and Mirror Object; Array modifier with Count, Relative/Constant Offset, X/Y/Z direction and Object Offset; Solidify modifier; apply/remove modifiers; visibility toggle; reorder supported modifiers. |
+| **v0.8** | **Rigging + armatures** | Add armatures and bones; select bones in VR; move, rotate and scale bones; extrude bones; bone parenting; bone naming; mirror bones; Pose Mode; Rest/Pose switching; parent mesh to armature; automatic weights; basic IK; Copy Rotation / Location constraints; armature display controls. |
+| **v0.9** | **Weight painting + character tools** | Weight Paint mode; add/remove weights; brush size and strength; bone/vertex-group selection; create, delete and rename vertex groups; assign selected vertices; normalize, mirror and smooth weights; automatic cleanup; visual weight heatmap; test deformation while painting; shape keys/blendshapes; create, rename and delete shape keys; adjust shape-key values. |
+| **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems; reliable Object/Edit/Pose/Weight/UV/Material switching; unified Undo/Redo; grid, vertex, edge and face snapping; pivot controls; collection and hierarchy controls; common modifier management; better object duplication; transform presets; customizable VR menu; large-scene performance improvements; clearer error feedback; controller accessibility options; full tutorials and documentation; broad Blender-version and OpenXR compatibility testing. |
+
+## v0.7 transform workflow target
+
+v0.7 should translate the most useful parts of Blender's Object Properties and basic Modifier workflow into VR without turning the menu into a desktop UI clone.
+
+### Transform
+
+- Location: X / Y / Z
+- Rotation: X / Y / Z
+- Scale: X / Y / Z
+- Uniform scale
+- Reset Location / Rotation / Scale
+- Apply Location / Rotation / Scale
+- Copy and paste transforms
+- Global/local transform handling
+
+### Mirror
+
+- X / Y / Z axes
+- Clipping
+- Merge
+- Mirror Object
+- Apply
+- Remove
+
+### Array
+
+- Count
+- X / Y / Z direction
+- Relative Offset
+- Constant Offset
+- Object Offset
+- Apply
+- Remove
+
+### Solidify
+
+- Thickness
+- Offset
+- Even Thickness where supported
+- Apply
+- Remove
+
+## Beyond v1.0
+
+The following are intentionally outside the initial 1.0 target so the core VR modeling workflow can become stable first:
+
+- Sculpting.
+- Full Shader Node editing.
+- Geometry Nodes editing.
+- Grease Pencil workflows.
+- Animation graph editing.
+- Video editing and compositing.
+- Cloth, fluid and other advanced simulation workflows.
+- Advanced retopology systems.
+
+These may be explored in later 1.x releases after the core XR modeling, material, UV, rigging and character workflows are stable.
