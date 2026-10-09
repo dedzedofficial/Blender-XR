@@ -4,15 +4,7 @@
 
 Blender XR brings a simple controller-first modeling workflow into Blender using OpenXR. One hand holds a compact tool menu while the dominant controller points, selects, edits, transforms, places primitives and navigates the scene.
 
-[Download the latest release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/) · [Support on Patreon](https://www.patreon.com/cw/DedZed)
-
-## Support development
-
-Blender XR is free and open source. If you find it useful and want to help fund continued development, testing and future features, you can support the project on Patreon.
-
-**[Support Ded Zed on Patreon](https://www.patreon.com/cw/DedZed)**
-
-Patreon support is optional and does not lock features behind a paid tier.
+[Download the latest release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/)
 
 ## What v0.4.7 includes
 
@@ -166,10 +158,14 @@ See [TESTING.md](TESTING.md) for validation details and [ROADMAP.md](ROADMAP.md)
 
 ---
 
-### Support Blender XR
+## Support Development
 
-Blender XR is developed as a free project. If you'd like to support continued development, testing and new VR modeling tools:
+Blender XR is free and open source. If you find the project useful and want to help support continued development, testing and future VR modeling features, you can support Ded Zed on Patreon.
 
-**[Patreon - Ded Zed](https://www.patreon.com/cw/DedZed)** · **[FISHHWB Website](https://fishhwb.github.io/)**
+**[Support Blender XR development on Patreon](https://www.patreon.com/cw/DedZed)**
+
+Patreon support is completely optional. There is no paid feature tier and development remains focused on keeping Blender XR freely available.
+
+**[FISHHWB Website](https://fishhwb.github.io/)**
 
 Independent project by Ded Zed. Not affiliated with the Blender Foundation, Freebird XR or the earlier MARUI BlenderXR project.
