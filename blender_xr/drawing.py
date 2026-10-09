@@ -7,17 +7,17 @@ from mathutils import Vector
 # Keep each action in one logical place. Edit-mode face tools live together,
 # while global project/history actions stay on the main tools page.
 BUTTONS = (
-    ('SELECT OBJECT','SELECT'), ('MOVE OBJECT','MOVE'),
-    ('SCALE OBJECT','SCALE'), ('FACE MODE','MODE'),
+    ('SELECT','SELECT'), ('MOVE','MOVE'),
+    ('SCALE','SCALE'), ('EDIT MODE','MODE'),
     ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
     ('UNDO','UNDO'), ('REDO','REDO'),
-    ('SAVE BLEND','SAVE'), ('STOP VR','STOP'),
+    ('SAVE','SAVE'), ('STOP','STOP'),
 )
 EDIT_BUTTONS = (
-    ('SELECT FACE','SELECT'), ('MOVE FACE','MOVE_FACE'),
-    ('SCALE FACE','SCALE_FACE'), ('EXTRUDE','EXTRUDE'),
+    ('SELECT','SELECT'), ('MOVE','MOVE_FACE'),
+    ('SCALE','SCALE_FACE'), ('EXTRUDE','EXTRUDE'),
     ('BEVEL','BEVEL'), ('INSET','INSET'),
-    ('DEL FACES','DELETE_FACES'), ('STEP -','LESS'),
+    ('DELETE','DELETE_FACES'), ('STEP -','LESS'),
     ('STEP +','MORE'), ('OBJECT MODE','MODE'),
 )
 PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
@@ -157,7 +157,7 @@ class Menu:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
         rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'FACE TOOLS'}.get(self.page,'TOOLS')
+        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'EDIT'}.get(self.page,'TOOLS')
         text('BLENDER XR / '+title,-0.177,0.208,0.00275)
         summary = ('FLY ' if settings.fly_mode else 'WALK ') + format(settings.move_speed,'.1f') + ' / '+settings.turn_mode if settings and self.page=='TRAVEL' else tool.replace('_',' ')+' / STEP '+format(step,'.3f')
         text(summary,-0.177,0.153,0.00265)
@@ -175,7 +175,7 @@ class Menu:
         text(status[:25],-0.174,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
         text(hint,-0.174,-0.246,0.0021)
-        text('V0.4.4',-0.174,-0.274,0.0021)
+        text('V0.4.7',-0.174,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):

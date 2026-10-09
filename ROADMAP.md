@@ -90,6 +90,17 @@ Pending physical release validation: every headset/runtime combination above, co
 - [x] Cleaner VR menus with duplicate options removed.
 - [ ] Quest and Valve headset usability testing for ray dragging and menu placement.
 
+## v0.4.7: UI polish + early v0.5 preview
+
+- [x] Reorganize the desktop sidebar into clear Session, Controller, Modeling, Movement, Project and Update sections.
+- [x] Simplify the hand-menu labels so the most common actions are quicker to read in VR.
+- [x] Ship the first v0.5-preview tools already implemented in main: whole-object scaling, selected-face XYZ movement and selected-face scaling.
+- [x] Keep distance-aware gizmos that grow for easier targeting when farther from the mesh.
+- [x] Add Patreon and Website buttons at the bottom of the sidebar.
+- [x] Open Patreon and Website links in the system default browser.
+- [x] Keep existing save, primitive, travel, face editing and local history workflows intact.
+- [ ] Continue physical Quest / Valve usability testing before v0.5.
+
 # Future roadmap
 
 | Version | Main goal | Ideal features |
