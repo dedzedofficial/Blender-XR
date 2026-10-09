@@ -1,16 +1,16 @@
-# Blender XR v0.4
+# Blender XR v0.4.1
 
 **Free basic VR modeling inside Blender, by Ded Zed.**
 
 Choose your dominant hand before entering VR. The other hand holds a small tool menu; the dominant controller points, selects, edits, and moves objects.
 
-**Development release:** geometry and updater tests pass in Blender 5.0.0 and 5.2.2. Physical Quest 3 and Windows runtime testing is still pending. Air Link, SteamVR, and Virtual Desktop are intended OpenXR connection paths, not yet certified combinations.
+**v0.4.1 fixing update:** fixes the timer error that stopped VR controls, adds left-stick and grab-air movement, and adds primitive placement. Geometry, locomotion simulation, primitive creation and updater tests pass in Blender 5.0.0 and 5.2.2. Physical Quest 3 and Windows runtime testing is still pending. Air Link, SteamVR, and Virtual Desktop are intended OpenXR connection paths, not yet certified combinations.
 
-[Download v0.4 installer](dist/blender-xr-v0.4.0.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md)
+[Download v0.4.1 installer](dist/blender-xr-v0.4.1.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md)
 
 ## Install
 
-1. Download `blender-xr-v0.4.0.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
+1. Download `blender-xr-v0.4.1.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
 2. In Blender, open **Edit > Preferences > Add-ons**, open the menu at the upper right, and select **Install from Disk**.
 3. Select the installer ZIP and enable **Blender XR**.
 4. In the 3D viewport, press **N** and open the **Blender XR** tab.
@@ -52,11 +52,13 @@ Requires Blender 5+ with OpenXR, a PC capable of running VR, and two tracked con
 | MODE menu button | Switch the selected mesh between object mode and face edit mode. |
 | Grip + trigger with SELECT in face mode | Add or remove a face from the selection. |
 | Trigger with EXTRUDE / BEVEL / INSET | Hold and move the controller to preview the amount; release to apply. |
-| Dominant grip with MOVE in object mode | Move and rotate the selected object; release to apply. |
+| Dominant grip with MOVE in object mode | Point at a mesh, grip to move and rotate it; release to apply. |
 | Non-dominant trigger | Toggle the hand menu, or cancel an active edit/move. |
-| Non-dominant thumbstick | Move the viewer horizontally while no tool operation is active. |
+| Left thumbstick | Move the viewer horizontally, relative to your head direction, regardless of dominant hand. Pauses during a live edit, object grab or grab-air movement. |
+| Either grip, ray pointing into empty space | Hold and pull your hand to move the viewer in 3D; release to stop. Works with controller grips and the experimental finger-curl bridge. |
+| ADD SHAPES | Choose cube, sphere, cylinder, cone, torus or plane, point away from the menu, then trigger to place. |
 | LESS / MORE menu buttons | Halve or double the starting tool distance. |
-| UNDO / REDO | Undo/redo the latest 20 Blender XR edits and object moves during the current session. |
+| UNDO / REDO | Undo/redo the latest 20 Blender XR edits, object moves and primitive creations during the current session. |
 | RESET VIEW | Reset viewer navigation to the starting location. |
 | STOP VR, desktop Stop VR, or ESC | Stop the session and cancel unfinished work. |
 
@@ -69,6 +71,14 @@ Requires Blender 5+ with OpenXR, a PC capable of running VR, and two tracked con
 5. Point away from the menu, hold the trigger, and move the dominant controller. Release to commit; press the other trigger to cancel.
 
 Extrusion follows the area-weighted average selected face normal. Moving along that normal changes depth. Bevel and inset use sideways controller movement. A short trigger click uses the default distance, initially 0.03 in local mesh units. Bevel segment count is set before entering VR. The menu floats above the other hand and faces your head for readability.
+
+### Build from primitives
+
+Open **ADD SHAPES** on the hand menu, choose a primitive and point at its intended location. A green wireframe box shows the placement bounds. Trigger places an ordinary Blender mesh and selects MOVE so you can point at it and grip to position it. Use MODE to edit its faces with Blender XR tools. UNDO removes a new primitive; REDO restores it in object mode.
+
+Shapes land on the ray-hit surface, offset by half their size (plane has no offset). In empty space they appear at **Placement distance**, initially 1.5 VR metres. Set **Shape size**, **Placement distance**, **Navigation speed** and **Grab empty space to move** in the sidebar. The empty-space grip gesture translates the viewer; it does not rotate or scale the scene.
+
+If v0.4 raised the `Event has no attribute timer` error, stop VR and restart Blender before updating. v0.4.1 handles TIMER events using the session clock and never reads that missing attribute.
 
 ## Update from GitHub
 
@@ -95,7 +105,7 @@ Release automation publishes each version after validation. A 404 can mean missi
 4. Release both hands to arm. Thumb/index pinch replaces the trigger: select, menu clicks, or hold/release a tool preview. Close the dominant middle/ring/pinky fingers to grab in MOVE, then open to release. Pinch the other hand to toggle the menu or cancel.
 5. Stop the helper with Ctrl+C. Stale input after 0.25 seconds cancels unfinished work; release both hands after reconnection. Stop VR before returning to controller input.
 
-Skeletal pinch accuracy, simultaneous background SteamVR input and controller-free emulation need real headset testing. If SteamVR does not expose active partial/full skeletal actions, the mode waits rather than edits. Use SteamVR Input to bind the helper's two skeleton actions if the automatic bindings are unavailable. No automatic viewer movement is enabled in finger mode.
+Skeletal pinch accuracy, simultaneous background SteamVR input and controller-free emulation need real headset testing. If SteamVR does not expose active partial/full skeletal actions, the mode waits rather than edits. Use SteamVR Input to bind the helper's two skeleton actions if the automatic bindings are unavailable. Finger mode uses either-hand finger curl in empty space for grab-air movement; it has no thumbstick locomotion.
 
 ## v0.4 limits
 
@@ -114,6 +124,7 @@ Run `python tests/test_gestures.py` for finger/protocol/profile checks. Run the 
 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+blender --background --factory-startup --python-exit-code 1 --python tests/test_controls.py
 blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
 ```
 

@@ -53,3 +53,17 @@ Repeat controller checks with both dominant-hand choices on Quest/Rift and Valve
 8. Use real SteamVR Input bindings to confirm the helper background process receives skeletal actions while Blender has input focus.
 
 These physical tests have not been run by the automated suite. v0.4 remains a development release.
+
+## v0.4.1 fixing update
+
+Automated Blender checks cover TIMER events without an event.timer attribute, timer rate limiting, left-stick navigation with either dominant hand, deadzone/diagonal speed, either-hand grab-air movement, no self-induced navigation drift, object-grip priority, all six primitives, surface/empty-space placement, edit-mode isolation, primitive undo/redo and temporary template cleanup.
+
+Quest 3 retest:
+
+1. Install v0.4.1 and restart Blender. Start VR and confirm there is no TIMER traceback.
+2. Move with the physical left stick; repeat after selecting left-hand dominance. Check head-relative direction and Navigation speed.
+3. Point either controller ray into empty space, hold grip, pull sideways/up/down, and release. Confirm the viewer moves and scene objects stay fixed. Disable Grab empty space to move and confirm it stops activating.
+4. Point the dominant ray at a mesh in MOVE and grip. Confirm only that object moves.
+5. Open ADD SHAPES and place every primitive, both on a surface and into empty space. Check the green placement bounds, size/distance settings and transition to MOVE.
+6. Undo/redo creation in object mode, then MODE into face editing and test extrude/bevel/inset on the new shapes.
+7. Stop and reopen VR. Record Blender version, transport and OpenXR runtime. These physical checks remain pending.

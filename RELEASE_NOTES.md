@@ -1,16 +1,15 @@
-# Blender XR v0.4.0
+# Blender XR v0.4.1
 
-Free development release by Ded Zed.
+Fixing update by Ded Zed. All changes remain under v0.4.1.
 
-- Automatic, Meta and Valve/SteamVR controller presets, with Touch, Index, Vive and simple bindings.
-- Expanded compatibility target matrix for Quest/Rift and Valve Index/Steam Frame. Newer native controller profiles depend on runtime compatibility; all physical combinations remain unverified.
-- Optional Touch/Index finger-touch hold shortcuts for menu access and cancellation.
-- Experimental free SteamVR skeletal helper: thumb/index pinch for selection/tool previews, finger curl for MOVE grab, other-hand pinch for menu/cancel.
-- Input-loss cancellation, release-before-arming, session-key loopback input and hardware-free regression tests.
-- Existing extrude, bevel, inset, move/rotate, VR history and GitHub updater remain included.
+- Fixed AttributeError: Event has no attribute timer, which interrupted the VR control loop.
+- Left thumbstick now moves the viewer independently of dominant-hand choice.
+- Either-hand grip into empty space lets you pull yourself around in 3D. Point at a mesh in MOVE to grip the object instead.
+- Added a hand-menu primitive picker: cube, sphere, cylinder, cone, torus and plane.
+- Placement bounds preview, surface placement, configurable shape size and empty-space placement distance.
+- New primitive creation supports VR-local undo/redo and creates ordinary Blender meshes for further editing.
+- Regression tests reproduce the timer failure and check locomotion, grip priority, placement and creation history.
 
-Install **blender-xr-v0.4.0.zip**, not GitHub's source-code ZIP. Restart Blender after updating.
+Install **blender-xr-v0.4.1.zip** through Install from Disk, or use the existing GitHub Download & Install button with VR stopped. Restart Blender after installation, especially if the previous VR loop raised an error.
 
-Controller mode is the default. Finger bridge mode requires system Python, the optional openvr package, SteamVR skeletal input, and tracked controller/hand poses. It does not implement native Air Link controller-free hand tracking. Consult the README before enabling it.
-
-Automated checks cover Blender 5.0.0 and 5.2.2. Real headsets, Windows and the experimental bridge's simultaneous SteamVR input need user testing. Requires OpenXR; Blender 5.0.1 is blocked due to its known VR crash.
+Existing Meta/Valve presets, mesh tools and experimental finger bridge remain included. Controller mode is the default. Real Quest/Valve hardware testing remains pending; automated checks use Blender 5.0.0 and 5.2.2.

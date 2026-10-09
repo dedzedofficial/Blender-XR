@@ -11,7 +11,11 @@ BUTTONS = (
     ('UNDO', 'UNDO'), ('REDO', 'REDO'),
     ('LESS', 'LESS'), ('MORE', 'MORE'),
     ('RESET VIEW', 'RESET'), ('STOP VR', 'STOP'),
+    ('ADD SHAPES', 'ADD_MENU'), ('', 'PANEL'),
 )
+PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
+                         ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
+    ('BACK', 'BACK'), ('STOP VR', 'STOP'))
 # Original compact 5x7 bitmap font. GPU triangles work in both stereo eyes.
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
@@ -76,6 +80,11 @@ class Menu:
         self.scale = 1.0
         self.visible = True
         self.ready = False
+        self.page = 'TOOLS'
+
+    @property
+    def buttons(self):
+        return PRIMITIVE_BUTTONS if self.page == 'PRIMITIVES' else BUTTONS
 
     def position(self, hand, viewer, scale):
         self.scale = max(scale, 1e-6)
@@ -107,9 +116,9 @@ class Menu:
         pos = origin + direction*t
         local = (pos-self.center)/self.scale
         x, y = local.dot(self.right), local.dot(self.up)
-        if not (-0.19 <= x <= 0.19 and -0.22 <= y <= 0.23):
+        if not (-0.19 <= x <= 0.19 and -0.27 <= y <= 0.23):
             return None, None
-        for i, (_, action) in enumerate(BUTTONS):
+        for i, (_, action) in enumerate(self.buttons):
             bx, by, w, h = button_rect(i)
             if bx <= x <= bx+w and by <= y <= by+h:
                 return action, pos
@@ -132,17 +141,17 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.19,-0.22,0.48,0.45,(0.025,0.04,0.06,0.97))
-        text('BLENDER XR 0.4',-0.17,0.205,0.0032)
+        rect(-0.19,-0.27,0.38,0.50,(0.025,0.04,0.06,0.97))
+        text('BLENDER XR 0.4.1',-0.17,0.205,0.0032)
         text('STEP '+format(step,'.4f'),-0.17,0.177,0.0026)
-        for i,(label,action) in enumerate(BUTTONS):
+        for i,(label,action) in enumerate(self.buttons):
             bx,by,w,h=button_rect(i)
             color=(0.06,0.12,0.18,1)
             if action==tool: color=(0.04,0.41,0.43,1)
             if action==hover: color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             text(label,bx+0.009,by+0.027,0.00245)
-        text(status[:24],-0.17,-0.194,0.0023)
+        text(status[:24],-0.17,-0.246,0.0023)
 
 
 def draw_batch(shader, kind, points, color):
@@ -166,6 +175,13 @@ def draw(runtime):
         origin,direction=runtime.ray
         end=runtime.pointer if runtime.pointer is not None else origin+direction*2*runtime.menu.scale
         draw_batch(shader,'LINES',[origin,end],(0.12,0.85,1,1))
+        if runtime.spawn_preview is not None:
+            center, size = runtime.spawn_preview
+            corners = [center + Vector((x,y,z))*size/2
+                       for x in (-1,1) for y in (-1,1) for z in (-1,1)]
+            pairs = [(i,j) for i in range(8) for j in range(i+1,8)
+                     if (i ^ j) in (1,2,4)]
+            draw_batch(shader,'LINES',[corners[k] for pair in pairs for k in pair],(0.3,1,0.55,1))
         # Explicit VR face feedback, independent of desktop edit overlays.
         obj=runtime.context.view_layer.objects.active
         if obj and obj.type=='MESH' and obj.mode=='EDIT':

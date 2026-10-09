@@ -3,11 +3,37 @@ import math
 import time
 import bpy
 from mathutils import Matrix, Vector, Quaternion
-from . import actions, drawing, mesh, gestures
+from . import actions, drawing, mesh, gestures, primitives
 
 CURRENT = None
 PENDING = False
 START_ERROR = ''
+
+
+def timer_due(session, now=None):
+    return (time.monotonic() if now is None else now) - session.last_tick >= 1/60
+
+
+def stick_delta(rotation, stick, dt, speed, scale):
+    """Camera-local -Z is forward; remove pitch without changing walking speed."""
+    amount = Vector((stick[0], stick[1]))
+    magnitude = amount.length
+    if magnitude <= 0.15:
+        return Vector()
+    forward = rotation @ Vector((0, 0, -1))
+    forward.z = 0
+    if forward.length < 1e-6:
+        # Stable direction even when looking straight down/up.
+        right = rotation @ Vector((1, 0, 0))
+        right.z = 0
+        if right.length < 1e-6:
+            return Vector()
+        forward = Vector((0, 0, 1)).cross(right.normalized())
+    forward.normalize()
+    right = forward.cross(Vector((0, 0, 1)))
+    strength = (min(magnitude, 1.0) - 0.15) / 0.85
+    amount *= strength / magnitude
+    return (right*amount.x + forward*amount.y) * min(max(dt, 0), 0.1) * speed * scale
 
 
 def session_pre(*_args):
@@ -47,6 +73,10 @@ class Runtime:
         self.pointer = None
         self.transaction = None
         self.grab = None
+        self.air_grab = None
+        self.other_grip = Button()
+        self.pending_primitive = None
+        self.spawn_preview = None
         self.trigger = Button()
         self.off_trigger = Button()
         self.grip = Button()
@@ -84,6 +114,7 @@ class Runtime:
             drawing.draw, (self,), 'XR', 'POST_VIEW')
 
     def cancel_work(self):
+        self.air_grab = None
         if self.transaction:
             transaction, self.transaction = self.transaction, None
             try:
@@ -123,7 +154,22 @@ class Runtime:
     def command(self, context, action):
         if action == 'PANEL':
             return
+        if action == 'ADD_MENU':
+            self.menu.page = 'PRIMITIVES'
+            self.status = 'CHOOSE A SHAPE'
+            return
+        if action == 'BACK':
+            self.menu.page = 'TOOLS'
+            return
+        if action.startswith('ADD_') and action[4:] in primitives.KINDS:
+            self.pending_primitive = action[4:]
+            self.menu.page = 'TOOLS'
+            self.tool = 'PLACE'
+            self.status = 'PLACE ' + self.pending_primitive
+            return
         if action in {'SELECT','EXTRUDE','BEVEL','INSET','MOVE'}:
+            self.pending_primitive = None
+            self.spawn_preview = None
             self.tool = action
             self.status = action + ' READY'
         elif action == 'MODE':
@@ -168,6 +214,36 @@ class Runtime:
             if obj.type == 'MESH' and obj.visible_get(view_layer=context.view_layer):
                 return obj, result[1]
         return None
+
+    def placement(self, context, origin, direction, scale):
+        size = self.settings.primitive_size * scale
+        hit = context.scene.ray_cast(context.evaluated_depsgraph_get(), origin, direction)
+        if hit[0]:
+            offset = 0 if self.pending_primitive == 'PLANE' else size/2
+            return hit[1] + hit[2]*offset, size
+        return origin + direction * self.settings.placement_distance * scale, size
+
+    def spawn(self, context):
+        if self.spawn_preview is None or not self.pending_primitive:
+            raise ValueError('Point away from the menu to place the shape')
+        location, size = self.spawn_preview
+        obj = primitives.add(context, self.pending_primitive, location, size)
+        self.history.push(mesh.creation_entry(obj))
+        self.pending_primitive = None
+        self.spawn_preview = None
+        self.tool = 'MOVE'
+        self.status = 'ADDED ' + obj.name.upper()
+
+    def move_air(self, state, hand_position, held):
+        if not held:
+            self.air_grab = None
+            self.status = 'MOVE RELEASED'
+            return
+        # Poses include the current navigation offset. A fixed world anchor
+        # avoids feeding our own previous offset back into the next frame.
+        _, anchor = self.air_grab
+        state.navigation_location = Vector(state.navigation_location) + anchor - hand_position
+        self.status = 'GRAB AIR TO MOVE'
 
     def select(self, context, origin, direction, additive=False):
         obj = context.view_layer.objects.active
@@ -237,6 +313,8 @@ class Runtime:
             self.trigger = Button()
             self.off_trigger = Button()
             self.grip = Button()
+            self.other_grip = Button()
+            self.spawn_preview = None
             if self.bridge:
                 self.bridge.armed = False
             self.status = 'WAITING FOR TRACKED HAND POSES'
@@ -255,14 +333,18 @@ class Runtime:
                 self.trigger = Button()
                 self.off_trigger = Button()
                 self.grip = Button()
+                self.other_grip = Button()
+                self.spawn_preview = None
                 self.status = 'WAITING FOR FINGERS / RELEASE BOTH HANDS'
                 return
             trigger_value, grab_value = inputs[self.dom]
             off_value = inputs[self.off][0]
+            other_grab_value = inputs[self.off][1]
         else:
             trigger_value = actions.read(context, 'trigger', self.dom)[0]
             grab_value = actions.read(context, 'grab', self.dom)[0]
             off_value = actions.read(context, 'trigger', self.off)[0]
+            other_grab_value = actions.read(context, 'grab', self.off)[0]
             if self.finger_touch:
                 # Holding both touch sensors fires once, until the fingers lift.
                 touch_events = [self.touch_holds[i].update(actions.touch(context, i), now)
@@ -278,12 +360,18 @@ class Runtime:
         press, release = self.trigger.update(trigger_value)
         off_press, _ = self.off_trigger.update(off_value)
         grab_press, grab_release = self.grip.update(grab_value)
+        other_grab_press, _ = self.other_grip.update(other_grab_value)
         obj = context.view_layer.objects.active
         if off_press:
-            if self.transaction or self.grab:
+            if self.transaction or self.grab or self.air_grab:
                 self.cancel_work()
                 return
             self.menu.visible = not self.menu.visible
+        if self.air_grab:
+            index = self.air_grab[0]
+            held = self.grip.down if index == self.dom else self.other_grip.down
+            self.move_air(state, Vector(state.controller_grip_location_get(context, index)), held)
+            return
         if self.transaction:
             if obj != self.transaction.obj or obj.mode != 'EDIT':
                 self.cancel_work()
@@ -313,27 +401,50 @@ class Runtime:
                 self.grab = None
                 self.status = 'MOVED OBJECT'
             return
+        self.spawn_preview = (self.placement(context, origin, direction, scale)
+                              if self.pending_primitive and not self.hover else None)
         if press:
             if self.hover:
                 self.command(context,self.hover)
             elif self.tool in {'SELECT','MOVE'}:
                 self.select(context,origin,direction,additive=self.grip.down)
+            elif self.tool == 'PLACE':
+                self.spawn(context)
             else:
                 self.begin_tool(context,origin,pose)
-        if grab_press and self.tool == 'MOVE' and not self.hover:
-            if not obj or obj.mode != 'OBJECT':
-                raise ValueError('Use MODE to enter object mode')
-            if obj.library or obj.parent or obj.constraints:
-                raise ValueError('v0.4 movement requires a local unparented object without constraints')
-            self.grab = (obj,obj.matrix_world.copy(),grip_matrix.inverted())
-            self.status = 'GRAB OBJECT'
-        # Off-hand stick moves the viewer horizontally. Disabled during editing.
-        stick = (0, 0) if self.bridge else actions.read(context,'stick',self.off)
-        if abs(stick[0])>0.2 or abs(stick[1])>0.2:
-            viewer_rotation = Quaternion(state.viewer_pose_rotation)
-            forward = viewer_rotation @ Vector((0,0,-1))
-            forward.z = 0
-            if forward.length>1e-6:
-                forward.normalize()
-                right = forward.cross(Vector((0,0,1)))
-                state.navigation_location += (right*stick[0]+forward*stick[1])*dt*self.settings.move_speed*scale
+        if self.transaction:
+            return
+        for index, pressed in ((self.dom, grab_press), (self.off, other_grab_press)):
+            if not pressed:
+                continue
+            aim_origin = Vector(state.controller_aim_location_get(context, index))
+            aim_rotation = Quaternion(state.controller_aim_rotation_get(context, index))
+            if aim_rotation.magnitude < 0.5:
+                continue
+            aim_direction = aim_rotation @ Vector((0,0,-1))
+            if self.menu.hit(aim_origin, aim_direction)[0]:
+                continue
+            hit = self.object_hit(context, aim_origin, aim_direction)
+            if hit is None and self.settings.grab_air:
+                self.air_grab = (index, Vector(state.controller_grip_location_get(context, index)))
+                self.status = 'GRAB AIR TO MOVE'
+                return
+            if index == self.dom and self.tool == 'MOVE' and hit:
+                target = hit[0]
+                if context.mode != 'OBJECT':
+                    raise ValueError('Use MODE to enter object mode')
+                if target.library or target.parent or target.constraints:
+                    raise ValueError('Movement requires a local unparented object without constraints')
+                for selected in context.selected_objects:
+                    selected.select_set(False)
+                target.select_set(True)
+                context.view_layer.objects.active = target
+                self.grab = (target,target.matrix_world.copy(),grip_matrix.inverted())
+                self.status = 'GRAB OBJECT'
+                return
+        # Always the physical LEFT stick, independent of dominant-hand choice.
+        stick = (0, 0) if self.bridge else actions.read(context,'stick',0)
+        delta = stick_delta(Quaternion(state.viewer_pose_rotation), stick, dt,
+                            self.settings.move_speed, scale)
+        if delta.length:
+            state.navigation_location = Vector(state.navigation_location) + delta

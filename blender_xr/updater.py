@@ -19,7 +19,7 @@ from bpy.props import StringProperty
 
 REPOSITORY='dedzedofficial/Blender-XR'
 API='https://api.github.com/repos/'+REPOSITORY
-VERSION=(0,4,0)
+VERSION=(0,4,1)
 MAX_BYTES=16*1024*1024
 JOB=None
 LATEST=None
@@ -99,7 +99,8 @@ def validate_archive(data,expected_version):
                 raise ValueError('Installer ZIP exceeds safe size limits')
             files[name]=archive.read(info)
     required={'__init__.py','blender_manifest.toml','actions.py','drawing.py',
-              'mesh.py','runtime.py','updater.py','LICENSE'}
+              'mesh.py','runtime.py','updater.py','gestures.py',
+              'primitives.py','steamvr_hand_bridge.py','LICENSE'}
     if not required.issubset(files):
         raise ValueError('Release ZIP is missing required add-on files')
     if any(not (name.endswith('.py') or name in {'blender_manifest.toml','LICENSE','README.md'})
@@ -199,7 +200,7 @@ def poll_job():
     LATEST=job['release']
     v=LATEST['version']
     if v<=VERSION:
-        settings.status='Blender XR v0.4.0 is up to date'
+        settings.status='Blender XR v0.4.1 is up to date'
     elif job.get('path'):
         from . import runtime
         try:

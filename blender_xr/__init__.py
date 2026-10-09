@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,0),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,1),
     'blender': (5,0,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free basic VR mesh editing with a hand-mounted menu',
     'category': '3D View',
@@ -30,6 +30,12 @@ class BXR_Settings(bpy.types.PropertyGroup):
                         description='Initial tool amount in local mesh units')
     bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8)
     move_speed: FloatProperty(name='Navigation speed',default=1.0,min=0.1,max=5)
+    grab_air: bpy.props.BoolProperty(name='Grab empty space to move', default=True,
+        description='Point into empty space and hold either grip; pull your hand to move the viewer')
+    primitive_size: FloatProperty(name='Shape size', default=0.5, min=0.01, max=10,
+        description='Primitive size in physical VR metres, scaled to the scene')
+    placement_distance: FloatProperty(name='Placement distance', default=1.5, min=0.1, max=10,
+        description='Distance in physical VR metres when pointing into empty space')
     status: bpy.props.StringProperty(default='Ready')
 
 
@@ -96,7 +102,9 @@ class BXR_OT_session(bpy.types.Operator):
             return {'CANCELLED'}
         if event.type=='ESC' and event.value=='PRESS':
             session.request_stop=True
-        if event.type=='TIMER' and event.timer==session.timer:
+        # Blender Event has no timer attribute. Rate-limit TIMER events by the
+        # session clock so other modal timers cannot accelerate navigation.
+        if event.type=='TIMER' and runtime.timer_due(session):
             try:
                 if session.area.type!='VIEW_3D':
                     session.request_stop=True
@@ -123,7 +131,7 @@ class BXR_OT_session(bpy.types.Operator):
                 self.report({'ERROR'},session.error)
             return {'FINISHED'}
         # Avoid desktop topology edits/native undo invalidating a live preview.
-        if session.transaction or session.grab:
+        if session.transaction or session.grab or session.air_grab:
             return {'RUNNING_MODAL'}
         return {'PASS_THROUGH'}
 
@@ -178,7 +186,7 @@ class BXR_OT_bridge_command(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.4'
+    bl_label='Blender XR v0.4.1'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -205,6 +213,9 @@ class BXR_PT_panel(bpy.types.Panel):
         col.prop(settings,'step')
         col.prop(settings,'bevel_segments')
         col.prop(settings,'move_speed')
+        col.prop(settings,'grab_air')
+        col.prop(settings,'primitive_size')
+        col.prop(settings,'placement_distance')
         layout.operator('blender_xr.stop' if active else 'blender_xr.session',
                         text='Stop VR' if active else 'Start VR',icon='HIDE_OFF')
         for line in textwrap.wrap(settings.status,44):
@@ -213,7 +224,9 @@ class BXR_PT_panel(bpy.types.Panel):
         box.label(text='Point + trigger: select / use tool')
         box.label(text='Grip in MOVE: move / rotate object')
         box.label(text='Other trigger: menu / cancel')
-        box.label(text='Other stick: move around')
+        box.label(text='Left stick: move around')
+        box.label(text='Grip empty space: pull to move')
+        box.label(text='ADD SHAPES: pick, point, trigger')
         box.label(text='ESC: stop VR')
         updates=layout.box()
         updates.label(text='GitHub Updates',icon='FILE_REFRESH')

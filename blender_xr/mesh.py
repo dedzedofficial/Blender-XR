@@ -160,6 +160,14 @@ class Transaction:
             self.before = None
 
 
+def creation_entry(obj):
+    template = obj.copy()
+    template.data = obj.data.copy()
+    template.name = '.BlenderXR_CreatedObject'
+    return ('CREATE', obj.name, obj.data.name, template,
+            tuple(obj.users_collection))
+
+
 class History:
     """VR-local undo/redo; does not invoke Blender undo from inside a modal loop."""
     def __init__(self):
@@ -172,6 +180,12 @@ class History:
             for mesh in entry[3:5]:
                 if mesh and mesh.name in bpy.data.meshes:
                     bpy.data.meshes.remove(mesh)
+        elif entry[0] == 'CREATE':
+            template = entry[3]
+            data = template.data
+            bpy.data.objects.remove(template, do_unlink=True)
+            if data.users == 0:
+                bpy.data.meshes.remove(data)
 
     def push(self, entry):
         if not entry:
@@ -189,6 +203,36 @@ class History:
             return False
         entry = source[-1]
         obj = bpy.data.objects.get(entry[1])
+        if entry[0] == 'CREATE':
+            if backwards:
+                if obj is None or obj.mode != 'OBJECT' or obj.data.name != entry[2]:
+                    raise ValueError('Switch to object mode and select the original created mesh')
+                data = obj.data
+                bpy.data.objects.remove(obj, do_unlink=True)
+                if data.users == 0:
+                    bpy.data.meshes.remove(data)
+            else:
+                if obj is not None or bpy.data.meshes.get(entry[2]) is not None:
+                    raise ValueError('A name used by the created object is occupied; restart VR')
+                if bpy.context.mode != 'OBJECT':
+                    raise ValueError('Switch to object mode before restoring a primitive')
+                try:
+                    collections = [c for c in entry[4] if not c.library and c.name]
+                except ReferenceError:
+                    raise ValueError('The original collection was removed; restart VR') from None
+                if not collections:
+                    raise ValueError('The original collection was removed; restart VR')
+                obj = entry[3].copy()
+                obj.data = entry[3].data.copy()
+                obj.name, obj.data.name = entry[1], entry[2]
+                for collection in collections:
+                    collection.objects.link(obj)
+                for selected in bpy.context.selected_objects:
+                    selected.select_set(False)
+                obj.select_set(True)
+                bpy.context.view_layer.objects.active = obj
+            dest.append(source.pop())
+            return True
         if obj is None:
             raise ValueError('The edited object was removed; restart VR to clear history')
         if entry[0] == 'MESH':

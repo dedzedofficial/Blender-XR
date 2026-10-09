@@ -43,6 +43,15 @@ Implemented:
 
 Pending physical release validation: every headset/runtime combination above, controller touch behavior, skeletal measurements and background SteamVR input. Native OpenXR hand joints are not exposed through Blender's current Python API. Native Air Link hand tracking and native Steam Frame controller extensions need upstream integration or a different backend.
 
+## v0.4.1: fixing update
+
+- Fixed the missing Event.timer access that interrupted the VR modal loop.
+- Left thumbstick locomotion independent of dominant-hand choice, with deadzone and speed limiting.
+- Either-hand grab-air translation, with object-grip priority and no navigation feedback drift.
+- Hand-menu primitive picker and placement preview: cube, sphere, cylinder, cone, torus and plane.
+- Primitive creation in object mode, with VR-local undo/redo and snapshot cleanup.
+- Regression tests reproduce timer events without the missing attribute and simulate both handedness settings.
+
 ## v0.4.x: follow-up after headset testing
 
 - Fix reported runtime/profile issues first; publish actual hardware results.
@@ -59,7 +68,7 @@ Pending physical release validation: every headset/runtime combination above, co
 
 ## v0.6: scene creation
 
-- Add basic mesh primitives from the hand menu.
+- Expand the existing hand-menu primitives with more creation options.
 - Duplicate objects, basic snapping, and world scale controls.
 - Controller profiles and validation beyond Quest Touch controllers.
 
