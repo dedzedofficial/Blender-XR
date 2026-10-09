@@ -1,11 +1,11 @@
-# Blender XR v0.4.4
+# Blender XR v0.4.7
 
-- Fix unsupported BOOLEAN OpenXR inputs and support Blender 4.2+.
-- Save Blend from VR or the sidebar; new projects save in Documents/BlenderXR unless a path is selected.
-- One public Update Blender XR button downloads and installs the latest verified release, without a key or token. Restart Blender after updating.
-- Ray-draggable X, Y and Z handles for object movement and face extrusion. Bevel and inset have a SIZE handle.
-- Edit Tools menu includes Delete Faces with undo/redo.
-- Left-stick flight, right-stick turning and vertical movement provide travel across all three axes.
-- Verify the current release before removing older installer releases and downloads.
+- Tidied the desktop sidebar into clearer VR Session, Controller Setup, Modeling, Movement, Project, Quick Controls and Updates sections.
+- Simplified the hand-menu labels so common actions are faster to read in VR.
+- Officially packages the first v0.5-preview modeling improvements already added to the project: whole-object uniform scaling, selected-face XYZ movement and selected-face scaling.
+- Distance-aware transform gizmos remain larger and easier to target when the user is farther from the selected object or face.
+- Added Patreon and Website buttons at the bottom of the sidebar. They open the official Ded Zed Patreon and FISHHWB website in the system default browser.
+- Keeps Save Blend, primitive creation, scene flight, ray-based mesh switching, face extrude/bevel/inset/delete and VR-local undo/redo.
+- Bumps the extension, sidebar, hand-menu and updater version to v0.4.7.
 
-Automated checks cover Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset testing remains pending.
+Automated checks continue to target Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset testing remains pending.
