@@ -19,7 +19,7 @@ from bpy.props import StringProperty
 
 REPOSITORY='dedzedofficial/Blender-XR'
 API='https://api.github.com/repos/'+REPOSITORY
-VERSION=(0,4,4)
+VERSION=(0,4,7)
 MAX_BYTES=16*1024*1024
 JOB=None
 LATEST=None
@@ -135,7 +135,6 @@ def install(path,expected_version,destination=None):
     files=validate_archive(Path(path).read_bytes(),expected_version)
     if not (root/'blender_manifest.toml').is_file():
         raise ValueError('Cannot identify the installed Blender XR directory')
-    # Stage all bytes and a complete backup before replacing any installed file.
     backup=Path(tempfile.mkdtemp(prefix='.blender-xr-backup-',dir=root.parent))
     staging=Path(tempfile.mkdtemp(prefix='.blender-xr-stage-',dir=root.parent))
     touched=[]
@@ -161,7 +160,6 @@ def install(path,expected_version,destination=None):
         raise
     finally:
         shutil.rmtree(staging,ignore_errors=True)
-        # Keep the backup if rollback itself fails.
         if success or rolled_back or not touched:
             shutil.rmtree(backup,ignore_errors=True)
     return True
@@ -177,7 +175,6 @@ def worker(job):
         job['error']= ('GitHub rate limit reached; try again later.' if exc.code in (403,429)
                        else 'Public release download failed (GitHub '+str(exc.code)+'). Try again later.')
     except Exception:
-        # Keep network and archive failures readable in the sidebar.
         job['error']='Update failed. Check online access, network, release files, and Blender version.'
     finally:
         job['done']=True
@@ -198,7 +195,7 @@ def poll_job():
     LATEST=job['release']
     v=LATEST['version']
     if v<=VERSION:
-        settings.status='Blender XR v0.4.4 is up to date'
+        settings.status='Blender XR v0.4.7 is up to date'
     elif job.get('path'):
         from . import runtime
         try:
