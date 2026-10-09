@@ -10,7 +10,7 @@ blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
 platforms = ["windows-x64", "linux-x64"]
 [permissions]
-network = "Read local hand input and download GitHub updates"
-files = "Save Blender projects and install verified add-on updates"
+network = "Receive optional local SteamVR hand input"
+files = "Save Blender projects"
 [build]
 paths_exclude_pattern = ["__pycache__/", "*.pyc"]
