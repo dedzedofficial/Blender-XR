@@ -4,8 +4,6 @@ import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
 
-# Keep each action in one logical place. Edit-mode face tools live together,
-# while global project/history actions stay on the main tools page.
 BUTTONS = (
     ('SELECT','SELECT'), ('MOVE','MOVE'),
     ('SCALE','SCALE'), ('EDIT MODE','MODE'),
@@ -14,11 +12,18 @@ BUTTONS = (
     ('SAVE','SAVE'), ('STOP','STOP'),
 )
 EDIT_BUTTONS = (
-    ('SELECT','SELECT'), ('MOVE','MOVE_FACE'),
-    ('SCALE','SCALE_FACE'), ('EXTRUDE','EXTRUDE'),
-    ('BEVEL','BEVEL'), ('INSET','INSET'),
-    ('DELETE','DELETE_FACES'), ('STEP -','LESS'),
-    ('STEP +','MORE'), ('OBJECT MODE','MODE'),
+    ('VERT','SELECT_VERT'), ('EDGE','SELECT_EDGE'),
+    ('FACE','SELECT_FACE'), ('SELECT','SELECT'),
+    ('MOVE','MOVE_FACE'), ('SCALE','SCALE_FACE'),
+    ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
+    ('MORE','EDIT_MORE'), ('OBJECT','MODE'),
+)
+EDIT_MORE_BUTTONS = (
+    ('INSET','INSET'), ('DELETE','DELETE_GEOM'),
+    ('MERGE','MERGE'), ('SUBDIVIDE','SUBDIVIDE'),
+    ('DUPLICATE','DUPLICATE'), ('RECALC','RECALC'),
+    ('FLIP NORMAL','FLIP_NORMALS'), ('STEP -','LESS'),
+    ('STEP +','MORE'), ('BACK','BACK'),
 )
 PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
                          ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
@@ -29,7 +34,6 @@ TRAVEL_BUTTONS = (
     ('SNAP/SMOOTH','TURN_TOGGLE'), ('RESET VIEW','RESET'),
     ('TOOLS','BACK'),
 )
-# Original compact 5x7 bitmap font. GPU triangles work in both stereo eyes.
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
 'B':['11110','10001','10001','11110','10001','10001','11110'],
@@ -98,7 +102,8 @@ class Menu:
 
     @property
     def buttons(self):
-        return {'PRIMITIVES':PRIMITIVE_BUTTONS,'TRAVEL':TRAVEL_BUTTONS,'EDIT':EDIT_BUTTONS}.get(self.page,BUTTONS)
+        return {'PRIMITIVES':PRIMITIVE_BUTTONS,'TRAVEL':TRAVEL_BUTTONS,
+                'EDIT':EDIT_BUTTONS,'EDIT_MORE':EDIT_MORE_BUTTONS}.get(self.page,BUTTONS)
 
     def position(self, hand, viewer, scale):
         self.scale = max(scale, 1e-6)
@@ -138,7 +143,7 @@ class Menu:
                 return action, pos
         return 'PANEL', pos
 
-    def draw(self, shader, tool, hover, step, status, settings=None, selection=''):
+    def draw(self, shader, tool, hover, step, status, settings=None, selection='', select_mode='FACE'):
         if not self.ready or not self.visible:
             return
         def rect(x,y,w,h,color,depth=0):
@@ -157,25 +162,33 @@ class Menu:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
         rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'EDIT'}.get(self.page,'TOOLS')
+        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'EDIT','EDIT_MORE':'MORE EDIT'}.get(self.page,'TOOLS')
         text('BLENDER XR / '+title,-0.177,0.208,0.00275)
-        summary = ('FLY ' if settings.fly_mode else 'WALK ') + format(settings.move_speed,'.1f') + ' / '+settings.turn_mode if settings and self.page=='TRAVEL' else tool.replace('_',' ')+' / STEP '+format(step,'.3f')
+        if settings and self.page=='TRAVEL':
+            summary=('FLY ' if settings.fly_mode else 'WALK ')+format(settings.move_speed,'.1f')+' / '+settings.turn_mode
+        elif self.page in {'EDIT','EDIT_MORE'}:
+            summary=select_mode+' / '+tool.replace('_',' ')+' / '+format(step,'.3f')
+        else:
+            summary=tool.replace('_',' ')+' / STEP '+format(step,'.3f')
         text(summary,-0.177,0.153,0.00265)
+        mode_actions={'SELECT_VERT':'VERT','SELECT_EDGE':'EDGE','SELECT_FACE':'FACE'}
         for i,(label,action) in enumerate(self.buttons):
             bx,by,w,h=button_rect(i)
             color=(0.06,0.12,0.18,1)
-            selected = action==tool or (settings and (
+            selected = (action==tool or mode_actions.get(action)==select_mode or (settings and (
                 (action=='TURBO' and settings.fast_flight) or
-                (action=='FLY_TOGGLE' and settings.fly_mode)))
-            if selected: color=(0.025,0.35,0.35,1)
-            if action==hover: color=(0.12,0.42,0.55,1)
+                (action=='FLY_TOGGLE' and settings.fly_mode))))
+            if selected:
+                color=(0.025,0.35,0.35,1)
+            if action==hover:
+                color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             text(label,bx+0.009,by+0.030,min(0.0032,0.15/(max(len(label),1)*6)))
         text(('MESH '+selection)[:24],-0.174,-0.19,0.0023)
         text(status[:25],-0.174,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
         text(hint,-0.174,-0.246,0.0021)
-        text('V0.4.7',-0.174,-0.274,0.0021)
+        text('V0.5.0',-0.174,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):
@@ -197,7 +210,7 @@ def draw(runtime):
         gpu.state.depth_test_set('NONE')
         obj=runtime.context.view_layer.objects.active
         runtime.menu.draw(shader,runtime.tool,runtime.hover,runtime.settings.step,runtime.status,
-                          runtime.settings,obj.name if obj else 'NONE')
+                          runtime.settings,obj.name if obj else 'NONE',runtime.select_mode)
         origin,direction=runtime.ray
         end=runtime.pointer if runtime.pointer is not None else origin+direction*2*runtime.menu.scale
         draw_batch(shader,'LINES',[origin,end],(0.3,1,0.6,1) if runtime.target else (0.12,0.85,1,1))
@@ -213,22 +226,22 @@ def draw(runtime):
             for name,axis in handles.axes:
                 tip=handles.anchor+axis*handles.length
                 color=gizmo.COLORS[name]
-                if runtime.gizmo_hover and runtime.gizmo_hover[0]==name:color=(1,1,1,1)
+                if runtime.gizmo_hover and runtime.gizmo_hover[0]==name:
+                    color=(1,1,1,1)
                 sideways=axis.cross(Vector((0,0,1)))
-                if sideways.length<.1:sideways=axis.cross(Vector((0,1,0)))
+                if sideways.length<.1:
+                    sideways=axis.cross(Vector((0,1,0)))
                 sideways.normalize()
                 tail=tip-axis*handles.radius*2
                 lines=[handles.anchor,tip,tip,tail+sideways*handles.radius,
                        tip,tail-sideways*handles.radius]
                 draw_batch(shader,'LINES',lines,color)
-                # A billboard tip is much easier to see and hit at a distance.
                 r=handles.radius*.80
                 right=runtime.menu.right*r
                 up=runtime.menu.up*r
                 point=[tip-right-up,tip+right-up,tip+right+up,
                        tip-right-up,tip+right+up,tip-right+up]
                 draw_batch(shader,'TRIS',point,color)
-                # Billboard axis labels using the existing stereo-safe bitmap font.
                 points=[];pixel=handles.length*.012
                 origin_label=tip+runtime.menu.up*handles.radius
                 for i,char in enumerate(name):
@@ -245,15 +258,28 @@ def draw(runtime):
             pairs = [(i,j) for i in range(8) for j in range(i+1,8)
                      if (i ^ j) in (1,2,4)]
             draw_batch(shader,'LINES',[corners[k] for pair in pairs for k in pair],(0.3,1,0.55,1))
-        # Explicit VR face feedback, independent of desktop edit overlays.
         obj=runtime.context.view_layer.objects.active
         if obj and obj.type=='MESH' and obj.mode=='EDIT':
             import bmesh
+            bm=bmesh.from_edit_mesh(obj.data)
             points=[]
-            for face in bmesh.from_edit_mesh(obj.data).faces:
-                if face.select and not face.hide:
-                    for edge in face.edges:
+            if runtime.select_mode=='VERT':
+                size=max(runtime.menu.scale*.012,0.005)
+                for vert in bm.verts:
+                    if vert.select and not vert.hide:
+                        p=obj.matrix_world@vert.co
+                        points.extend((p+Vector((-size,0,0)),p+Vector((size,0,0)),
+                                       p+Vector((0,-size,0)),p+Vector((0,size,0)),
+                                       p+Vector((0,0,-size)),p+Vector((0,0,size))))
+            elif runtime.select_mode=='EDGE':
+                for edge in bm.edges:
+                    if edge.select and not edge.hide:
                         points.extend(obj.matrix_world@v.co for v in edge.verts)
+            else:
+                for face in bm.faces:
+                    if face.select and not face.hide:
+                        for edge in face.edges:
+                            points.extend(obj.matrix_world@v.co for v in edge.verts)
             draw_batch(shader,'LINES',points,(1,0.6,0.08,1))
     finally:
         gpu.state.depth_test_set(old_depth)
