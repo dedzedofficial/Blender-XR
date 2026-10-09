@@ -4,14 +4,16 @@ import bmesh
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
+SELECT_MODES = ('VERT', 'EDGE', 'FACE')
+
 
 def check_editable(obj):
     if not obj or obj.type != 'MESH':
         raise ValueError('Select a mesh object first')
     if obj.library or obj.data.library or obj.data.users > 1:
-        raise ValueError('Use a local, single-user mesh for v0.4 editing')
+        raise ValueError('Use a local, single-user mesh for v0.5 editing')
     if obj.data.shape_keys:
-        raise ValueError('Mesh editing with shape keys is outside v0.4')
+        raise ValueError('Mesh editing with shape keys is outside v0.5')
     if abs(obj.matrix_world.determinant()) < 1e-10:
         raise ValueError('Object scale must be non-zero')
 
@@ -19,7 +21,7 @@ def check_editable(obj):
 def editable(obj):
     check_editable(obj)
     if obj.mode != 'EDIT':
-        raise ValueError('Enter face edit mode first')
+        raise ValueError('Enter edit mode first')
     return bmesh.from_edit_mesh(obj.data)
 
 
@@ -43,8 +45,34 @@ def snapshot(obj):
     return result
 
 
+def selection_mode(context=None):
+    context = context or bpy.context
+    mode = tuple(bool(v) for v in context.tool_settings.mesh_select_mode)
+    if mode[0]:
+        return 'VERT'
+    if mode[1]:
+        return 'EDGE'
+    return 'FACE'
+
+
+def set_selection_mode(context, mode):
+    if mode not in SELECT_MODES:
+        raise ValueError('Unknown mesh selection mode')
+    context.tool_settings.mesh_select_mode = {
+        'VERT': (True, False, False),
+        'EDGE': (False, True, False),
+        'FACE': (False, False, True),
+    }[mode]
+    obj = context.view_layer.objects.active
+    if obj and obj.type == 'MESH' and obj.mode == 'EDIT':
+        bm = editable(obj)
+        bm.select_mode = {'VERT': {'VERT'}, 'EDGE': {'EDGE'}, 'FACE': {'FACE'}}[mode]
+        bm.select_flush_mode()
+        update(obj)
+
+
 def face_hit(obj, origin, direction):
-    """Raycast editable cage, not evaluated modifiers or hidden faces."""
+    """Raycast the editable base cage, ignoring hidden faces."""
     bm = editable(obj)
     bm.verts.ensure_lookup_table()
     bm.verts.index_update()
@@ -54,83 +82,167 @@ def face_hit(obj, origin, direction):
     if not faces:
         return None
     tree = BVHTree.FromPolygons([v.co for v in bm.verts],
-                               [[v.index for v in f.verts] for f in faces])
+                                [[v.index for v in f.verts] for f in faces])
     inv = obj.matrix_world.inverted()
     hit, _, index, _ = tree.ray_cast(inv @ origin,
-                                    (inv.to_3x3() @ direction).normalized())
+                                     (inv.to_3x3() @ direction).normalized())
     return (faces[index].index, obj.matrix_world @ hit) if hit is not None else None
 
 
-def select_face(obj, index, additive=False):
+def element_hit(obj, origin, direction, mode='FACE'):
+    """Pick a visible face, or the nearest vertex/edge on the ray-hit face.
+
+    Vertex/edge picking deliberately starts from the visible cage face under the ray.
+    This keeps VR selection predictable and prevents accidentally selecting geometry
+    through the back of the mesh.
+    """
+    face_pick = face_hit(obj, origin, direction)
+    if not face_pick:
+        return None
+    face_index, world_hit = face_pick
+    if mode == 'FACE':
+        return face_index, world_hit
     bm = editable(obj)
     bm.faces.ensure_lookup_table()
-    face = bm.faces[index]
+    face = bm.faces[face_index]
+    if mode == 'VERT':
+        vert = min((v for v in face.verts if not v.hide),
+                   key=lambda v: (obj.matrix_world @ v.co - world_hit).length,
+                   default=None)
+        return (vert.index, obj.matrix_world @ vert.co) if vert else None
+    if mode == 'EDGE':
+        best = None
+        for edge in face.edges:
+            if edge.hide:
+                continue
+            a = obj.matrix_world @ edge.verts[0].co
+            b = obj.matrix_world @ edge.verts[1].co
+            ab = b - a
+            length2 = ab.length_squared
+            t = 0.0 if length2 < 1e-12 else max(0.0, min(1.0, (world_hit-a).dot(ab)/length2))
+            point = a + ab*t
+            distance = (point-world_hit).length
+            if best is None or distance < best[0]:
+                best = (distance, edge.index, point)
+        return (best[1], best[2]) if best else None
+    raise ValueError('Unknown mesh selection mode')
+
+
+def _clear_selection(bm):
+    for face in bm.faces:
+        face.select_set(False)
+    for edge in bm.edges:
+        edge.select_set(False)
+    for vert in bm.verts:
+        vert.select_set(False)
+
+
+def select_element(obj, mode, index, additive=False):
+    bm = editable(obj)
     if not additive:
-        for f in bm.faces:
-            f.select_set(False)
-        for e in bm.edges:
-            e.select_set(False)
-        for v in bm.verts:
-            v.select_set(False)
-    face.select_set(not face.select if additive else True)
+        _clear_selection(bm)
+    if mode == 'VERT':
+        bm.verts.ensure_lookup_table()
+        element = bm.verts[index]
+    elif mode == 'EDGE':
+        bm.edges.ensure_lookup_table()
+        element = bm.edges[index]
+    elif mode == 'FACE':
+        bm.faces.ensure_lookup_table()
+        element = bm.faces[index]
+    else:
+        raise ValueError('Unknown mesh selection mode')
+    element.select_set(not element.select if additive else True)
     bm.select_flush_mode()
     update(obj)
+
+
+def select_face(obj, index, additive=False):
+    select_element(obj, 'FACE', index, additive)
 
 
 def selected_faces(obj):
     return [f for f in editable(obj).faces if f.select and not f.hide]
 
 
+def selected_edges(obj):
+    return [e for e in editable(obj).edges if e.select and not e.hide]
+
+
 def selected_vertices(obj):
-    faces = selected_faces(obj)
-    return list({v for face in faces for v in face.verts})
+    return [v for v in editable(obj).verts if v.select and not v.hide]
 
 
-def selected_center(obj):
-    faces = selected_faces(obj)
-    if not faces:
-        raise ValueError('Select at least one face')
-    weight = sum(face.calc_area() for face in faces)
-    if weight > 1e-9:
-        center = sum((face.calc_center_median()*face.calc_area() for face in faces), Vector()) / weight
-    else:
-        verts = list({v for face in faces for v in face.verts})
-        center = sum((v.co for v in verts), Vector()) / max(len(verts), 1)
-    return center
-
-
-def apply_tool(obj, tool, amount, segments=2, axis=None):
+def selected_geometry(obj, mode=None):
+    mode = mode or selection_mode()
     bm = editable(obj)
-    faces = [f for f in bm.faces if f.select and not f.hide]
-    if not faces:
-        raise ValueError('Select at least one face')
-    if abs(amount) < 1e-7:
-        return
-    if tool == 'MOVE_FACE':
-        if axis is None:
-            raise ValueError('Face movement needs an axis')
-        direction = Vector(axis)
-        if direction.length < 1e-9:
-            raise ValueError('Face movement axis is invalid')
-        direction.normalize()
-        verts = list({v for face in faces for v in face.verts})
-        bmesh.ops.translate(bm, verts=verts, vec=direction * amount)
-    elif tool == 'SCALE_FACE':
-        verts = list({v for face in faces for v in face.verts})
-        center = selected_center(obj)
-        factor = max(0.02, 1.0 + amount)
-        for vert in verts:
-            vert.co = center + (vert.co-center) * factor
-    elif tool == 'EXTRUDE':
-        normal = (Vector(axis) if axis is not None else
-                  sum((f.normal * f.calc_area() for f in faces), Vector()))
-        if normal.length < 1e-8:
-            raise ValueError('Selected faces need a common extrusion direction')
-        normal.normalize()
-        result = bmesh.ops.extrude_face_region(bm, geom=faces,
-                                             use_keep_orig=False)
-        # BMesh's region operation retains the source cap when only faces
-        # are supplied. Remove that cap, preserving shared boundary edges.
+    if mode == 'VERT':
+        return [v for v in bm.verts if v.select and not v.hide]
+    if mode == 'EDGE':
+        return [e for e in bm.edges if e.select and not e.hide]
+    return [f for f in bm.faces if f.select and not f.hide]
+
+
+def selected_transform_vertices(obj, mode=None):
+    mode = mode or selection_mode()
+    bm = editable(obj)
+    if mode == 'VERT':
+        return [v for v in bm.verts if v.select and not v.hide]
+    if mode == 'EDGE':
+        return list({v for e in bm.edges if e.select and not e.hide for v in e.verts})
+    return list({v for f in bm.faces if f.select and not f.hide for v in f.verts})
+
+
+def selected_center(obj, mode=None):
+    verts = selected_transform_vertices(obj, mode)
+    if not verts:
+        raise ValueError('Select mesh geometry first')
+    return sum((v.co for v in verts), Vector()) / len(verts)
+
+
+def selected_normal(obj):
+    faces = selected_faces(obj)
+    if faces:
+        normal = sum((f.normal * max(f.calc_area(), 1e-9) for f in faces), Vector())
+    else:
+        verts = selected_transform_vertices(obj)
+        normal = sum((v.normal for v in verts), Vector())
+    if normal.length < 1e-8:
+        return Vector((0, 0, 1))
+    return normal.normalized()
+
+
+def _translate_selected(bm, obj, amount, axis, mode):
+    direction = Vector(axis) if axis is not None else Vector((0, 0, 1))
+    if direction.length < 1e-9:
+        raise ValueError('Movement axis is invalid')
+    direction.normalize()
+    verts = selected_transform_vertices(obj, mode)
+    if not verts:
+        raise ValueError('Select mesh geometry first')
+    bmesh.ops.translate(bm, verts=verts, vec=direction * amount)
+
+
+def _scale_selected(obj, amount, mode):
+    verts = selected_transform_vertices(obj, mode)
+    if not verts:
+        raise ValueError('Select mesh geometry first')
+    center = selected_center(obj, mode)
+    factor = max(0.02, 1.0 + amount)
+    for vert in verts:
+        vert.co = center + (vert.co-center) * factor
+
+
+def _extrude_selected(bm, obj, amount, axis, mode):
+    direction = Vector(axis) if axis is not None else selected_normal(obj)
+    if direction.length < 1e-8:
+        raise ValueError('Selected geometry needs an extrusion direction')
+    direction.normalize()
+    if mode == 'FACE':
+        faces = selected_faces(obj)
+        if not faces:
+            raise ValueError('Select faces before extruding')
+        result = bmesh.ops.extrude_face_region(bm, geom=faces, use_keep_orig=False)
         old_edges = list({e for f in faces if f.is_valid for e in f.edges})
         old_verts = list({v for f in faces if f.is_valid for v in f.verts})
         bmesh.ops.delete(bm, geom=[f for f in faces if f.is_valid], context='FACES_ONLY')
@@ -141,22 +253,66 @@ def apply_tool(obj, tool, amount, segments=2, axis=None):
         if loose_verts:
             bmesh.ops.delete(bm, geom=loose_verts, context='VERTS')
         verts = [v for v in result['geom'] if isinstance(v, bmesh.types.BMVert)]
-        bmesh.ops.translate(bm, verts=verts, vec=normal * amount)
         new_faces = [f for f in result['geom'] if isinstance(f, bmesh.types.BMFace)]
-        for f in bm.faces:
-            f.select_set(False)
-        for f in new_faces:
-            f.select_set(True)
+        _clear_selection(bm)
+        for face in new_faces:
+            face.select_set(True)
+    elif mode == 'EDGE':
+        edges = selected_edges(obj)
+        if not edges:
+            raise ValueError('Select edges before extruding')
+        result = bmesh.ops.extrude_edge_only(bm, edges=edges, use_normal_flip=False)
+        verts = [v for v in result['geom'] if isinstance(v, bmesh.types.BMVert)]
+        new_edges = [e for e in result['geom'] if isinstance(e, bmesh.types.BMEdge)]
+        _clear_selection(bm)
+        for edge in new_edges:
+            edge.select_set(True)
+    else:
+        verts0 = selected_vertices(obj)
+        if not verts0:
+            raise ValueError('Select vertices before extruding')
+        result = bmesh.ops.extrude_vert_indiv(bm, verts=verts0)
+        verts = list(result.get('verts', []))
+        _clear_selection(bm)
+        for vert in verts:
+            vert.select_set(True)
+    if verts:
+        bmesh.ops.translate(bm, verts=verts, vec=direction*amount)
+
+
+def apply_tool(obj, tool, amount, segments=2, axis=None, mode=None):
+    bm = editable(obj)
+    mode = mode or selection_mode()
+    if not selected_geometry(obj, mode):
+        raise ValueError('Select mesh geometry first')
+    if abs(amount) < 1e-7 and tool not in {'INSET', 'BEVEL'}:
+        return
+    if tool in {'MOVE_FACE', 'MOVE_EDIT'}:
+        _translate_selected(bm, obj, amount, axis, mode)
+    elif tool in {'SCALE_FACE', 'SCALE_EDIT'}:
+        _scale_selected(obj, amount, mode)
+    elif tool == 'EXTRUDE':
+        _extrude_selected(bm, obj, amount, axis, mode)
     elif tool == 'INSET':
-        bmesh.ops.inset_region(bm, faces=faces, thickness=max(0.0, amount),
-                              depth=0.0, use_even_offset=True,
-                              use_boundary=True, use_relative_offset=False)
+        if mode != 'FACE':
+            raise ValueError('Inset is available in face selection mode')
+        faces = selected_faces(obj)
+        bmesh.ops.inset_region(bm, faces=faces, thickness=max(0.0, amount), depth=0.0,
+                               use_even_offset=True, use_boundary=True,
+                               use_relative_offset=False)
     elif tool == 'BEVEL':
-        edges = list({e for f in faces for e in f.edges if not e.hide})
-        result = bmesh.ops.bevel(bm, geom=edges, offset=max(0.0, amount),
-                       segments=segments, affect='EDGES',
-                       clamp_overlap=True, profile=0.5)
-        for face in result['faces']:
+        if mode == 'VERT':
+            geom = selected_vertices(obj)
+            affect = 'VERTICES'
+        else:
+            geom = selected_edges(obj) if mode == 'EDGE' else list({e for f in selected_faces(obj) for e in f.edges})
+            affect = 'EDGES'
+        if not geom:
+            raise ValueError('Select geometry before beveling')
+        result = bmesh.ops.bevel(bm, geom=geom, offset=max(0.0, amount),
+                                 segments=segments, affect=affect,
+                                 clamp_overlap=True, profile=0.5)
+        for face in result.get('faces', []):
             face.select_set(True)
     else:
         raise ValueError('Unknown mesh tool: ' + tool)
@@ -165,37 +321,107 @@ def apply_tool(obj, tool, amount, segments=2, axis=None):
     update(obj)
 
 
-def delete_selected(obj):
-    bm=editable(obj)
-    faces=[face for face in bm.faces if face.select and not face.hide]
-    if not faces:raise ValueError('Select faces before deleting')
-    before=snapshot(obj)
+def _snapshot_operation(obj, callback):
+    before = snapshot(obj)
     try:
-        bmesh.ops.delete(bm,geom=faces,context='FACES')
+        callback()
+        bm = editable(obj)
+        bm.normal_update()
+        bm.select_flush_mode()
         update(obj)
-        after=snapshot(obj)
-        return ('MESH',obj.name,obj.data.name,before,after)
+        after = snapshot(obj)
+        return ('MESH', obj.name, obj.data.name, before, after)
     except Exception:
-        restore(obj,before)
+        restore(obj, before)
         bpy.data.meshes.remove(before)
         raise
 
 
+def delete_selected(obj, mode=None):
+    mode = mode or selection_mode()
+    bm = editable(obj)
+    geom = selected_geometry(obj, mode)
+    if not geom:
+        raise ValueError('Select geometry before deleting')
+    context = {'VERT': 'VERTS', 'EDGE': 'EDGES', 'FACE': 'FACES'}[mode]
+    return _snapshot_operation(obj, lambda: bmesh.ops.delete(bm, geom=geom, context=context))
+
+
+def merge_selected(obj):
+    bm = editable(obj)
+    verts = selected_transform_vertices(obj)
+    if len(verts) < 2:
+        raise ValueError('Select at least two vertices to merge')
+    center = sum((v.co for v in verts), Vector()) / len(verts)
+    return _snapshot_operation(obj, lambda: bmesh.ops.pointmerge(bm, verts=verts, merge_co=center))
+
+
+def subdivide_selected(obj, cuts=1):
+    bm = editable(obj)
+    mode = selection_mode()
+    if mode == 'VERT':
+        edges = list({e for v in selected_vertices(obj) for e in v.link_edges if not e.hide})
+    elif mode == 'EDGE':
+        edges = selected_edges(obj)
+    else:
+        edges = list({e for f in selected_faces(obj) for e in f.edges if not e.hide})
+    if not edges:
+        raise ValueError('Select connected geometry to subdivide')
+    return _snapshot_operation(obj, lambda: bmesh.ops.subdivide_edges(
+        bm, edges=edges, cuts=max(1, int(cuts)), use_grid_fill=True))
+
+
+def duplicate_selected(obj):
+    bm = editable(obj)
+    mode = selection_mode()
+    geom = selected_geometry(obj, mode)
+    if mode == 'FACE':
+        geom = list({item for face in geom for item in (*face.verts, *face.edges, face)})
+    elif mode == 'EDGE':
+        geom = list({item for edge in geom for item in (*edge.verts, edge)})
+    if not geom:
+        raise ValueError('Select geometry before duplicating')
+
+    def operation():
+        result = bmesh.ops.duplicate(bm, geom=geom)
+        _clear_selection(bm)
+        for item in result.get('geom', []):
+            if hasattr(item, 'select_set'):
+                item.select_set(True)
+    return _snapshot_operation(obj, operation)
+
+
+def recalc_normals(obj):
+    bm = editable(obj)
+    faces = selected_faces(obj)
+    if not faces:
+        raise ValueError('Select faces before recalculating normals')
+    return _snapshot_operation(obj, lambda: bmesh.ops.recalc_face_normals(bm, faces=faces))
+
+
+def flip_normals(obj):
+    bm = editable(obj)
+    faces = selected_faces(obj)
+    if not faces:
+        raise ValueError('Select faces before flipping normals')
+    return _snapshot_operation(obj, lambda: bmesh.ops.reverse_faces(bm, faces=faces))
+
+
 class Transaction:
     """Each preview comes from the same baseline: no accumulated topology."""
-    def __init__(self, obj, tool):
-        bm = editable(obj)
-        if not any(f.select and not f.hide for f in bm.faces):
-            raise ValueError('Select a face first')
+    def __init__(self, obj, tool, mode=None):
         self.obj = obj
         self.tool = tool
+        self.mode = mode or selection_mode()
+        if not selected_geometry(obj, self.mode):
+            raise ValueError('Select mesh geometry first')
         self.before = snapshot(obj)
         self.amount = 0.0
         self.changed = False
 
     def preview(self, amount, segments=2, axis=None):
         restore(self.obj, self.before)
-        apply_tool(self.obj, self.tool, amount, segments, axis)
+        apply_tool(self.obj, self.tool, amount, segments, axis, self.mode)
         self.amount = amount
         self.changed = abs(amount) > 1e-7
 
@@ -219,8 +445,6 @@ class Transaction:
 
 
 def creation_entry(obj):
-    # Keep a zero-user mesh snapshot, rather than an unlinked Object that gives
-    # its mesh a real user and would cause private history data to be saved.
     data = obj.data.copy()
     return ('CREATE', obj.name, obj.data.name, data,
             tuple(obj.users_collection), obj.matrix_world.copy())
@@ -235,9 +459,9 @@ class History:
     @staticmethod
     def release(entry):
         if entry[0] == 'MESH':
-            for mesh in entry[3:5]:
-                if mesh and mesh.name in bpy.data.meshes:
-                    bpy.data.meshes.remove(mesh)
+            for mesh_data in entry[3:5]:
+                if mesh_data and mesh_data.name in bpy.data.meshes:
+                    bpy.data.meshes.remove(mesh_data)
         elif entry[0] == 'CREATE':
             bpy.data.meshes.remove(entry[3])
 
