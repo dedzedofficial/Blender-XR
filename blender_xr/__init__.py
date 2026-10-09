@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,4),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,7),
     'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free basic VR mesh editing with a hand-mounted menu',
     'category': '3D View',
 }
 import bpy
 import textwrap
+import webbrowser
 from bpy.props import EnumProperty, FloatProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
 from . import runtime, mesh, updater, project
@@ -113,8 +114,6 @@ class BXR_OT_session(bpy.types.Operator):
             return {'CANCELLED'}
         if event.type=='ESC' and event.value=='PRESS':
             session.request_stop=True
-        # Blender Event has no timer attribute. Rate-limit TIMER events by the
-        # session clock so other modal timers cannot accelerate navigation.
         if event.type=='TIMER' and runtime.timer_due(session):
             try:
                 if session.area.type!='VIEW_3D':
@@ -141,7 +140,6 @@ class BXR_OT_session(bpy.types.Operator):
             if session.error:
                 self.report({'ERROR'},session.error)
             return {'FINISHED'}
-        # Avoid desktop topology edits/native undo invalidating a live preview.
         if session.transaction or session.grab or session.air_grab or session.axis_move:
             return {'RUNNING_MODAL'}
         return {'PASS_THROUGH'}
@@ -201,7 +199,6 @@ class BXR_OT_tool(bpy.types.Operator):
             return {'CANCELLED'}
 
 
-
 class BXR_OT_bridge_command(bpy.types.Operator):
     bl_idname = 'blender_xr.bridge_command'
     bl_label = 'Copy Hand Bridge Command'
@@ -222,59 +219,93 @@ class BXR_OT_bridge_command(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BXR_OT_link(bpy.types.Operator):
+    bl_idname='blender_xr.open_link'
+    bl_label='Open Blender XR Link'
+    destination: EnumProperty(items=[
+        ('PATREON','Patreon','Support Ded Zed on Patreon'),
+        ('WEBSITE','Website','Open the FISHHWB website')])
+
+    def execute(self,context):
+        url={'PATREON':'https://www.patreon.com/cw/DedZed',
+             'WEBSITE':'https://fishhwb.github.io/'}[self.destination]
+        if not webbrowser.open_new_tab(url):
+            self.report({'WARNING'},'Could not open the default browser')
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.4.4'
+    bl_label='Blender XR v0.4.7'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
     bl_category='Blender XR'
+
     def draw(self,context):
         layout=self.layout
         settings=context.scene.blender_xr
         active=runtime.CURRENT is not None
-        row=layout.row()
-        row.enabled=not active
-        row.prop(settings,'dominant_hand',expand=True)
-        layout.label(text='Menu on the other hand',icon='HAND')
-        col=layout.column()
+
+        session_box=layout.box()
+        session_box.label(text='VR Session',icon='XRAY')
+        hand=session_box.row(align=True)
+        hand.enabled=not active
+        hand.prop(settings,'dominant_hand',expand=True)
+        session_box.label(text='Menu stays on the other hand',icon='HAND')
+        session_box.operator('blender_xr.stop' if active else 'blender_xr.session',
+                             text='Stop VR' if active else 'Start VR',
+                             icon='PAUSE' if active else 'PLAY')
+        for line in textwrap.wrap(settings.status,44):
+            session_box.label(text=line,icon='INFO' if line==settings.status else 'NONE')
+
+        setup=layout.box()
+        setup.label(text='Controller Setup',icon='SETTINGS')
+        col=setup.column(align=True)
         col.enabled=not active
         col.prop(settings,'controller_family')
         col.prop(settings,'input_source')
-        if settings.input_source == 'CONTROLLERS':
+        if settings.input_source=='CONTROLLERS':
             col.prop(settings,'finger_touch')
         else:
             col.prop(settings,'bridge_port')
             col.label(text='SteamVR skeletal input required')
             if active and runtime.CURRENT.bridge:
-                layout.operator('blender_xr.bridge_command', text='Copy Hand Bridge Command', icon='COPYDOWN')
-        col.prop(settings,'step')
-        col.prop(settings,'bevel_segments')
-        col.prop(settings,'move_speed')
-        col.prop(settings,'fly_mode')
-        col.prop(settings,'fast_flight')
-        col.prop(settings,'turn_mode')
-        col.prop(settings,'turn_angle' if settings.turn_mode=='SNAP' else 'turn_speed')
-        col.prop(settings,'grab_air')
-        col.prop(settings,'primitive_size')
-        col.prop(settings,'placement_distance')
-        col.prop(settings,'save_path')
-        layout.operator('blender_xr.save', icon='FILE_TICK')
-        layout.operator('blender_xr.stop' if active else 'blender_xr.session',
-                        text='Stop VR' if active else 'Start VR',icon='HIDE_OFF')
-        for line in textwrap.wrap(settings.status,44):
-            layout.label(text=line)
-        box=layout.box()
-        box.label(text='Point + trigger: select / use tool')
-        box.label(text='Grip in MOVE: move / rotate object')
-        box.label(text='Other trigger: menu / cancel')
-        box.label(text='Left stick: move around')
-        box.label(text='Right stick: turn / up and down')
-        box.label(text='Left stick click: hold for turbo')
-        box.label(text='Grip empty space: pull to move')
-        box.label(text='ADD SHAPES: pick, point, trigger')
-        box.label(text='ESC: stop VR')
+                setup.operator('blender_xr.bridge_command',text='Copy Hand Bridge Command',icon='COPYDOWN')
+
+        modeling=layout.box()
+        modeling.label(text='Modeling',icon='MESH_CUBE')
+        grid=modeling.grid_flow(columns=2,align=True)
+        grid.prop(settings,'step')
+        grid.prop(settings,'bevel_segments')
+        grid.prop(settings,'primitive_size')
+        grid.prop(settings,'placement_distance')
+        modeling.label(text='0.5 preview: object scale + face move/scale',icon='MODIFIER')
+
+        movement=layout.box()
+        movement.label(text='Movement',icon='ORIENTATION_VIEW')
+        movement.prop(settings,'move_speed')
+        row=movement.row(align=True)
+        row.prop(settings,'fly_mode',toggle=True)
+        row.prop(settings,'fast_flight',toggle=True)
+        movement.prop(settings,'turn_mode',expand=True)
+        movement.prop(settings,'turn_angle' if settings.turn_mode=='SNAP' else 'turn_speed')
+        movement.prop(settings,'grab_air')
+
+        project_box=layout.box()
+        project_box.label(text='Project',icon='FILE_BLEND')
+        project_box.prop(settings,'save_path')
+        project_box.operator('blender_xr.save',icon='FILE_TICK')
+
+        help_box=layout.box()
+        help_box.label(text='Quick Controls',icon='QUESTION')
+        help_box.label(text='Trigger: select / use tool')
+        help_box.label(text='Grip: grab object or empty space')
+        help_box.label(text='Left stick: move  |  Right stick: turn / height')
+        help_box.label(text='Other trigger: menu / cancel')
+
         updates=layout.box()
-        updates.label(text='GitHub Updates',icon='FILE_REFRESH')
+        updates.label(text='Updates',icon='FILE_REFRESH')
         update_settings=context.window_manager.blender_xr_update
         row=updates.row(align=True)
         row.enabled=not active and not update_settings.restart_required and updater.JOB is None
@@ -283,6 +314,13 @@ class BXR_PT_panel(bpy.types.Panel):
             updates.label(text=line)
         if update_settings.restart_required:
             updates.label(text='Restart Blender',icon='INFO')
+
+        support=layout.row(align=True)
+        support.alignment='RIGHT'
+        patreon=support.operator('blender_xr.open_link',text='Patreon',icon='FUND')
+        patreon.destination='PATREON'
+        website=support.operator('blender_xr.open_link',text='Website',icon='URL')
+        website.destination='WEBSITE'
 
 
 @persistent
@@ -295,7 +333,8 @@ def load_pre(*_args):
         runtime.CURRENT=None
 
 
-CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,BXR_OT_bridge_command,BXR_PT_panel)
+CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
+         BXR_OT_bridge_command,BXR_OT_link,BXR_PT_panel)
 
 def register():
     updater.register()
