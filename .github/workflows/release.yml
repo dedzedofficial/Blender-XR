@@ -42,6 +42,7 @@ jobs:
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_flight.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_save.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_axes.py
+          /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_mesh_v05.py
       - name: Publish version once
         id: github_release
         env:
