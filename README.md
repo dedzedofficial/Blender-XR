@@ -1,161 +1,175 @@
-# Blender XR v0.4.4
+# Blender XR v0.4.7
 
-**Free basic VR modeling inside Blender, by Ded Zed.**
+**Free VR mesh editing and scene building inside Blender, by Ded Zed.**
 
-Choose your dominant hand before entering VR. The other hand holds a small tool menu; the dominant controller points, selects, edits, and moves objects.
+Blender XR brings a simple controller-first modeling workflow into Blender using OpenXR. One hand holds a compact tool menu while the dominant controller points, selects, edits, transforms, places primitives and navigates the scene.
 
-**v0.4.4 fixing update:** fixes the unsupported BOOLEAN action type that prevented VR startup, adds Save Blend, and lowers the minimum Blender version to 4.2.0. Full-scene flight, right-stick turning, ray switching and basic modeling remain included. Automated checks use Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset and Windows testing remains pending.
+[Download the latest release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/) · [Support on Patreon](https://www.patreon.com/cw/DedZed)
 
-[Download v0.4.4 installer](dist/blender-xr-v0.4.4.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md)
+## Support development
+
+Blender XR is free and open source. If you find it useful and want to help fund continued development, testing and future features, you can support the project on Patreon.
+
+**[Support Ded Zed on Patreon](https://www.patreon.com/cw/DedZed)**
+
+Patreon support is optional and does not lock features behind a paid tier.
+
+## What v0.4.7 includes
+
+- Object selection, movement and uniform scaling in VR.
+- Face selection, movement and scaling.
+- Extrude, bevel, inset and delete-face tools.
+- Ray-draggable X, Y and Z transform handles.
+- Distance-aware gizmos that stay usable farther from the mesh.
+- Primitive placement for cubes, spheres, cylinders, cones, toruses and planes.
+- Left-stick flight, right-stick turning and vertical movement.
+- Grab-empty-space locomotion.
+- VR-local Undo / Redo.
+- Save Blend directly from VR or the desktop sidebar.
+- Cleaner desktop and VR menus with duplicate options removed.
+- Patreon and Website buttons in the Blender sidebar.
+- Built-in public release updater with checksum verification.
+
+The v0.5 roadmap expands this into fuller mesh modeling, including vertex and edge workflows. See [ROADMAP.md](ROADMAP.md) for the planned path through materials, UV mapping, modifiers, rigging, weight painting and v1.0.
+
+## Requirements
+
+- Blender **4.2+** with OpenXR support.
+- A PC capable of running Blender in VR.
+- Two tracked controllers for the normal controller workflow.
+- One active OpenXR runtime for the session.
+
+Automated validation currently covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash. Physical headset/runtime testing is still an ongoing part of development.
 
 ## Install
 
-1. Download `blender-xr-v0.4.4.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
-2. In Blender, open **Edit > Preferences > Add-ons**, open the menu at the upper right, and select **Install from Disk**.
-3. Select the installer ZIP and enable **Blender XR**.
-4. In the 3D viewport, press **N** and open the **Blender XR** tab.
-5. Choose **Right** or **Left** as your dominant hand before clicking **Start VR**.
+1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
+2. Download the current `blender-xr-vX.X.X.zip` installer asset. Do not install GitHub's automatic source-code ZIP.
+3. In Blender, open **Edit > Preferences > Add-ons**.
+4. Open the menu in the upper-right and choose **Install from Disk**.
+5. Select the downloaded ZIP and enable **Blender XR**.
+6. In the 3D Viewport, press **N** and open the **Blender XR** tab.
+7. Choose your dominant hand and click **Start VR**.
 
-No subscription or activation key. Source is GPL-3.0-or-later. The repository is public. GitHub downloads need no account or token.
+No subscription, activation key or GitHub account is required.
 
-## Meta and Valve PCVR targets
+## PCVR setup
 
-Blender runs on the PC. This add-on uses Blender's OpenXR support rather than a standalone Quest application. Only one OpenXR runtime should be active for the session.
+Blender XR uses Blender's OpenXR support. Configure the OpenXR runtime before starting Blender.
 
-| Connection | Setup to try |
+| Connection | Setup |
 | --- | --- |
-| Quest Link / Air Link | Connect to the PC, enter Link, and set Meta Quest Link as the active OpenXR runtime. |
-| SteamVR | Connect the headset to the PC, start SteamVR, and select SteamVR as the current OpenXR runtime in its settings. |
-| Virtual Desktop | Connect through the Virtual Desktop PC streamer and choose VDXR as its OpenXR runtime, or use its SteamVR route with SteamVR active. |
+| **Quest Link / Air Link** | Connect to the PC and use Meta Quest Link as the active OpenXR runtime. |
+| **SteamVR** | Start SteamVR and select SteamVR as the current OpenXR runtime. |
+| **Virtual Desktop** | Use VDXR when supported, or route through SteamVR with SteamVR active. |
 
-Set the runtime before starting Blender; restart Blender if you change it. Hold both controllers awake/tracked before pressing **Start VR**. The add-on cannot establish Air Link or Virtual Desktop for you. Choose **Automatic**, **Meta**, or **Valve / SteamVR** in the sidebar before entering VR. Bindings cover Oculus Touch, Valve Index, Vive and simple controllers. Touch Pro/Plus and newer controllers depend on the runtime supplying a compatible profile; unsupported native profiles are not enabled by this extension.
+Controller bindings target Touch-compatible controllers, Valve Index, Vive and simple OpenXR controller profiles. Actual compatibility depends on the runtime exposing suitable controller actions.
 
-| Headset family | v0.4 target and limits |
-| --- | --- |
-| Meta Quest 1, 2, 3, 3S and Pro | PC-connected OpenXR with two tracked Touch-compatible controllers. Link availability varies by headset/software; use a supported PCVR connection. |
-| Meta Rift CV1 / Rift S | PC OpenXR runtime with tracked Touch controllers. |
-| Valve Index | SteamVR OpenXR with Index controller bindings. Optional skeletal finger bridge. |
-| Valve Steam Frame | SteamVR OpenXR when its controllers are exposed through compatible bindings. Its native controller extension is not enabled by Blender XR; physical validation pending. |
-| Future Meta/Valve headsets | Conditional on PCVR OpenXR support, compatible controller profiles and two tracked hand poses. |
-| Meta Go / Gear VR | Unsupported: this editing system needs positional tracking and two tracked hand poses. |
-
-This is a compatibility target matrix, not a completed physical test matrix. It cannot make every Meta or Valve device compatible regardless of its runtime capabilities.
-
-Requires Blender 4.2+ with OpenXR, a PC capable of running VR, and two tracked controllers. Blender 5.0.1 is blocked due to a known VR crash; 4.2.0, 4.5.0, 5.0.0 and 5.2.2 are used for automated checks. Later versions need testing before being added to the compatibility matrix.
-
-## Controls
+## Quick controls
 
 | Control | Action |
 | --- | --- |
-| Dominant trigger, pointing at menu | Choose a tool or menu command. |
-| Dominant trigger with SELECT | Select a mesh or face; point at another mesh to switch the active edit target. |
-| MODE menu button | Switch the selected mesh between object mode and face edit mode. |
-| Grip + trigger with SELECT in face mode | Add or remove a face from the selection. |
-| Trigger with EXTRUDE / BEVEL / INSET | Hold and move the controller to preview the amount; release to apply. |
-| Dominant grip with MOVE in object mode | Point at a mesh, grip to move and rotate it; release to apply. |
-| Non-dominant trigger | Toggle the hand menu, or cancel an active edit/move. |
-| Left thumbstick | Fly in head direction, including head pitch; works regardless of dominant hand. Walk mode keeps movement level. |
-| Right thumbstick left/right | Turn the viewer. Default: 30-degree snap per deflection; return the stick to centre before the next turn. Smooth turning is optional. |
-| Right thumbstick up/down | Fly vertically. |
-| Hold left thumbstick click | Four-times turbo flight. |
-| TRAVEL menu | Set flight/walk, turbo, faster/slower, snap/smooth, reset view and tool distance. |
-| Either grip, ray pointing into empty space | Hold and pull your hand to move the viewer in 3D; release to stop. Works with controller grips and the experimental finger-curl bridge. |
-| SHAPES | Choose cube, sphere, cylinder, cone, torus or plane, point away from the menu, then trigger to place. |
-| LESS / MORE menu buttons | Halve or double the starting tool distance. |
-| UNDO / REDO | Undo/redo the latest 20 Blender XR edits, object moves and primitive creations during the current session. |
-| RESET VIEW | Reset viewer navigation to the starting location. |
-| SAVE BLEND (Tools or Travel) | Save the current project, or create a timestamped .blend file if unsaved. |
-| STOP VR, desktop Stop VR, or ESC | Stop the session and cancel unfinished work. |
+| Dominant trigger on menu | Choose a tool or command. |
+| Dominant trigger with Select | Select a mesh or selected edit-mode face. |
+| Grip in Move | Grab and position an object. |
+| Trigger on X/Y/Z handle | Drag the selected transform along that axis. |
+| Trigger on Size handle | Scale the selected object or face. |
+| Other trigger | Toggle the hand menu or cancel live work. |
+| Left thumbstick | Move / fly. |
+| Right thumbstick left/right | Turn. |
+| Right thumbstick up/down | Move vertically. |
+| Hold left-stick click | Turbo flight. |
+| Grip empty space | Pull yourself through the scene. |
+| Undo / Redo | Restore recent Blender XR edits for the current session. |
+| Save Blend | Save the current project. |
+| Stop VR / ESC | Stop the session and cancel unfinished work. |
 
-### First edit
+## Basic modeling workflow
 
-1. Start with a cube or another simple mesh. Place the 3D cursor near your workspace; it sets the starting VR origin.
-2. Enter VR, point at the mesh, and select it with **SELECT**.
-3. Click **MODE**, then use **SELECT** to pick the face you want.
-4. Open **Edit Tools** on the other hand and choose **EXTRUDE**, **BEVEL**, or **INSET**.
-5. Point away from the menu, hold the trigger, and move the dominant controller. Release to commit; press the other trigger to cancel.
+1. Start with a mesh or add one from **Shapes**.
+2. Point at the object and select it.
+3. Use **Move** or **Scale** for whole-object transforms.
+4. Enter **Face Mode** for edit tools.
+5. Select a face and choose **Move**, **Scale**, **Extrude**, **Bevel**, **Inset** or **Delete**.
+6. Aim at the transform handle, hold the trigger, drag and release to apply.
+7. Use **Undo** if needed and **Save Blend** when finished.
 
-Extrusion follows the area-weighted average selected face normal. Moving along that normal changes depth. Bevel and inset use sideways controller movement. A short trigger click uses the default distance, initially 0.03 in local mesh units. Bevel segment count is set before entering VR. The menu floats above the other hand and faces your head for readability.
+The gizmo grows with viewing distance so its handles remain easier to raycast from farther away.
 
-### Build from primitives
+## Scene navigation
 
-Open **SHAPES** on the hand menu, choose a primitive and point at its intended location. A green wireframe box shows the placement bounds. Trigger places an ordinary Blender mesh and selects MOVE so you can point at it and grip to position it. Use MODE to edit its faces with Blender XR tools. UNDO removes a new primitive; REDO restores it in object mode.
+- **Left stick:** forward/backward and sideways movement.
+- **Right stick:** turn and move vertically.
+- **Turbo:** hold the left-stick click or enable Turbo from Travel.
+- **Fly / Walk:** choose whether head pitch affects forward movement.
+- **Grab air:** grip empty space and pull your hand to reposition yourself.
+- **Reset View:** return to the starting navigation position.
 
-Shapes land on the ray-hit surface, offset by half their size (plane has no offset). In empty space they appear at **Placement distance**, initially 1.5 VR metres. Set **Shape size**, **Placement distance**, **Flight speed** and **Grab empty space to move** in the sidebar. The empty-space grip gesture translates the viewer; it does not rotate or scale the scene.
+Movement is designed for full Blender scenes rather than a small fixed VR play area.
 
-If v0.4 raised the `Event has no attribute timer` error, stop VR and restart Blender before updating. v0.4.1 handles TIMER events using the session clock and never reads that missing attribute.
+## Saving
 
-### Fly and switch meshes
+Use **Save Blend** from the desktop sidebar or VR menu.
 
-Left moves, right turns, independent of which hand edits. Default flight speed is 3 VR metres/second with no scene boundary. Look up or down to fly in that direction, or use the right stick vertically for altitude. Hold the left stick click for 4x speed, or use **Travel > Faster** to double base speed up to 1000 VR metres/second. **Slower** halves it. **Turbo** keeps the 4x boost on without holding a button. High speeds help cross large scenes; use Slower for precise work. Saved scenes can retain an older speed setting.
+- Existing projects save back to their current file.
+- Unsaved projects default to a timestamped `.blend` in `Documents/BlenderXR`.
+- You can set a first-save path in the sidebar before entering VR.
+- Private Blender XR undo snapshots are excluded from the saved project.
 
-The right stick snaps 30 degrees by default, with one turn per deflection. **Travel > Snap/Smooth** changes to continuous turning. Snap angle and smooth turn speed are adjustable in the sidebar. Turning pivots around your head, including when the starting 3D cursor is away from the origin. Navigation pauses during live edits, object grabs and grab-air movement.
+## Updating
 
-The menu separates **Tools**, **Edit Tools**, **Shapes** and **Travel**, with larger labels, active-tool/turbo highlights, selected mesh name and control hints. A green ray and bounds identify the mesh under the pointer. In SELECT, trigger another mesh to switch targets. If you were face editing, the old mesh leaves edit mode and the new mesh enters it with the hit face selected. A linked/shared mesh, shape-key mesh or zero-scale target is refused before leaving the current edit target. Finish or cancel live work before switching.
+The sidebar includes **Update Blender XR**.
 
-## Save your Blender project
+1. Stop VR.
+2. Enable **Allow Online Access** in Blender preferences.
+3. Click **Update Blender XR**.
+4. Restart Blender when prompted.
 
-Use **Save Blend** on the **Tools** or **Travel** hand menu, or the desktop sidebar. The button writes a normal `.blend` file with your scene and committed mesh edits. Finish or cancel any live edit/move first. Saving preserves the current session's VR undo history and excludes its private mesh snapshots from the saved project.
+The updater downloads the current public release, checks its checksum, validates the extension archive and rolls back file replacement if installation fails.
 
-- Existing project: save back to its current filepath, using Blender's normal save behavior and backup preferences.
-- Unsaved project: create `BlenderXR-YYYYMMDD-HHMMSS.blend` in your home **Documents/BlenderXR** folder. An occupied timestamp gets a numbered filename.
-- Optional first-save location: choose an absolute **Blend save path** in the sidebar before VR. An existing file at that first-save path is refused; open it in Blender if you want to work on it.
+## Experimental finger features
 
-The chosen path appears in the sidebar and the hand menu confirms the saved filename. Saved projects can be reopened and edited normally in Blender. VR undo is session-local and is not restored when reopening the file.
+Controller finger-touch shortcuts and the optional SteamVR skeletal hand bridge remain experimental. They are not required for normal controller use.
 
-## Update from GitHub
+The SteamVR bridge uses an external helper and `openvr` in system Python. See the source and testing documentation before relying on it for production work.
 
-The sidebar has one **Update Blender XR** button. Stop VR, enable **Allow Online Access** in Blender preferences, then click it to download and install the latest stable release. No GitHub account, key or token is required. Restart Blender when prompted.
+## Current limitations
 
-The updater verifies the installer ZIP and checksum before installation, runs network requests in a background thread, and restores changed files if installation fails. Release automation verifies the new installer before removing older releases and installer downloads.
+- One local editable mesh at a time for topology editing.
+- Shared/linked meshes, shape-key meshes and zero-scale targets are rejected for topology changes.
+- Editing operates on the base mesh cage; evaluated modifiers can visually differ from it.
+- Full vertex/edge modeling, UV editing, materials, rigging and weight painting are roadmap features rather than complete v0.4.7 systems.
+- VR Undo / Redo is session-local.
+- Physical headset behavior can vary between OpenXR runtimes and controller profiles.
+- Blender XR is not intended to replace every desktop Blender tool.
 
-## Optional finger features
+## Development
 
-**Finger-touch shortcuts** work with Touch/Index controller touch sensors, not a full hand skeleton. Enable before starting VR. Hold a finger on the trigger and a thumb on the thumbstick for 0.7 seconds: the non-dominant hand toggles the menu (or cancels a live edit); the dominant hand cancels a live edit. Lift the fingers to rearm. The option defaults off, because some resting grips naturally touch both sensors. Other profiles simply lack this shortcut.
-
-**Finger bridge (experimental)** reads partial/full SteamVR skeletal tracking. It does not add native controller-free hand tracking to Blender or Air Link. It requires SteamVR as the OpenXR runtime plus two tracked controller/hand poses. Virtual Desktop hand tracking must be configured to supply SteamVR skeletal input and compatible controller poses. VDXR alone does not feed this bridge. SteamVR's estimated, button-derived skeleton is rejected.
-
-1. Install the optional free helper dependency into **system Python**, using `python -m pip install openvr==2.12.1401` (Windows: `py -m pip install openvr==2.12.1401`). No dependency is installed into Blender.
-2. Choose **Finger bridge (experimental)** before **Start VR**. Keep SteamVR running and the hands/controllers tracked.
-3. Click **Copy Hand Bridge Command** in the desktop sidebar and paste into a terminal. It launches the included helper with this VR session's key and loopback port.
-4. Release both hands to arm. Thumb/index pinch replaces the trigger: select, menu clicks, or hold/release a tool preview. Close the dominant middle/ring/pinky fingers to grab in MOVE, then open to release. Pinch the other hand to toggle the menu or cancel.
-5. Stop the helper with Ctrl+C. Stale input after 0.25 seconds cancels unfinished work; release both hands after reconnection. Stop VR before returning to controller input.
-
-Skeletal pinch accuracy, simultaneous background SteamVR input and controller-free emulation need real headset testing. If SteamVR does not expose active partial/full skeletal actions, the mode waits rather than edits. Use SteamVR Input to bind the helper's two skeleton actions if the automatic bindings are unavailable. Finger mode uses either-hand finger curl in empty space for grab-air movement; it has no thumbstick locomotion.
-
-## v0.4 limits
-
-- One local mesh at a time. Shared mesh data, linked mesh data, shape keys, and zero-scale objects are refused for topology edits.
-- Face selection and editing operate on the base mesh cage. Evaluated modifiers may make its displayed surface differ; disable those modifiers while using v0.4 tools.
-- Movement supports local unparented objects without constraints. Scaling, vertices/edges, sculpting, UVs, painting, nodes, and multi-object editing are future work.
-- Use the VR-local history buttons during a session. History clears on stop. Desktop edits/native undo during VR can invalidate history; finish VR before using the desktop workflow.
-- Some controller tracking/runtime failures cannot be detected through Blender's Python API. Stop VR if tracking becomes unreliable.
-- This is not a replacement for all Blender desktop tools.
-
-## Development and releases
-
-Run `python scripts/build.py` to generate the installable ZIP and SHA-256 file. Source files live in `blender_xr/`; installer files sit at the root of the extension ZIP.
-
-Run `python tests/test_gestures.py` for finger/protocol/profile checks. Run the remaining tests using a Blender binary:
+Build the installable extension with:
 
 ```sh
-blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
-blender --background --factory-startup --python-exit-code 1 --python tests/test_controls.py
-blender --background --factory-startup --python-exit-code 1 --python tests/test_flight.py
-blender --background --factory-startup --python-exit-code 1 --python tests/test_save.py
-blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
+python scripts/build.py
 ```
 
-GitHub Actions validates on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. The release workflow validates on 5.2.2 and publishes a version once. For the next release, update the manifest, `bl_info`, updater `VERSION`, documentation, and release notes together. Existing release assets are never silently replaced. A private repository must have GitHub Actions enabled for automated publishing.
+Run the standard Python checks with:
 
-See [TESTING.md](TESTING.md) for automated results and headset checks, and [ROADMAP.md](ROADMAP.md) for future scope.
+```sh
+python tests/test_gestures.py
+python tests/test_prune.py
+```
 
-Independent project by Ded Zed. Not affiliated with the Blender Foundation, Freebird XR, or the earlier MARUI BlenderXR project.
+The remaining regression tests run through Blender in GitHub Actions. The project validates against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release.
 
-## Ray-draggable axis handles
+Source is licensed under **GPL-3.0-or-later**.
 
-Choose **MOVE** in object mode to show red **X**, green **Y** and blue **Z** handles. Aim the dominant-hand ray at a handle, hold the trigger and sweep the ray along that axis. Release to apply. In face edit mode, select faces, open **Edit Tools**, and choose **EXTRUDE** for the same XYZ handles. Extrusion can travel in either direction on the chosen axis. **BEVEL** and **INSET** use a yellow SIZE handle because they change thickness rather than translate geometry. Aim across a handle; pointing directly along its axis makes dragging ambiguous and retains the last valid amount. The off-hand trigger cancels a drag. Undo and Redo restore committed changes.
+See [TESTING.md](TESTING.md) for validation details and [ROADMAP.md](ROADMAP.md) for the planned feature path.
 
-Choose **DEL FACES** in Edit Tools to delete selected faces. Undo restores them.
+---
 
-For free movement across the entire scene, the physical left thumbstick moves sideways and forward/backward; the physical right thumbstick moves up/down and turns left/right. All three spatial axes are accessible regardless of which hand is dominant. Travel provides speed, turbo and flight controls; gripping empty air lets you pull the scene.
+### Support Blender XR
+
+Blender XR is developed as a free project. If you'd like to support continued development, testing and new VR modeling tools:
+
+**[Patreon - Ded Zed](https://www.patreon.com/cw/DedZed)** · **[FISHHWB Website](https://fishhwb.github.io/)**
+
+Independent project by Ded Zed. Not affiliated with the Blender Foundation, Freebird XR or the earlier MARUI BlenderXR project.
