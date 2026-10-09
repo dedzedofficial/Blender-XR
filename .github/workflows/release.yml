@@ -5,6 +5,12 @@ on:
     paths: ["blender_xr/**", "scripts/build.py", ".github/workflows/release.yml"]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      publish_existing_to_blender:
+        description: "Submit the current verified version to Blender Extensions even if its GitHub release already exists"
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: write
   actions: write
@@ -38,20 +44,42 @@ jobs:
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_axes.py
       - name: Publish version once
+        id: github_release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(python -c "import tomllib; print(tomllib.load(open('blender_xr/blender_manifest.toml','rb'))['version'])")
           tag="v${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
           if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "$tag" ]]; then
             echo "Release tag and manifest version do not match" >&2
             exit 1
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
+            echo "created=false" >> "$GITHUB_OUTPUT"
             echo "Release already exists. Bump the manifest and updater version for another release."
           else
             gh release create "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "Blender XR v${version}" --notes-file RELEASE_NOTES.md --latest
+            echo "created=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Publish to Blender Extensions
+        if: ${{ steps.github_release.outputs.created == 'true' || (github.event_name == 'workflow_dispatch' && inputs.publish_existing_to_blender) }}
+        env:
+          BLENDER_EXTENSIONS_TOKEN: ${{ secrets.BLENDER_EXTENSIONS_TOKEN }}
+          VERSION: ${{ steps.github_release.outputs.version }}
+        run: |
+          if [[ -z "$BLENDER_EXTENSIONS_TOKEN" ]]; then
+            echo "::error::Missing repository secret BLENDER_EXTENSIONS_TOKEN"
+            exit 1
+          fi
+          package="dist/blender-xr-v${VERSION}.zip"
+          test -f "$package"
+          curl --fail-with-body --show-error --silent \
+            -X POST "https://extensions.blender.org/api/v1/extensions/blender_xr/versions/upload/" \
+            -H "Authorization:bearer ${BLENDER_EXTENSIONS_TOKEN}" \
+            -F "version_file=@${package}" \
+            -F "release_notes=<RELEASE_NOTES.md"
+          echo "Submitted Blender XR v${VERSION} to Blender Extensions"
       - name: Keep only verified current downloads
         env:
           GH_TOKEN: ${{ github.token }}
