@@ -16,6 +16,8 @@ def patch(Runtime):
         self.select_mode = mesh.selection_mode(context) if context.mode == 'EDIT_MESH' else 'FACE'
 
     def command(self, context, action):
+        if not hasattr(self, 'select_mode'):
+            self.select_mode = mesh.selection_mode(context) if context.mode == 'EDIT_MESH' else 'FACE'
         if action == 'EDIT_MORE':
             self.menu.page = 'EDIT_MORE'
             self.status = 'MORE EDIT TOOLS'
@@ -70,16 +72,18 @@ def patch(Runtime):
     def select(self, context, origin, direction, additive=False):
         if self.transaction or self.grab or self.air_grab or self.axis_move:
             raise ValueError('Finish or cancel the current operation before switching meshes')
+        mode = getattr(self, 'select_mode', 'FACE')
+        self.select_mode = mode
         obj = context.view_layer.objects.active
         editing = bool(obj and obj.mode == 'EDIT')
         hit = self.object_hit(context, origin, direction)
-        picked = mesh.element_hit(obj, origin, direction, self.select_mode) if editing else None
+        picked = mesh.element_hit(obj, origin, direction, mode) if editing else None
         edit_tools = {'SELECT','MOVE_FACE','SCALE_FACE'}
         if editing and self.tool in edit_tools and picked:
             if not hit or hit[0] == obj or (picked[1]-origin).length <= (hit[1]-origin).length:
-                mesh.select_element(obj, self.select_mode, picked[0], additive)
+                mesh.select_element(obj, mode, picked[0], additive)
                 self.pointer = picked[1]
-                self.status = self.select_mode + ' SELECTED / ' + self.tool.replace('_',' ')
+                self.status = mode + ' SELECTED / ' + self.tool.replace('_',' ')
                 return
         if not hit:
             self.status = 'POINT AT A MESH'
@@ -97,17 +101,19 @@ def patch(Runtime):
         self.pointer = point
         if keep_edit:
             bpy.ops.object.mode_set(mode='EDIT')
-            mesh.set_selection_mode(context, self.select_mode)
-            picked = mesh.element_hit(target, origin, direction, self.select_mode)
+            mesh.set_selection_mode(context, mode)
+            picked = mesh.element_hit(target, origin, direction, mode)
             if picked:
-                mesh.select_element(target, self.select_mode, picked[0])
+                mesh.select_element(target, mode, picked[0])
         self.status = 'SELECTED ' + target.name.upper()
 
     def begin_tool(self, context, origin, rotation):
+        mode = getattr(self, 'select_mode', mesh.selection_mode(context))
+        self.select_mode = mode
         obj = context.view_layer.objects.active
-        if not mesh.selected_geometry(obj, self.select_mode):
+        if not mesh.selected_geometry(obj, mode):
             raise ValueError('Select mesh geometry first')
-        if self.tool == 'INSET' and self.select_mode != 'FACE':
+        if self.tool == 'INSET' and mode != 'FACE':
             raise ValueError('Inset is only available in face selection mode')
         if self.tool == 'EXTRUDE':
             self.local_axis = mesh.selected_normal(obj)
@@ -116,7 +122,7 @@ def patch(Runtime):
                                (rotation @ Vector((1,0,0)))).normalized()
         self.start_pos = origin.copy()
         self.start_step = self.settings.step
-        self.transaction = mesh.Transaction(obj, self.tool, self.select_mode)
+        self.transaction = mesh.Transaction(obj, self.tool, mode)
         self.last_amount = None
 
     Runtime.__init__ = init
