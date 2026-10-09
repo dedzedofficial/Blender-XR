@@ -20,7 +20,7 @@ Blender XR brings a simple controller-first modeling workflow into Blender using
 - Save Blend directly from VR or the desktop sidebar.
 - Cleaner desktop and VR menus with duplicate options removed.
 - Patreon and Website buttons in the Blender sidebar.
-- Built-in public release updater with checksum verification.
+- Release automation prepared for Blender Extensions publishing and Blender-managed updates.
 
 The v0.5 roadmap expands this into fuller mesh modeling, including vertex and edge workflows. See [ROADMAP.md](ROADMAP.md) for the planned path through materials, UV mapping, modifiers, rigging, weight painting and v1.0.
 
@@ -34,6 +34,8 @@ The v0.5 roadmap expands this into fuller mesh modeling, including vertex and ed
 Automated validation currently covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash. Physical headset/runtime testing is still an ongoing part of development.
 
 ## Install
+
+Until the official Blender Extensions listing is available:
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
 2. Download the current `blender-xr-vX.X.X.zip` installer asset. Do not install GitHub's automatic source-code ZIP.
@@ -110,14 +112,16 @@ Use **Save Blend** from the desktop sidebar or VR menu.
 
 ## Updating
 
-The sidebar includes **Update Blender XR**.
+Blender XR now relies on Blender's Extensions system for official-platform updates instead of modifying its own installed files.
 
-1. Stop VR.
-2. Enable **Allow Online Access** in Blender preferences.
-3. Click **Update Blender XR**.
-4. Restart Blender when prompted.
+Once the Blender Extensions listing is active:
 
-The updater downloads the current public release, checks its checksum, validates the extension archive and rolls back file replacement if installation fails.
+1. Open **Edit > Preferences > Get Extensions**.
+2. Use **Check for Updates** from the Extensions menu.
+3. Blender will offer the newest compatible Blender XR version for the installed Blender version and platform.
+4. Install the update through Blender.
+
+GitHub Actions builds and validates every release first, creates the matching GitHub Release, and can submit that same verified ZIP and release notes to the Blender Extensions API.
 
 ## Experimental finger features
 
