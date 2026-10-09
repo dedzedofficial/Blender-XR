@@ -18,6 +18,7 @@ def build_map(state, family='AUTO', finger_touch=False):
         ('trigger', 'FLOAT', '/input/trigger/value'),
         ('grab', 'FLOAT', None),
         ('stick', 'VECTOR2D', '/input/thumbstick'),
+        ('boost', 'BOOLEAN', '/input/thumbstick/click'),
     ]
     if finger_touch:
         definitions += [('trigger_touch', 'BOOLEAN', '/input/trigger/touch'),
@@ -37,10 +38,12 @@ def build_map(state, family='AUTO', finger_touch=False):
             if name.endswith('_touch') and key not in {'touch', 'index'}:
                 continue
             # Simple controllers have no stick or independent grab control.
-            if key == 'simple' and name in {'grab', 'stick'}:
+            if key == 'simple' and name in {'grab', 'stick', 'boost'}:
                 continue
             if key == 'vive' and name == 'stick':
                 path = '/input/trackpad'
+            elif key == 'vive' and name == 'boost':
+                path = '/input/trackpad/click'
             elif key == 'simple' and name == 'trigger':
                 path = '/input/select/click'
             else:
@@ -64,7 +67,7 @@ def activate(context):
             raise RuntimeError('OpenXR could not create action: ' + item.name)
         for binding in item.bindings:
             if not state.action_binding_create(context, amap, item, binding):
-                if not item.name.endswith('_touch'):
+                if not item.name.endswith('_touch') and item.name != 'boost':
                     raise RuntimeError('OpenXR could not bind: ' + item.name)
     if not state.controller_pose_actions_set(context, SET, 'grip_pose', 'aim_pose'):
         raise RuntimeError('OpenXR could not attach controller poses')
@@ -81,5 +84,12 @@ def touch(context, hand):
     try:
         return (read(context, 'trigger_touch', hand)[0] > 0.5 and
                 read(context, 'thumb_touch', hand)[0] > 0.5)
+    except (RuntimeError, ValueError):
+        return False
+
+
+def boost(context):
+    try:
+        return read(context, 'boost', 0)[0] > 0.5
     except (RuntimeError, ValueError):
         return False

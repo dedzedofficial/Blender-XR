@@ -79,13 +79,13 @@ class Tests(unittest.TestCase):
                                  ('AUTO', {'touch','index','vive','simple'})]:
             state = NS(actionmaps=NS(new=lambda *a, **k: NS(actionmap_items=Collection())))
             amap = actions.build_map(state, family, True)
-            self.assertEqual(len(amap.actionmap_items), 7)
+            self.assertEqual(len(amap.actionmap_items), 8)
             for item in amap.actionmap_items:
                 self.assertEqual([p.name for p in item.user_paths], list(actions.HANDS))
                 keys = {b.name for b in item.bindings}
                 if item.name.endswith('_touch'):
                     self.assertEqual(keys, expected & {'touch','index'})
-                elif item.name in ('grab','stick'):
+                elif item.name in ('grab','stick','boost'):
                     self.assertEqual(keys, expected - {'simple'})
                 else:
                     self.assertEqual(keys, expected)

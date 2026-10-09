@@ -133,6 +133,7 @@ def run():
     session.grab=None;session.trigger=runtime.Button();session.trigger.down=True
     session.off_trigger=runtime.Button();session.grip=runtime.Button()
     session.menu=drawing.Menu();session.bridge=NS(read=lambda:None)
+    session.object_hit=lambda *args:None
     events=[]
     state=NS(controller_aim_rotation_get=lambda c,h:(1,0,0,0),
              controller_grip_rotation_get=lambda c,h:(1,0,0,0),
@@ -154,7 +155,7 @@ def run():
     state=bpy.context.window_manager.xr_session_state
     if state is not None:
         amap=actions.build_map(state)
-        assert len(amap.actionmap_items)==5
+        assert len(amap.actionmap_items)==6
         assert [u.path for u in amap.actionmap_items['aim_pose'].user_paths]==list(actions.HANDS)
         for item in amap.actionmap_items:
             for binding in item.bindings:

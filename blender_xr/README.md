@@ -1,16 +1,16 @@
-# Blender XR v0.4.1
+# Blender XR v0.4.2
 
 **Free basic VR modeling inside Blender, by Ded Zed.**
 
 Choose your dominant hand before entering VR. The other hand holds a small tool menu; the dominant controller points, selects, edits, and moves objects.
 
-**v0.4.1 fixing update:** fixes the timer error that stopped VR controls, adds left-stick and grab-air movement, and adds primitive placement. Geometry, locomotion simulation, primitive creation and updater tests pass in Blender 5.0.0 and 5.2.2. Physical Quest 3 and Windows runtime testing is still pending. Air Link, SteamVR, and Virtual Desktop are intended OpenXR connection paths, not yet certified combinations.
+**v0.4.2 navigation update:** full-scene flight, physical left-stick movement, right-stick turning/lift, turbo and in-VR speed adjustment, a clearer Tools/Shapes/Travel menu, and mesh switching by ray while editing. Automated checks pass in Blender 5.0.0 and 5.2.2. Physical Quest/Valve and Windows runtime testing remains pending.
 
-[Download v0.4.1 installer](https://github.com/dedzedofficial/Blender-XR/releases/download/v0.4.1/blender-xr-v0.4.1.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md)
+[Download v0.4.2 installer](https://github.com/dedzedofficial/Blender-XR/releases/download/v0.4.2/blender-xr-v0.4.2.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md)
 
 ## Install
 
-1. Download `blender-xr-v0.4.1.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
+1. Download `blender-xr-v0.4.2.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
 2. In Blender, open **Edit > Preferences > Add-ons**, open the menu at the upper right, and select **Install from Disk**.
 3. Select the installer ZIP and enable **Blender XR**.
 4. In the 3D viewport, press **N** and open the **Blender XR** tab.
@@ -48,15 +48,19 @@ Requires Blender 5+ with OpenXR, a PC capable of running VR, and two tracked con
 | Control | Action |
 | --- | --- |
 | Dominant trigger, pointing at menu | Choose a tool or menu command. |
-| Dominant trigger with SELECT | Select an object; in face edit mode, select a face. |
+| Dominant trigger with SELECT | Select a mesh or face; point at another mesh to switch the active edit target. |
 | MODE menu button | Switch the selected mesh between object mode and face edit mode. |
 | Grip + trigger with SELECT in face mode | Add or remove a face from the selection. |
 | Trigger with EXTRUDE / BEVEL / INSET | Hold and move the controller to preview the amount; release to apply. |
 | Dominant grip with MOVE in object mode | Point at a mesh, grip to move and rotate it; release to apply. |
 | Non-dominant trigger | Toggle the hand menu, or cancel an active edit/move. |
-| Left thumbstick | Move the viewer horizontally, relative to your head direction, regardless of dominant hand. Pauses during a live edit, object grab or grab-air movement. |
+| Left thumbstick | Fly in head direction, including head pitch; works regardless of dominant hand. Walk mode keeps movement level. |
+| Right thumbstick left/right | Turn the viewer. Default: 30-degree snap per deflection; return the stick to centre before the next turn. Smooth turning is optional. |
+| Right thumbstick up/down | Fly vertically. |
+| Hold left thumbstick click | Four-times turbo flight. |
+| TRAVEL menu | Set flight/walk, turbo, faster/slower, snap/smooth, reset view and tool distance. |
 | Either grip, ray pointing into empty space | Hold and pull your hand to move the viewer in 3D; release to stop. Works with controller grips and the experimental finger-curl bridge. |
-| ADD SHAPES | Choose cube, sphere, cylinder, cone, torus or plane, point away from the menu, then trigger to place. |
+| SHAPES | Choose cube, sphere, cylinder, cone, torus or plane, point away from the menu, then trigger to place. |
 | LESS / MORE menu buttons | Halve or double the starting tool distance. |
 | UNDO / REDO | Undo/redo the latest 20 Blender XR edits, object moves and primitive creations during the current session. |
 | RESET VIEW | Reset viewer navigation to the starting location. |
@@ -74,11 +78,19 @@ Extrusion follows the area-weighted average selected face normal. Moving along t
 
 ### Build from primitives
 
-Open **ADD SHAPES** on the hand menu, choose a primitive and point at its intended location. A green wireframe box shows the placement bounds. Trigger places an ordinary Blender mesh and selects MOVE so you can point at it and grip to position it. Use MODE to edit its faces with Blender XR tools. UNDO removes a new primitive; REDO restores it in object mode.
+Open **SHAPES** on the hand menu, choose a primitive and point at its intended location. A green wireframe box shows the placement bounds. Trigger places an ordinary Blender mesh and selects MOVE so you can point at it and grip to position it. Use MODE to edit its faces with Blender XR tools. UNDO removes a new primitive; REDO restores it in object mode.
 
-Shapes land on the ray-hit surface, offset by half their size (plane has no offset). In empty space they appear at **Placement distance**, initially 1.5 VR metres. Set **Shape size**, **Placement distance**, **Navigation speed** and **Grab empty space to move** in the sidebar. The empty-space grip gesture translates the viewer; it does not rotate or scale the scene.
+Shapes land on the ray-hit surface, offset by half their size (plane has no offset). In empty space they appear at **Placement distance**, initially 1.5 VR metres. Set **Shape size**, **Placement distance**, **Flight speed** and **Grab empty space to move** in the sidebar. The empty-space grip gesture translates the viewer; it does not rotate or scale the scene.
 
 If v0.4 raised the `Event has no attribute timer` error, stop VR and restart Blender before updating. v0.4.1 handles TIMER events using the session clock and never reads that missing attribute.
+
+### Fly and switch meshes
+
+Left moves, right turns, independent of which hand edits. Default flight speed is 3 VR metres/second with no scene boundary. Look up or down to fly in that direction, or use the right stick vertically for altitude. Hold the left stick click for 4x speed, or use **Travel > Faster** to double base speed up to 1000 VR metres/second. **Slower** halves it. **Turbo** keeps the 4x boost on without holding a button. High speeds help cross large scenes; use Slower for precise work. Saved scenes can retain an older speed setting.
+
+The right stick snaps 30 degrees by default, with one turn per deflection. **Travel > Snap/Smooth** changes to continuous turning. Snap angle and smooth turn speed are adjustable in the sidebar. Turning pivots around your head, including when the starting 3D cursor is away from the origin. Navigation pauses during live edits, object grabs and grab-air movement.
+
+The menu separates **Tools**, **Shapes** and **Travel**, with larger labels, active-tool/turbo highlights, selected mesh name and control hints. A green ray and bounds identify the mesh under the pointer. In SELECT, trigger another mesh to switch targets. If you were face editing, the old mesh leaves edit mode and the new mesh enters it with the hit face selected. A linked/shared mesh, shape-key mesh or zero-scale target is refused before leaving the current edit target. Finish or cancel live work before switching.
 
 ## Update from GitHub
 
@@ -125,6 +137,7 @@ Run `python tests/test_gestures.py` for finger/protocol/profile checks. Run the 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
 blender --background --factory-startup --python-exit-code 1 --python tests/test_controls.py
+blender --background --factory-startup --python-exit-code 1 --python tests/test_flight.py
 blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
 ```
 

@@ -67,3 +67,18 @@ Quest 3 retest:
 5. Open ADD SHAPES and place every primitive, both on a surface and into empty space. Check the green placement bounds, size/distance settings and transition to MOVE.
 6. Undo/redo creation in object mode, then MODE into face editing and test extrude/bevel/inset on the new shapes.
 7. Stop and reopen VR. Record Blender version, transport and OpenXR runtime. These physical checks remain pending.
+
+## v0.4.2 flight and selection checks
+
+Automated checks: 3D head-directed flight and level walk, vertical right-stick input, combined-input speed cap, turbo, actual tick with either dominant hand, snap release/rearm, smooth-turn time scaling, turning around the head with nonzero base origin, Travel controls, all three menu pages, and real-scene rays switching between editable cubes. Shape-key targets and live-operation switches are refused without disturbing the active mesh.
+
+Hardware retest:
+
+1. Left stick moves; right stick turns horizontally and moves vertically, in both handedness configurations.
+2. Cross a large scene with left-stick click turbo and Travel > Faster, then slow down for editing. Confirm scene objects stay fixed.
+3. Test snap (one turn per deflection) and smooth turning, with the cursor away from the world origin. Confirm turning does not move the head sideways.
+4. Check all menu pages and label readability in both eyes. Confirm ray target bounds and selected mesh name.
+5. Edit a face, point at another mesh and trigger with SELECT. Confirm it switches cleanly and chooses the hit face. Revisit the first mesh and confirm its edits remain.
+6. Try a linked/shared/shape-key mesh while editing and confirm the current mesh remains active. Confirm navigation and switching pause during a live preview.
+
+Hardware validation remains pending. Geometry/input simulations cannot establish stereo UI readability or controller runtime compatibility.

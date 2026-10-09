@@ -36,6 +36,48 @@ def stick_delta(rotation, stick, dt, speed, scale):
     return (right*amount.x + forward*amount.y) * min(max(dt, 0), 0.1) * speed * scale
 
 
+def flight_delta(rotation, stick, lift, dt, speed, scale, fly=True):
+    if not fly:
+        delta = stick_delta(rotation, stick, dt, speed, scale)
+        velocity = delta / max(min(max(dt, 0), 0.1) * speed * scale, 1e-9)
+    else:
+        amount = Vector(stick)
+        magnitude = amount.length
+        amount = (amount / magnitude * (min(magnitude, 1)-0.15)/0.85
+                  if magnitude > 0.15 else Vector((0,0)))
+        velocity = rotation @ Vector((amount.x,0,-amount.y))
+    vertical = (math.copysign((min(abs(lift),1)-0.15)/0.85, lift)
+                if abs(lift)>0.15 else 0)
+    velocity.z += vertical
+    if velocity.length > 1:
+        velocity.normalize()
+    return velocity * min(max(dt,0),0.1) * speed * scale
+
+
+class Turning:
+    def __init__(self):
+        self.armed = True
+
+    def angle(self, value, dt, mode, snap, speed):
+        if abs(value) < 0.3:
+            self.armed = True
+        if mode == 'SMOOTH':
+            return (-math.copysign((min(abs(value),1)-0.2)/0.8,value)*speed*min(max(dt,0),0.1)
+                    if abs(value)>0.2 else 0)
+        if self.armed and abs(value)>0.65:
+            self.armed = False
+            return -math.copysign(snap,value)
+        return 0
+
+
+def turn_view(state, angle, base_origin, pivot=None):
+    turn = Quaternion(Vector((0,0,1)), math.radians(angle))
+    offset = Vector(state.navigation_location)
+    relative = Vector(state.viewer_pose_location if pivot is None else pivot) - Vector(base_origin) - offset
+    state.navigation_location = offset + relative - turn @ relative
+    state.navigation_rotation = turn @ Quaternion(state.navigation_rotation)
+
+
 def session_pre(*_args):
     global START_ERROR
     if PENDING or CURRENT is not None:
@@ -75,6 +117,9 @@ class Runtime:
         self.grab = None
         self.air_grab = None
         self.other_grip = Button()
+        self.turning = Turning()
+        self.base_origin = Vector(context.scene.cursor.location)
+        self.target = None
         self.pending_primitive = None
         self.spawn_preview = None
         self.trigger = Button()
@@ -161,6 +206,23 @@ class Runtime:
         if action == 'BACK':
             self.menu.page = 'TOOLS'
             return
+        if action == 'NAV_MENU':
+            self.menu.page = 'TRAVEL'
+            return
+        if action in {'FASTER','SLOWER'}:
+            self.settings.move_speed = max(0.1,min(1000,self.settings.move_speed*(2 if action=='FASTER' else .5)))
+            self.status = 'SPEED ' + format(self.settings.move_speed,'.1f')
+            return
+        if action == 'FLY_TOGGLE':
+            self.settings.fly_mode = not self.settings.fly_mode
+            return
+        if action == 'TURBO':
+            self.settings.fast_flight = not self.settings.fast_flight
+            return
+        if action == 'TURN_TOGGLE':
+            self.settings.turn_mode = 'SMOOTH' if self.settings.turn_mode=='SNAP' else 'SNAP'
+            self.turning.armed = False
+            return
         if action.startswith('ADD_') and action[4:] in primitives.KINDS:
             self.pending_primitive = action[4:]
             self.menu.page = 'TOOLS'
@@ -246,23 +308,42 @@ class Runtime:
         self.status = 'GRAB AIR TO MOVE'
 
     def select(self, context, origin, direction, additive=False):
+        if self.transaction or self.grab or self.air_grab:
+            raise ValueError('Finish or cancel the current operation before switching meshes')
         obj = context.view_layer.objects.active
-        if obj and obj.mode == 'EDIT':
-            hit = mesh.face_hit(obj, origin, direction)
-            if hit:
-                mesh.select_face(obj, hit[0], additive)
+        editing = bool(obj and obj.mode == 'EDIT')
+        hit = self.object_hit(context, origin, direction)
+        face = mesh.face_hit(obj, origin, direction) if editing else None
+        if editing and self.tool == 'SELECT' and face:
+            # Keep face editing when the current cage is the closest hit.
+            if not hit or hit[0] == obj or (face[1]-origin).length <= (hit[1]-origin).length:
+                mesh.select_face(obj, face[0], additive)
+                self.pointer = face[1]
                 self.status = 'FACE SELECTED'
-            else:
-                self.status = 'POINT AT A FACE'
-        else:
-            hit = self.object_hit(context, origin, direction)
-            if hit:
-                obj, self.pointer = hit
-                for selected in context.selected_objects:
-                    selected.select_set(False)
-                obj.select_set(True)
-                context.view_layer.objects.active = obj
-                self.status = 'MESH SELECTED'
+                return
+        if not hit:
+            self.status = 'POINT AT A MESH'
+            return
+        target, point = hit
+        keep_edit = editing and self.tool == 'SELECT'
+        if keep_edit:
+            # Validate before leaving the old mesh so a refused target does not
+            # disturb the user's active mesh or editing mode.
+            mesh.check_editable(target)
+        if editing:
+            bpy.ops.object.mode_set(mode='OBJECT')
+        for selected in context.selected_objects:
+            selected.select_set(False)
+        target.select_set(True)
+        context.view_layer.objects.active = target
+        self.pointer = point
+        if keep_edit:
+            bpy.ops.object.mode_set(mode='EDIT')
+            context.tool_settings.mesh_select_mode = (False,False,True)
+            picked = mesh.face_hit(target, origin, direction)
+            if picked:
+                mesh.select_face(target, picked[0])
+        self.status = 'SELECTED ' + target.name.upper()
 
     def begin_tool(self, context, origin, rotation):
         obj = context.view_layer.objects.active
@@ -326,6 +407,11 @@ class Runtime:
         self.menu.position(hand, Vector(state.viewer_pose_location), scale)
         self.ray = (origin, direction)
         self.hover, self.pointer = self.menu.hit(origin, direction)
+        self.target = None
+        if not self.hover:
+            target_hit = self.object_hit(context,origin,direction)
+            if target_hit:
+                self.target, self.pointer = target_hit
         if self.bridge:
             inputs = self.bridge.read()
             if inputs is None:
@@ -444,7 +530,16 @@ class Runtime:
                 return
         # Always the physical LEFT stick, independent of dominant-hand choice.
         stick = (0, 0) if self.bridge else actions.read(context,'stick',0)
-        delta = stick_delta(Quaternion(state.viewer_pose_rotation), stick, dt,
-                            self.settings.move_speed, scale)
+        right = (0,0) if self.bridge else actions.read(context,'stick',1)
+        boosted = self.settings.fast_flight or (not self.bridge and actions.boost(context))
+        delta = flight_delta(Quaternion(state.viewer_pose_rotation),stick,right[1],dt,
+                             self.settings.move_speed*(4 if boosted else 1),scale,
+                             self.settings.fly_mode)
         if delta.length:
             state.navigation_location = Vector(state.navigation_location) + delta
+        angle = self.turning.angle(right[0],dt,self.settings.turn_mode,
+                                   self.settings.turn_angle,self.settings.turn_speed)
+        if angle:
+            # Include this tick's translation in the pivot to keep the head fixed.
+            pivot = Vector(state.viewer_pose_location) + delta
+            turn_view(state,angle,self.base_origin,pivot)

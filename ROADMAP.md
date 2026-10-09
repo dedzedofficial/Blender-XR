@@ -52,11 +52,20 @@ Pending physical release validation: every headset/runtime combination above, co
 - Primitive creation in object mode, with VR-local undo/redo and snapshot cleanup.
 - Regression tests reproduce timer events without the missing attribute and simulate both handedness settings.
 
+## v0.4.2: flight and mesh switching
+
+- Unbounded scene flight: left stick moves, right stick turns and changes altitude.
+- Default 3 m/s flight, 4x turbo, held left-stick click boost, Travel speed controls and configurable snap/smooth turning.
+- Head-pivot rotation with a nonzero starting 3D cursor.
+- Tools, Shapes and Travel menu pages with larger labels, selected mesh name and ray-target bounds.
+- Ray switching between meshes while face editing, with validation before leaving the current mesh.
+- Regression tests for flight, turning, pivot preservation, both dominant-hand settings and real scene ray switching.
+
 ## v0.4.x: follow-up after headset testing
 
 - Fix reported runtime/profile issues first; publish actual hardware results.
 - Improve gesture thresholds from measured headset behavior.
-- Snap turning, adjustable menu position/size, axis snapping and diagnostics.
+- Adjustable menu position/size, axis snapping and improved diagnostics.
 - Test native Blender undo integration before replacing local history.
 
 ## v0.5: expand mesh editing

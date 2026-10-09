@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,1),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,2),
     'blender': (5,0,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free basic VR mesh editing with a hand-mounted menu',
     'category': '3D View',
@@ -29,7 +29,16 @@ class BXR_Settings(bpy.types.PropertyGroup):
     step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
                         description='Initial tool amount in local mesh units')
     bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8)
-    move_speed: FloatProperty(name='Navigation speed',default=1.0,min=0.1,max=5)
+    move_speed: FloatProperty(name='Flight speed',default=3.0,min=0.1,max=1000,
+        description='VR metres per second; adjust from the hand Travel menu')
+    fly_mode: bpy.props.BoolProperty(name='Fly in head direction', default=True,
+        description='Left stick follows head pitch in flight; disable for level movement')
+    fast_flight: bpy.props.BoolProperty(name='Turbo flight', default=False,
+        description='Multiply flight speed by four; also available by holding the left stick click')
+    turn_mode: EnumProperty(name='Turning', items=[('SNAP','Snap','One turn per stick deflection'),
+        ('SMOOTH','Smooth','Continuous turning')], default='SNAP')
+    turn_angle: FloatProperty(name='Snap angle', default=30, min=15, max=90)
+    turn_speed: FloatProperty(name='Turn speed', default=90, min=15, max=180)
     grab_air: bpy.props.BoolProperty(name='Grab empty space to move', default=True,
         description='Point into empty space and hold either grip; pull your hand to move the viewer')
     primitive_size: FloatProperty(name='Shape size', default=0.5, min=0.01, max=10,
@@ -186,7 +195,7 @@ class BXR_OT_bridge_command(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.4.1'
+    bl_label='Blender XR v0.4.2'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -213,6 +222,10 @@ class BXR_PT_panel(bpy.types.Panel):
         col.prop(settings,'step')
         col.prop(settings,'bevel_segments')
         col.prop(settings,'move_speed')
+        col.prop(settings,'fly_mode')
+        col.prop(settings,'fast_flight')
+        col.prop(settings,'turn_mode')
+        col.prop(settings,'turn_angle' if settings.turn_mode=='SNAP' else 'turn_speed')
         col.prop(settings,'grab_air')
         col.prop(settings,'primitive_size')
         col.prop(settings,'placement_distance')
@@ -225,6 +238,8 @@ class BXR_PT_panel(bpy.types.Panel):
         box.label(text='Grip in MOVE: move / rotate object')
         box.label(text='Other trigger: menu / cancel')
         box.label(text='Left stick: move around')
+        box.label(text='Right stick: turn / up and down')
+        box.label(text='Left stick click: hold for turbo')
         box.label(text='Grip empty space: pull to move')
         box.label(text='ADD SHAPES: pick, point, trigger')
         box.label(text='ESC: stop VR')

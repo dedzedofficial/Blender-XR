@@ -5,17 +5,22 @@ from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
 
 BUTTONS = (
-    ('SELECT', 'SELECT'), ('MODE', 'MODE'),
-    ('EXTRUDE', 'EXTRUDE'), ('BEVEL', 'BEVEL'),
-    ('INSET', 'INSET'), ('MOVE', 'MOVE'),
-    ('UNDO', 'UNDO'), ('REDO', 'REDO'),
-    ('LESS', 'LESS'), ('MORE', 'MORE'),
-    ('RESET VIEW', 'RESET'), ('STOP VR', 'STOP'),
-    ('ADD SHAPES', 'ADD_MENU'), ('', 'PANEL'),
+    ('SELECT','SELECT'), ('MODE','MODE'),
+    ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
+    ('INSET','INSET'), ('MOVE','MOVE'),
+    ('UNDO','UNDO'), ('REDO','REDO'),
+    ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
 )
 PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
                          ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
-    ('BACK', 'BACK'), ('STOP VR', 'STOP'))
+    ('TOOLS','BACK'), ('TRAVEL','NAV_MENU'))
+TRAVEL_BUTTONS = (
+    ('FLY/WALK','FLY_TOGGLE'), ('TURBO','TURBO'),
+    ('SLOWER','SLOWER'), ('FASTER','FASTER'),
+    ('SNAP/SMOOTH','TURN_TOGGLE'), ('RESET VIEW','RESET'),
+    ('STEP -','LESS'), ('STEP +','MORE'),
+    ('TOOLS','BACK'), ('STOP VR','STOP'),
+)
 # Original compact 5x7 bitmap font. GPU triangles work in both stereo eyes.
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
@@ -58,6 +63,7 @@ FONT = {
 '-':['00000','00000','00000','11111','00000','00000','00000'],
 ':':['00000','00100','00100','00000','00100','00100','00000'],
 '/':['00001','00001','00010','00100','01000','10000','10000'],
+'+':['00000','00100','00100','11111','00100','00100','00000'],
 ' ':['00000']*7,
 }
 
@@ -84,7 +90,7 @@ class Menu:
 
     @property
     def buttons(self):
-        return PRIMITIVE_BUTTONS if self.page == 'PRIMITIVES' else BUTTONS
+        return {'PRIMITIVES':PRIMITIVE_BUTTONS,'TRAVEL':TRAVEL_BUTTONS}.get(self.page,BUTTONS)
 
     def position(self, hand, viewer, scale):
         self.scale = max(scale, 1e-6)
@@ -116,7 +122,7 @@ class Menu:
         pos = origin + direction*t
         local = (pos-self.center)/self.scale
         x, y = local.dot(self.right), local.dot(self.up)
-        if not (-0.19 <= x <= 0.19 and -0.27 <= y <= 0.23):
+        if not (-0.19 <= x <= 0.19 and -0.24 <= y <= 0.23):
             return None, None
         for i, (_, action) in enumerate(self.buttons):
             bx, by, w, h = button_rect(i)
@@ -124,7 +130,7 @@ class Menu:
                 return action, pos
         return 'PANEL', pos
 
-    def draw(self, shader, tool, hover, step, status):
+    def draw(self, shader, tool, hover, step, status, settings=None, selection=''):
         if not self.ready or not self.visible:
             return
         def rect(x,y,w,h,color,depth=0):
@@ -141,17 +147,27 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.19,-0.27,0.38,0.50,(0.025,0.04,0.06,0.97))
-        text('BLENDER XR 0.4.1',-0.17,0.205,0.0032)
-        text('STEP '+format(step,'.4f'),-0.17,0.177,0.0026)
+        rect(-0.195,-0.24,0.39,0.47,(0.015,0.025,0.04,0.97))
+        rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
+        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL'}.get(self.page,'TOOLS')
+        text('BLENDER XR / '+title,-0.177,0.208,0.00275)
+        summary = ('FLY ' if settings.fly_mode else 'WALK ') + format(settings.move_speed,'.1f') + ' / '+settings.turn_mode if settings and self.page=='TRAVEL' else tool+' / STEP '+format(step,'.3f')
+        text(summary,-0.177,0.153,0.00265)
         for i,(label,action) in enumerate(self.buttons):
             bx,by,w,h=button_rect(i)
             color=(0.06,0.12,0.18,1)
-            if action==tool: color=(0.04,0.41,0.43,1)
+            selected = action==tool or (settings and (
+                (action=='TURBO' and settings.fast_flight) or
+                (action=='FLY_TOGGLE' and settings.fly_mode)))
+            if selected: color=(0.025,0.35,0.35,1)
             if action==hover: color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
-            text(label,bx+0.009,by+0.027,0.00245)
-        text(status[:24],-0.17,-0.246,0.0023)
+            text(label,bx+0.009,by+0.030,min(0.0032,0.15/(max(len(label),1)*6)))
+        text(('MESH '+selection)[:24],-0.174,-0.137,0.0023)
+        text(status[:25],-0.174,-0.161,0.00225)
+        hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
+        text(hint,-0.174,-0.193,0.0021)
+        text('V0.4.2',-0.174,-0.220,0.0021)
 
 
 def draw_batch(shader, kind, points, color):
@@ -171,10 +187,18 @@ def draw(runtime):
     try:
         gpu.state.blend_set('ALPHA')
         gpu.state.depth_test_set('NONE')
-        runtime.menu.draw(shader,runtime.tool,runtime.hover,runtime.settings.step,runtime.status)
+        obj=runtime.context.view_layer.objects.active
+        runtime.menu.draw(shader,runtime.tool,runtime.hover,runtime.settings.step,runtime.status,
+                          runtime.settings,obj.name if obj else 'NONE')
         origin,direction=runtime.ray
         end=runtime.pointer if runtime.pointer is not None else origin+direction*2*runtime.menu.scale
-        draw_batch(shader,'LINES',[origin,end],(0.12,0.85,1,1))
+        draw_batch(shader,'LINES',[origin,end],(0.3,1,0.6,1) if runtime.target else (0.12,0.85,1,1))
+        if runtime.target:
+            target=runtime.target
+            corners=[target.matrix_world @ Vector(p) for p in target.bound_box]
+            pairs=((0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),
+                   (0,4),(1,5),(2,6),(3,7))
+            draw_batch(shader,'LINES',[corners[k] for pair in pairs for k in pair],(0.3,1,0.6,1))
         if runtime.spawn_preview is not None:
             center, size = runtime.spawn_preview
             corners = [center + Vector((x,y,z))*size/2

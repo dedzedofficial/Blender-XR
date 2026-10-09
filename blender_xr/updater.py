@@ -19,7 +19,7 @@ from bpy.props import StringProperty
 
 REPOSITORY='dedzedofficial/Blender-XR'
 API='https://api.github.com/repos/'+REPOSITORY
-VERSION=(0,4,1)
+VERSION=(0,4,2)
 MAX_BYTES=16*1024*1024
 JOB=None
 LATEST=None
@@ -200,7 +200,7 @@ def poll_job():
     LATEST=job['release']
     v=LATEST['version']
     if v<=VERSION:
-        settings.status='Blender XR v0.4.1 is up to date'
+        settings.status='Blender XR v0.4.2 is up to date'
     elif job.get('path'):
         from . import runtime
         try:

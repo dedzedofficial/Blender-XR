@@ -5,17 +5,21 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 
-def editable(obj):
+def check_editable(obj):
     if not obj or obj.type != 'MESH':
         raise ValueError('Select a mesh object first')
     if obj.library or obj.data.library or obj.data.users > 1:
         raise ValueError('Use a local, single-user mesh for v0.3 editing')
     if obj.data.shape_keys:
         raise ValueError('Mesh editing with shape keys is outside v0.3')
-    if obj.mode != 'EDIT':
-        raise ValueError('Enter face edit mode first')
     if abs(obj.matrix_world.determinant()) < 1e-10:
         raise ValueError('Object scale must be non-zero')
+
+
+def editable(obj):
+    check_editable(obj)
+    if obj.mode != 'EDIT':
+        raise ValueError('Enter face edit mode first')
     return bmesh.from_edit_mesh(obj.data)
 
 

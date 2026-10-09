@@ -1,15 +1,16 @@
-# Blender XR v0.4.1
+# Blender XR v0.4.2
 
-Fixing update by Ded Zed. All changes remain under v0.4.1.
+Navigation and mesh-selection update by Ded Zed.
 
-- Fixed AttributeError: Event has no attribute timer, which interrupted the VR control loop.
-- Left thumbstick now moves the viewer independently of dominant-hand choice.
-- Either-hand grip into empty space lets you pull yourself around in 3D. Point at a mesh in MOVE to grip the object instead.
-- Added a hand-menu primitive picker: cube, sphere, cylinder, cone, torus and plane.
-- Placement bounds preview, surface placement, configurable shape size and empty-space placement distance.
-- New primitive creation supports VR-local undo/redo and creates ordinary Blender meshes for further editing.
-- Regression tests reproduce the timer failure and check locomotion, grip priority, placement and creation history.
+- Left stick flies through the scene; right stick turns and changes altitude, independent of dominant hand.
+- Faster default flight, optional level walk, left-stick click 4x boost, persistent turbo and Travel speed controls.
+- 30-degree snap turning with release-to-rearm, optional smooth turning and configurable angle/speed.
+- Turning pivots around the viewer's head without moving scene objects.
+- Updated Tools, Shapes and Travel pages with larger labels, selected mesh name, active state and hints.
+- Green ray and bounds highlight the mesh under the pointer.
+- SELECT can ray-switch meshes while face editing; invalid targets are refused before leaving the old mesh.
+- Regression checks for full flight, turning, both-handed controls, real ray switching and all menu pages.
 
-Install **blender-xr-v0.4.1.zip** through Install from Disk, or use the existing GitHub Download & Install button with VR stopped. Restart Blender after installation, especially if the previous VR loop raised an error.
+Install **blender-xr-v0.4.2.zip**, or stop VR and use Download & Install, then restart Blender. v0.4.1 remains available.
 
-Existing Meta/Valve presets, mesh tools and experimental finger bridge remain included. Controller mode is the default. Real Quest/Valve hardware testing remains pending; automated checks use Blender 5.0.0 and 5.2.2.
+Automated tests cover Blender 5.0.0 and 5.2.2. Real Quest/Valve hardware, Windows and stereo UI readability remain pending. Existing basic mesh tools, primitive creation, grab-air movement and experimental finger bridge remain included.
