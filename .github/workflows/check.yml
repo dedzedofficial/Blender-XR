@@ -18,7 +18,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Finger protocol and profile tests
-        run: python tests/test_gestures.py
+        run: |
+          python tests/test_gestures.py
+          python tests/test_prune.py
       - name: Build installer
         run: python scripts/build.py
       - name: Download Blender
@@ -44,6 +46,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_save.py
+      - name: XYZ handles and face deletion tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_axes.py
       - name: Updater tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}

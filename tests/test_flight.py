@@ -98,6 +98,7 @@ try:
     bpy.ops.object.mode_set(mode='EDIT');bpy.context.tool_settings.mesh_select_mode=(False,False,True)
     bpy.context.view_layer.update()
     session=runtime.Runtime.__new__(runtime.Runtime)
+    session.axis_move=None;session.axis_drag=None;session.gizmo=None;session.gizmo_hover=None
     session.transaction=session.grab=session.air_grab=None;session.tool='SELECT'
     session.select(bpy.context,Vector((2,0,3)),Vector((0,0,-1)))
     assert bpy.context.active_object==b and b.mode=='EDIT' and a.mode=='OBJECT'

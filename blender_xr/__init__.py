@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,3),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,4),
     'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free basic VR mesh editing with a hand-mounted menu',
     'category': '3D View',
@@ -142,7 +142,7 @@ class BXR_OT_session(bpy.types.Operator):
                 self.report({'ERROR'},session.error)
             return {'FINISHED'}
         # Avoid desktop topology edits/native undo invalidating a live preview.
-        if session.transaction or session.grab or session.air_grab:
+        if session.transaction or session.grab or session.air_grab or session.axis_move:
             return {'RUNNING_MODAL'}
         return {'PASS_THROUGH'}
 
@@ -164,7 +164,7 @@ class BXR_OT_save(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         session = runtime.CURRENT
-        return not session or not (session.transaction or session.grab or session.air_grab)
+        return not session or not (session.transaction or session.grab or session.air_grab or session.axis_move)
 
     def execute(self, context):
         try:
@@ -223,7 +223,7 @@ class BXR_OT_bridge_command(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.4.3'
+    bl_label='Blender XR v0.4.4'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -276,11 +276,9 @@ class BXR_PT_panel(bpy.types.Panel):
         updates=layout.box()
         updates.label(text='GitHub Updates',icon='FILE_REFRESH')
         update_settings=context.window_manager.blender_xr_update
-        updates.prop(update_settings,'token')
         row=updates.row(align=True)
-        row.enabled=not active and not update_settings.restart_required
-        row.operator('blender_xr.update',text='Check').mode='CHECK'
-        row.operator('blender_xr.update',text='Download & Install').mode='INSTALL'
+        row.enabled=not active and not update_settings.restart_required and updater.JOB is None
+        row.operator('blender_xr.update',text='Update Blender XR',icon='FILE_REFRESH')
         for line in textwrap.wrap(update_settings.status,44):
             updates.label(text=line)
         if update_settings.restart_required:

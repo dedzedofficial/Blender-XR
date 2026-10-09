@@ -90,3 +90,7 @@ The automated matrix is Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. XR action enum va
 Save tests write a real .blend file from edit mode, inspect a separate copy, verify committed geometry and absence of private snapshots, then verify VR undo/redo still works. Tests also check repeated current-file saves, first-save filename collisions, refusal of occupied first-save paths, live-preview guards and simulated write failure recovery.
 
 Manual checks: start VR without the BOOLEAN enum error; save from Tools and Travel on the headset; test an unsaved project, the configured first-save path and an already-open project; reopen the saved file and inspect scene objects and geometry. Use the same file in Blender 4.2/4.5 and 5.x only within Blender's supported file-version compatibility. Save behavior and Windows paths still need hardware/Windows verification.
+
+## XYZ handles and deletion
+
+Automated checks pick every X/Y/Z handle, measure signed ray drag distances, reject parallel rays, cancel axis movement, extrude selected faces along each axis, and undo/redo face deletion. In-headset checks: drag each colored handle in both directions, release to apply, cancel with off-hand trigger, and undo. Check yellow SIZE handles for bevel/inset. Use Edit Tools > DEL FACES and Undo. Fly sideways and forward/backward with the left stick, rise/descend with right stick vertical, and turn with right stick horizontal.

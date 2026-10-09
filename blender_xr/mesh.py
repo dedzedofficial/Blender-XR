@@ -77,7 +77,7 @@ def select_face(obj, index, additive=False):
     update(obj)
 
 
-def apply_tool(obj, tool, amount, segments=2):
+def apply_tool(obj, tool, amount, segments=2, axis=None):
     bm = editable(obj)
     faces = [f for f in bm.faces if f.select and not f.hide]
     if not faces:
@@ -85,7 +85,8 @@ def apply_tool(obj, tool, amount, segments=2):
     if abs(amount) < 1e-7:
         return
     if tool == 'EXTRUDE':
-        normal = sum((f.normal * f.calc_area() for f in faces), Vector())
+        normal = (Vector(axis) if axis is not None else
+                  sum((f.normal * f.calc_area() for f in faces), Vector()))
         if normal.length < 1e-8:
             raise ValueError('Selected faces need a common extrusion direction')
         normal.normalize()
@@ -127,6 +128,22 @@ def apply_tool(obj, tool, amount, segments=2):
     update(obj)
 
 
+def delete_selected(obj):
+    bm=editable(obj)
+    faces=[face for face in bm.faces if face.select and not face.hide]
+    if not faces:raise ValueError('Select faces before deleting')
+    before=snapshot(obj)
+    try:
+        bmesh.ops.delete(bm,geom=faces,context='FACES')
+        update(obj)
+        after=snapshot(obj)
+        return ('MESH',obj.name,obj.data.name,before,after)
+    except Exception:
+        restore(obj,before)
+        bpy.data.meshes.remove(before)
+        raise
+
+
 class Transaction:
     """Each preview comes from the same baseline: no accumulated topology."""
     def __init__(self, obj, tool):
@@ -139,9 +156,9 @@ class Transaction:
         self.amount = 0.0
         self.changed = False
 
-    def preview(self, amount, segments=2):
+    def preview(self, amount, segments=2, axis=None):
         restore(self.obj, self.before)
-        apply_tool(self.obj, self.tool, amount, segments)
+        apply_tool(self.obj, self.tool, amount, segments, axis)
         self.amount = amount
         self.changed = abs(amount) > 1e-7
 

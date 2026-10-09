@@ -3,7 +3,7 @@ import math
 import time
 import bpy
 from mathutils import Matrix, Vector, Quaternion
-from . import actions, drawing, mesh, gestures, primitives, project
+from . import actions, drawing, mesh, gestures, primitives, project, gizmo
 
 CURRENT = None
 PENDING = False
@@ -115,6 +115,10 @@ class Runtime:
         self.pointer = None
         self.transaction = None
         self.grab = None
+        self.axis_move = None
+        self.axis_drag = None
+        self.gizmo = None
+        self.gizmo_hover = None
         self.air_grab = None
         self.other_grip = Button()
         self.turning = Turning()
@@ -160,6 +164,12 @@ class Runtime:
 
     def cancel_work(self):
         self.air_grab = None
+        if self.axis_move:
+            obj,before=self.axis_move
+            try:obj.matrix_world=before
+            except ReferenceError:pass
+            self.axis_move=None
+        self.axis_drag=None
         if self.transaction:
             transaction, self.transaction = self.transaction, None
             try:
@@ -200,7 +210,7 @@ class Runtime:
         if action == 'PANEL':
             return
         if action == 'SAVE':
-            if self.transaction or self.grab or self.air_grab:
+            if self.transaction or self.grab or self.air_grab or self.axis_move:
                 raise ValueError('Finish or cancel the current operation before saving')
             path = project.save(context, self.history)
             self.status = 'SAVED ' + path.name.upper()
@@ -209,6 +219,15 @@ class Runtime:
         if action == 'ADD_MENU':
             self.menu.page = 'PRIMITIVES'
             self.status = 'CHOOSE A SHAPE'
+            return
+        if action == 'EDIT_MENU':
+            self.menu.page = 'EDIT'
+            return
+        if action == 'DELETE_FACES':
+            if self.transaction or self.grab or self.axis_move or self.air_grab:
+                raise ValueError('Finish or cancel the current operation before deleting faces')
+            self.history.push(mesh.delete_selected(context.view_layer.objects.active))
+            self.status = 'FACES DELETED / UNDO TO RESTORE'
             return
         if action == 'BACK':
             self.menu.page = 'TOOLS'
@@ -257,10 +276,12 @@ class Runtime:
                 bpy.ops.object.mode_set(mode='EDIT')
                 context.tool_settings.mesh_select_mode = (False, False, True)
                 self.tool = 'SELECT'
+                self.menu.page = 'EDIT'
                 self.status = 'FACE EDIT MODE'
             else:
                 bpy.ops.object.mode_set(mode='OBJECT')
                 self.tool = 'MOVE'
+                self.menu.page = 'TOOLS'
                 self.status = 'OBJECT MODE'
         elif action == 'LESS':
             self.settings.step = max(0.0001, self.settings.step/2)
@@ -315,7 +336,7 @@ class Runtime:
         self.status = 'GRAB AIR TO MOVE'
 
     def select(self, context, origin, direction, additive=False):
-        if self.transaction or self.grab or self.air_grab:
+        if self.transaction or self.grab or self.air_grab or self.axis_move:
             raise ValueError('Finish or cancel the current operation before switching meshes')
         obj = context.view_layer.objects.active
         editing = bool(obj and obj.mode == 'EDIT')
@@ -371,6 +392,28 @@ class Runtime:
         self.transaction = mesh.Transaction(obj, self.tool)
         self.last_amount = None
 
+    def begin_axis(self,context,origin,direction,handle):
+        name,axis=handle
+        obj=context.view_layer.objects.active
+        anchor=self.gizmo.anchor.copy()
+        value=gizmo.parameter(origin,direction,anchor,axis)
+        if value is None:raise ValueError('Aim across the handle to drag it')
+        if self.tool=='MOVE':
+            if obj.library or obj.parent or obj.constraints:
+                raise ValueError('Axis movement requires a local unparented object without constraints')
+            self.axis_move=(obj,obj.matrix_world.copy())
+            local_axis=None;factor=1
+        else:
+            local=obj.matrix_world.inverted().to_3x3()@axis
+            factor=local.length
+            if factor<1e-9:raise ValueError('Object scale must be non-zero')
+            local_axis=local.normalized()
+            self.transaction=mesh.Transaction(obj,self.tool)
+            self.start_step=self.settings.step
+            self.last_amount=None
+        self.axis_drag=(anchor,axis.copy(),value[0],factor,local_axis,name)
+        self.status='DRAG '+name+' / RELEASE TO APPLY'
+
     def tick(self, context):
         now = time.monotonic()
         dt = min(now-self.last_tick, 0.1)
@@ -414,6 +457,10 @@ class Runtime:
         self.menu.position(hand, Vector(state.viewer_pose_location), scale)
         self.ray = (origin, direction)
         self.hover, self.pointer = self.menu.hit(origin, direction)
+        if not self.transaction and not self.axis_move:
+            self.gizmo=gizmo.make(context,self.tool,scale)
+        self.gizmo_hover=(self.gizmo.pick(origin,direction)
+                          if self.gizmo and not self.hover else None)
         self.target = None
         if not self.hover:
             target_hit = self.object_hit(context,origin,direction)
@@ -442,11 +489,11 @@ class Runtime:
                 # Holding both touch sensors fires once, until the fingers lift.
                 touch_events = [self.touch_holds[i].update(actions.touch(context, i), now)
                                 for i in range(2)]
-                if touch_events[self.dom] and (self.transaction or self.grab):
+                if touch_events[self.dom] and (self.transaction or self.grab or self.axis_move):
                     self.cancel_work()
                     return
                 if touch_events[self.off]:
-                    if self.transaction or self.grab:
+                    if self.transaction or self.grab or self.axis_move:
                         self.cancel_work()
                         return
                     self.menu.visible = not self.menu.visible
@@ -456,7 +503,7 @@ class Runtime:
         other_grab_press, _ = self.other_grip.update(other_grab_value)
         obj = context.view_layer.objects.active
         if off_press:
-            if self.transaction or self.grab or self.air_grab:
+            if self.transaction or self.grab or self.air_grab or self.axis_move:
                 self.cancel_work()
                 return
             self.menu.visible = not self.menu.visible
@@ -469,19 +516,44 @@ class Runtime:
             if obj != self.transaction.obj or obj.mode != 'EDIT':
                 self.cancel_work()
                 raise ValueError('Active mesh changed; operation cancelled')
-            delta = obj.matrix_world.inverted().to_3x3() @ (origin-self.start_pos)
-            amount = self.start_step + delta.dot(self.local_axis)
+            axis=None
+            if self.axis_drag:
+                anchor,world_axis,start,factor,axis,name=self.axis_drag
+                value=gizmo.parameter(origin,direction,anchor,world_axis)
+                amount=(self.start_step+(value[0]-start)*factor if value is not None
+                        else self.last_amount if self.last_amount is not None else self.start_step)
+            else:
+                delta = obj.matrix_world.inverted().to_3x3() @ (origin-self.start_pos)
+                amount = self.start_step + delta.dot(self.local_axis)
             if self.tool != 'EXTRUDE':
                 amount = max(0, amount)
             amount = max(-10, min(10, amount))
             if self.last_amount is None or abs(amount-self.last_amount)>0.00005:
-                self.transaction.preview(amount, self.settings.bevel_segments)
+                self.transaction.preview(amount, self.settings.bevel_segments,axis)
                 self.last_amount = amount
             self.status = self.tool + ' ' + format(amount,'.4f')
             if release:
                 transaction, self.transaction = self.transaction, None
                 self.history.push(transaction.finish())
+                self.axis_drag=None
                 self.status = 'APPLIED'
+            return
+        if self.axis_move:
+            target,before=self.axis_move
+            if context.view_layer.objects.active!=target or target.mode!='OBJECT':
+                self.cancel_work()
+                raise ValueError('Active object changed; axis move cancelled')
+            anchor,axis,start,_,_,name=self.axis_drag
+            value=gizmo.parameter(origin,direction,anchor,axis)
+            if value is not None:
+                result=before.copy()
+                result.translation=before.translation+axis*(value[0]-start)
+                target.matrix_world=result
+            if release:
+                if (target.matrix_world.translation-before.translation).length>1e-8:
+                    self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
+                self.axis_move=None;self.axis_drag=None
+                self.status='AXIS MOVE APPLIED'
             return
         grip_pos = Vector(state.controller_grip_location_get(context,self.dom))
         grip_rot = Quaternion(state.controller_grip_rotation_get(context,self.dom))
@@ -499,13 +571,15 @@ class Runtime:
         if press:
             if self.hover:
                 self.command(context,self.hover)
+            elif self.gizmo_hover:
+                self.begin_axis(context,origin,direction,self.gizmo_hover)
             elif self.tool in {'SELECT','MOVE'}:
                 self.select(context,origin,direction,additive=self.grip.down)
             elif self.tool == 'PLACE':
                 self.spawn(context)
             else:
                 self.begin_tool(context,origin,pose)
-        if self.transaction:
+        if self.transaction or self.axis_move:
             return
         for index, pressed in ((self.dom, grab_press), (self.off, other_grab_press)):
             if not pressed:

@@ -60,7 +60,7 @@ try:
 
     # Menu hit targets must match drawn buttons on both pages.
     menu=drawing.Menu();menu.position(Vector(),Vector((0,-1,.25)),1)
-    for page in ('TOOLS','PRIMITIVES','TRAVEL'):
+    for page in ('TOOLS','PRIMITIVES','TRAVEL','EDIT'):
         menu.page=page
         for index,(_,action) in enumerate(menu.buttons):
             x,y,w,h=drawing.button_rect(index)

@@ -102,3 +102,14 @@ Pending physical release validation: every headset/runtime combination above, co
 - Documentation, reproducible installers, and complete regression coverage for supported tools.
 
 Sculpt brushes, UV editing, texture/weight painting, node editors, shape-key-safe topology changes, and multiplayer need separate design and are not promised by v0.3.
+
+## v0.4.4: easier building and public updates
+
+- [x] Ray-picked XYZ movement and extrusion handles.
+- [x] Bevel/inset thickness drag handles.
+- [x] Delete selected faces with undo/redo.
+- [x] Separate Edit Tools menu.
+- [x] One public updater button without authentication.
+- [x] Verified current release replaces older downloads.
+- [ ] Quest and Valve headset usability testing for ray dragging and menu placement.
+- [ ] Mesh vertex/edge selection and object scale/rotation handles.

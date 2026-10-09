@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: blender-xr-release
   cancel-in-progress: false
@@ -19,7 +20,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Finger protocol and profile tests
-        run: python tests/test_gestures.py
+        run: |
+          python tests/test_gestures.py
+          python tests/test_prune.py
       - name: Build extension
         run: python scripts/build.py
       - name: Download test Blender
@@ -33,6 +36,7 @@ jobs:
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_flight.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_save.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
+          /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_axes.py
       - name: Publish version once
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,3 +52,7 @@ jobs:
           else
             gh release create "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "Blender XR v${version}" --notes-file RELEASE_NOTES.md --latest
           fi
+      - name: Keep only verified current downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/prune_releases.py

@@ -1,16 +1,16 @@
-# Blender XR v0.4.3
+# Blender XR v0.4.4
 
 **Free basic VR modeling inside Blender, by Ded Zed.**
 
 Choose your dominant hand before entering VR. The other hand holds a small tool menu; the dominant controller points, selects, edits, and moves objects.
 
-**v0.4.3 fixing update:** fixes the unsupported BOOLEAN action type that prevented VR startup, adds Save Blend, and lowers the minimum Blender version to 4.2.0. Full-scene flight, right-stick turning, ray switching and basic modeling remain included. Automated checks use Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset and Windows testing remains pending.
+**v0.4.4 fixing update:** fixes the unsupported BOOLEAN action type that prevented VR startup, adds Save Blend, and lowers the minimum Blender version to 4.2.0. Full-scene flight, right-stick turning, ray switching and basic modeling remain included. Automated checks use Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset and Windows testing remains pending.
 
-[Download v0.4.3 installer](dist/blender-xr-v0.4.3.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md)
+[Download v0.4.4 installer](dist/blender-xr-v0.4.4.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md)
 
 ## Install
 
-1. Download `blender-xr-v0.4.3.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
+1. Download `blender-xr-v0.4.4.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
 2. In Blender, open **Edit > Preferences > Add-ons**, open the menu at the upper right, and select **Install from Disk**.
 3. Select the installer ZIP and enable **Blender XR**.
 4. In the 3D viewport, press **N** and open the **Blender XR** tab.
@@ -72,7 +72,7 @@ Requires Blender 4.2+ with OpenXR, a PC capable of running VR, and two tracked c
 1. Start with a cube or another simple mesh. Place the 3D cursor near your workspace; it sets the starting VR origin.
 2. Enter VR, point at the mesh, and select it with **SELECT**.
 3. Click **MODE**, then use **SELECT** to pick the face you want.
-4. Choose **EXTRUDE**, **BEVEL**, or **INSET** on the other hand.
+4. Open **Edit Tools** on the other hand and choose **EXTRUDE**, **BEVEL**, or **INSET**.
 5. Point away from the menu, hold the trigger, and move the dominant controller. Release to commit; press the other trigger to cancel.
 
 Extrusion follows the area-weighted average selected face normal. Moving along that normal changes depth. Bevel and inset use sideways controller movement. A short trigger click uses the default distance, initially 0.03 in local mesh units. Bevel segment count is set before entering VR. The menu floats above the other hand and faces your head for readability.
@@ -91,7 +91,7 @@ Left moves, right turns, independent of which hand edits. Default flight speed i
 
 The right stick snaps 30 degrees by default, with one turn per deflection. **Travel > Snap/Smooth** changes to continuous turning. Snap angle and smooth turn speed are adjustable in the sidebar. Turning pivots around your head, including when the starting 3D cursor is away from the origin. Navigation pauses during live edits, object grabs and grab-air movement.
 
-The menu separates **Tools**, **Shapes** and **Travel**, with larger labels, active-tool/turbo highlights, selected mesh name and control hints. A green ray and bounds identify the mesh under the pointer. In SELECT, trigger another mesh to switch targets. If you were face editing, the old mesh leaves edit mode and the new mesh enters it with the hit face selected. A linked/shared mesh, shape-key mesh or zero-scale target is refused before leaving the current edit target. Finish or cancel live work before switching.
+The menu separates **Tools**, **Edit Tools**, **Shapes** and **Travel**, with larger labels, active-tool/turbo highlights, selected mesh name and control hints. A green ray and bounds identify the mesh under the pointer. In SELECT, trigger another mesh to switch targets. If you were face editing, the old mesh leaves edit mode and the new mesh enters it with the hit face selected. A linked/shared mesh, shape-key mesh or zero-scale target is refused before leaving the current edit target. Finish or cancel live work before switching.
 
 ## Save your Blender project
 
@@ -105,16 +105,9 @@ The chosen path appears in the sidebar and the hand menu confirms the saved file
 
 ## Update from GitHub
 
-The sidebar includes **Check** and **Download & Install** buttons.
+The sidebar has one **Update Blender XR** button. Stop VR, enable **Allow Online Access** in Blender preferences, then click it to download and install the latest stable release. No GitHub account, key or token is required. Restart Blender when prompted.
 
-1. Stop VR and enable **Allow Online Access** in Blender preferences.
-2. Public releases need no token. If the repository is private, supply a fine-grained GitHub token with **Contents: Read** access to **dedzedofficial/Blender-XR** in the password field. An environment variable, `BLENDER_XR_GITHUB_TOKEN`, is also supported.
-3. Click **Check**, or **Download & Install** to fetch and install a newer release.
-4. Restart Blender when prompted.
-
-The token is held for the current Blender session, with `SKIP_SAVE`; it is not stored in the scene, saved preferences, or repository. Do not commit tokens. Public repository downloads will not need a token. The updater targets stable GitHub Releases, not arbitrary commits. Network requests run in a background thread. ZIP and checksum files are verified before installation, and changed files are restored if installation fails.
-
-Release automation publishes each version after validation. A 404 can mean missing private-repository access or no release yet.
+The updater verifies the installer ZIP and checksum before installation, runs network requests in a background thread, and restores changed files if installation fails. Release automation verifies the new installer before removing older releases and installer downloads.
 
 ## Optional finger features
 
@@ -158,3 +151,11 @@ GitHub Actions validates on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. The release w
 See [TESTING.md](TESTING.md) for automated results and headset checks, and [ROADMAP.md](ROADMAP.md) for future scope.
 
 Independent project by Ded Zed. Not affiliated with the Blender Foundation, Freebird XR, or the earlier MARUI BlenderXR project.
+
+## Ray-draggable axis handles
+
+Choose **MOVE** in object mode to show red **X**, green **Y** and blue **Z** handles. Aim the dominant-hand ray at a handle, hold the trigger and sweep the ray along that axis. Release to apply. In face edit mode, select faces, open **Edit Tools**, and choose **EXTRUDE** for the same XYZ handles. Extrusion can travel in either direction on the chosen axis. **BEVEL** and **INSET** use a yellow SIZE handle because they change thickness rather than translate geometry. Aim across a handle; pointing directly along its axis makes dragging ambiguous and retains the last valid amount. The off-hand trigger cancels a drag. Undo and Redo restore committed changes.
+
+Choose **DEL FACES** in Edit Tools to delete selected faces. Undo restores them.
+
+For free movement across the entire scene, the physical left thumbstick moves sideways and forward/backward; the physical right thumbstick moves up/down and turns left/right. All three spatial axes are accessible regardless of which hand is dominant. Travel provides speed, turbo and flight controls; gripping empty air lets you pull the scene.

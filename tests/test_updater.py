@@ -44,3 +44,37 @@ try:updater.SafeRedirect().redirect_request(req,None,302,'',{},'https://example.
 except ValueError:pass
 else:raise AssertionError('Unexpected redirect host allowed')
 print('PASS release ZIP, unsafe paths, identity/version, install rollback, token-safe redirects')
+# Public update does not read old environment keys or send Authorization.
+from types import SimpleNamespace as NS
+real_opener=updater.urllib.request.build_opener
+real_bpy=updater.bpy
+class Response:
+    headers={}
+    def __enter__(self):return self
+    def __exit__(self,*args):pass
+    def read(self,size):return b'public'
+class Opener:
+    def open(self,request,timeout):
+        assert not request.has_header('Authorization')
+        assert request.full_url==updater.API+'/releases/latest'
+        return Response()
+updater.os.environ['BLENDER_XR_GITHUB_TOKEN']='unused-test-value'
+try:
+    updater.bpy=NS(app=NS(online_access=True))
+    updater.urllib.request.build_opener=lambda *args:Opener()
+    assert updater.request(updater.API+'/releases/latest')==b'public'
+finally:
+    updater.urllib.request.build_opener=real_opener;updater.bpy=real_bpy
+    del updater.os.environ['BLENDER_XR_GITHUB_TOKEN']
+real_latest,real_download=updater.latest,updater.download
+try:
+    calls=[]
+    updater.latest=lambda:{'version':(9,0,0)}
+    updater.download=lambda release:calls.append(release) or '/tmp/fake-update.zip'
+    job={};updater.worker(job)
+    assert job['done'] and job['path']=='/tmp/fake-update.zip' and len(calls)==1
+    updater.latest=lambda:{'version':updater.VERSION}
+    job={};updater.worker(job)
+    assert job['done'] and 'path' not in job and len(calls)==1
+finally:updater.latest,updater.download=real_latest,real_download
+print('PASS public keyless requests and one-click latest-version download')

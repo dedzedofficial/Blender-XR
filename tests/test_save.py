@@ -75,6 +75,7 @@ try:
         assert history.undo[0][3]==template_data and template_data.use_fake_user
         assert len(history.undo)==2
         session=runtime.Runtime.__new__(runtime.Runtime)
+        session.axis_move=None
         session.transaction=NS();session.grab=session.air_grab=None
         try:session.command(bpy.context,'SAVE')
         except ValueError:pass

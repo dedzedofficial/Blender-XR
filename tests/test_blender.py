@@ -126,6 +126,7 @@ def run():
     from types import SimpleNamespace as NS
     import time
     session=runtime.Runtime.__new__(runtime.Runtime)
+    session.axis_move=None;session.axis_drag=None;session.gizmo=None;session.gizmo_hover=None
     session.last_tick=time.monotonic();session.started=session.last_tick
     session.navigation_initialized=True;session.dom=1;session.off=0
     session.transaction=NS(cancel=lambda:events.append('cancel'),

@@ -10,6 +10,10 @@ assert manifest['id']=='blender_xr'
 version=manifest['version']
 output=ROOT/'dist'/('blender-xr-v'+version+'.zip')
 output.parent.mkdir(exist_ok=True)
+# Keep the current installer only; source history remains in Git.
+for old in output.parent.glob('blender-xr-v*'):
+    if old.name not in {output.name,output.name+'.sha256'}:
+        old.unlink()
 with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(SOURCE.iterdir()):
         if path.is_file() and (path.suffix=='.py' or path.name in {'blender_manifest.toml','LICENSE','README.md'}):

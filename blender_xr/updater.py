@@ -19,7 +19,7 @@ from bpy.props import StringProperty
 
 REPOSITORY='dedzedofficial/Blender-XR'
 API='https://api.github.com/repos/'+REPOSITORY
-VERSION=(0,4,3)
+VERSION=(0,4,4)
 MAX_BYTES=16*1024*1024
 JOB=None
 LATEST=None
@@ -38,7 +38,7 @@ class SafeRedirect(urllib.request.HTTPRedirectHandler):
         return redirected
 
 
-def request(url,token='',binary=False):
+def request(url,binary=False):
     if not bpy.app.online_access:
         raise ValueError('Enable Allow Online Access in Blender preferences to check updates')
     parsed=urllib.parse.urlparse(url)
@@ -47,8 +47,6 @@ def request(url,token='',binary=False):
     headers={'User-Agent':'DedZed-Blender-XR/0.4','Accept':
              'application/octet-stream' if binary else 'application/vnd.github+json',
              'X-GitHub-Api-Version':'2022-11-28'}
-    if token:
-        headers['Authorization']='Bearer '+token
     req=urllib.request.Request(url,headers=headers)
     with urllib.request.build_opener(SafeRedirect()).open(req,timeout=30) as response:
         length=response.headers.get('Content-Length')
@@ -67,8 +65,8 @@ def version(tag):
     return tuple(int(n) for n in match.groups())
 
 
-def latest(token):
-    release=json.loads(request(API+'/releases/latest',token))
+def latest():
+    release=json.loads(request(API+'/releases/latest'))
     if release.get('draft') or release.get('prerelease'):
         raise ValueError('The latest release is not a stable release')
     v=version(release['tag_name'])
@@ -100,7 +98,7 @@ def validate_archive(data,expected_version):
             files[name]=archive.read(info)
     required={'__init__.py','blender_manifest.toml','actions.py','drawing.py',
               'mesh.py','runtime.py','updater.py','gestures.py',
-              'primitives.py','project.py','steamvr_hand_bridge.py','LICENSE'}
+              'primitives.py','project.py','gizmo.py','steamvr_hand_bridge.py','LICENSE'}
     if not required.issubset(files):
         raise ValueError('Release ZIP is missing required add-on files')
     if any(not (name.endswith('.py') or name in {'blender_manifest.toml','LICENSE','README.md'})
@@ -117,9 +115,9 @@ def validate_archive(data,expected_version):
     return files
 
 
-def download(release,token):
-    data=request(release['asset']['url'],token,True)
-    check=request(release['checksum']['url'],token,True).decode().strip().split()
+def download(release):
+    data=request(release['asset']['url'],binary=True)
+    check=request(release['checksum']['url'],binary=True).decode().strip().split()
     if not check or not re.fullmatch('[a-fA-F0-9]{64}',check[0]):
         raise ValueError('Invalid release checksum')
     if len(check)>1 and check[1].lstrip('*')!=release['name']:
@@ -169,17 +167,17 @@ def install(path,expected_version,destination=None):
     return True
 
 
-def worker(job,mode,token):
+def worker(job):
     try:
-        release=latest(token)
+        release=latest()
         job['release']=release
-        if release['version']>VERSION and mode=='INSTALL':
-            job['path']=download(release,token)
+        if release['version']>VERSION:
+            job['path']=download(release)
     except urllib.error.HTTPError as exc:
-        job['error']=('Private repository access or a published release is missing (GitHub '+
-                      str(exc.code)+'). Check your token and repository releases.')
+        job['error']= ('GitHub rate limit reached; try again later.' if exc.code in (403,429)
+                       else 'Public release download failed (GitHub '+str(exc.code)+'). Try again later.')
     except Exception:
-        # Never expose URLs, Authorization headers, or token-bearing exception text.
+        # Keep network and archive failures readable in the sidebar.
         job['error']='Update failed. Check online access, network, release files, and Blender version.'
     finally:
         job['done']=True
@@ -200,7 +198,7 @@ def poll_job():
     LATEST=job['release']
     v=LATEST['version']
     if v<=VERSION:
-        settings.status='Blender XR v0.4.3 is up to date'
+        settings.status='Blender XR v0.4.4 is up to date'
     elif job.get('path'):
         from . import runtime
         try:
@@ -214,21 +212,19 @@ def poll_job():
         finally:
             Path(job['path']).unlink(missing_ok=True)
     else:
-        settings.status='Available: v'+'.'.join(map(str,v))+' - click Download & Install'
+        settings.status='Update download unavailable; try Update Blender XR again.'
     return None
 
 
 class BXR_UpdateSettings(bpy.types.PropertyGroup):
-    token: StringProperty(name='GitHub token',subtype='PASSWORD',options={'SKIP_SAVE'},
-        description='Session only: fine-grained GitHub token with Contents read permission for Blender-XR')
     status: StringProperty(default='Updates from dedzedofficial/Blender-XR',options={'SKIP_SAVE'})
     restart_required: bpy.props.BoolProperty(default=False,options={'SKIP_SAVE'})
 
 
 class BXR_OT_update(bpy.types.Operator):
     bl_idname='blender_xr.update'
-    bl_label='Check for Updates'
-    mode: bpy.props.EnumProperty(items=[('CHECK','Check',''),('INSTALL','Install','')],default='CHECK')
+    bl_label='Update Blender XR'
+    bl_description='Download and install the latest public release, then restart Blender'
     def execute(self,context):
         global JOB
         from . import runtime
@@ -245,10 +241,9 @@ class BXR_OT_update(bpy.types.Operator):
         if not bpy.app.online_access:
             self.report({'ERROR'},'Enable Allow Online Access in Blender preferences')
             return {'CANCELLED'}
-        token=settings.token.strip() or os.environ.get('BLENDER_XR_GITHUB_TOKEN','').strip()
         JOB={'done':False}
-        settings.status='Checking GitHub...' if self.mode=='CHECK' else 'Downloading update...'
-        threading.Thread(target=worker,args=(JOB,self.mode,token),daemon=True).start()
+        settings.status='Checking for a newer public release...'
+        threading.Thread(target=worker,args=(JOB,),daemon=True).start()
         bpy.app.timers.register(poll_job,first_interval=0.25)
         return {'FINISHED'}
 

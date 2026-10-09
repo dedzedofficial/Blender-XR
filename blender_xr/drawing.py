@@ -6,10 +6,16 @@ from mathutils import Vector
 
 BUTTONS = (
     ('SELECT','SELECT'), ('MODE','MODE'),
-    ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
-    ('INSET','INSET'), ('MOVE','MOVE'),
+    ('MOVE','MOVE'), ('SHAPES','ADD_MENU'),
+    ('EDIT TOOLS','EDIT_MENU'), ('TRAVEL','NAV_MENU'),
     ('UNDO','UNDO'), ('REDO','REDO'),
-    ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
+    ('SAVE BLEND','SAVE'), ('STOP VR','STOP'),
+)
+EDIT_BUTTONS = (
+    ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
+    ('INSET','INSET'), ('DEL FACES','DELETE_FACES'),
+    ('UNDO','UNDO'), ('REDO','REDO'),
+    ('TOOLS','BACK'), ('TRAVEL','NAV_MENU'),
     ('SAVE BLEND','SAVE'), ('STOP VR','STOP'),
 )
 PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
@@ -92,7 +98,7 @@ class Menu:
 
     @property
     def buttons(self):
-        return {'PRIMITIVES':PRIMITIVE_BUTTONS,'TRAVEL':TRAVEL_BUTTONS}.get(self.page,BUTTONS)
+        return {'PRIMITIVES':PRIMITIVE_BUTTONS,'TRAVEL':TRAVEL_BUTTONS,'EDIT':EDIT_BUTTONS}.get(self.page,BUTTONS)
 
     def position(self, hand, viewer, scale):
         self.scale = max(scale, 1e-6)
@@ -151,7 +157,7 @@ class Menu:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
         rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL'}.get(self.page,'TOOLS')
+        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'EDIT TOOLS'}.get(self.page,'TOOLS')
         text('BLENDER XR / '+title,-0.177,0.208,0.00275)
         summary = ('FLY ' if settings.fly_mode else 'WALK ') + format(settings.move_speed,'.1f') + ' / '+settings.turn_mode if settings and self.page=='TRAVEL' else tool+' / STEP '+format(step,'.3f')
         text(summary,-0.177,0.153,0.00265)
@@ -169,7 +175,7 @@ class Menu:
         text(status[:25],-0.174,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
         text(hint,-0.174,-0.246,0.0021)
-        text('V0.4.3',-0.174,-0.274,0.0021)
+        text('V0.4.4',-0.174,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):
@@ -201,6 +207,30 @@ def draw(runtime):
             pairs=((0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),
                    (0,4),(1,5),(2,6),(3,7))
             draw_batch(shader,'LINES',[corners[k] for pair in pairs for k in pair],(0.3,1,0.6,1))
+        if runtime.gizmo is not None:
+            from . import gizmo
+            handles=runtime.gizmo
+            for name,axis in handles.axes:
+                tip=handles.anchor+axis*handles.length
+                color=gizmo.COLORS[name]
+                if runtime.gizmo_hover and runtime.gizmo_hover[0]==name:color=(1,1,1,1)
+                sideways=axis.cross(Vector((0,0,1)))
+                if sideways.length<.1:sideways=axis.cross(Vector((0,1,0)))
+                sideways.normalize()
+                tail=tip-axis*handles.radius*2
+                lines=[handles.anchor,tip,tip,tail+sideways*handles.radius,
+                       tip,tail-sideways*handles.radius]
+                draw_batch(shader,'LINES',lines,color)
+                # Billboard axis labels using the existing stereo-safe bitmap font.
+                points=[];pixel=handles.length*.012
+                origin_label=tip+runtime.menu.up*handles.radius
+                for i,char in enumerate(name):
+                    for row,line in enumerate(FONT.get(char,FONT[' '])):
+                        for col,value in enumerate(line):
+                            if value=='1':
+                                for x,y in rectangle_points(i*6*pixel+col*pixel,-row*pixel,pixel*.86,pixel*.86):
+                                    points.append(origin_label+runtime.menu.right*x+runtime.menu.up*y)
+                draw_batch(shader,'TRIS',points,color)
         if runtime.spawn_preview is not None:
             center, size = runtime.spawn_preview
             corners = [center + Vector((x,y,z))*size/2
