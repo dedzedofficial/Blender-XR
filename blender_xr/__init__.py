@@ -10,7 +10,7 @@ import textwrap
 import webbrowser
 from bpy.props import EnumProperty, FloatProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import runtime, mesh, updater, project
+from . import runtime, mesh, project
 
 
 class BXR_Settings(bpy.types.PropertyGroup):
@@ -64,9 +64,6 @@ class BXR_OT_session(bpy.types.Operator):
         if runtime.CURRENT:
             runtime.CURRENT.request_stop = True
             return {'FINISHED'}
-        if context.window_manager.blender_xr_update.restart_required:
-            self.report({'ERROR'},'Restart Blender to finish the installed update')
-            return {'CANCELLED'}
         if not bpy.app.build_options.xr_openxr:
             self.report({'ERROR'},'This Blender build has no OpenXR support')
             return {'CANCELLED'}
@@ -306,14 +303,8 @@ class BXR_PT_panel(bpy.types.Panel):
 
         updates=layout.box()
         updates.label(text='Updates',icon='FILE_REFRESH')
-        update_settings=context.window_manager.blender_xr_update
-        row=updates.row(align=True)
-        row.enabled=not active and not update_settings.restart_required and updater.JOB is None
-        row.operator('blender_xr.update',text='Update Blender XR',icon='FILE_REFRESH')
-        for line in textwrap.wrap(update_settings.status,44):
-            updates.label(text=line)
-        if update_settings.restart_required:
-            updates.label(text='Restart Blender',icon='INFO')
+        updates.label(text='Managed by Blender Extensions')
+        updates.label(text='Preferences > Get Extensions > Check for Updates')
 
         support=layout.row(align=True)
         support.alignment='RIGHT'
@@ -337,7 +328,6 @@ CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
          BXR_OT_bridge_command,BXR_OT_link,BXR_PT_panel)
 
 def register():
-    updater.register()
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     bpy.types.Scene.blender_xr=PointerProperty(type=BXR_Settings)
@@ -347,7 +337,6 @@ def register():
 
 def unregister():
     load_pre()
-    updater.unregister()
     for handlers,callback in [(bpy.app.handlers.xr_session_start_pre,runtime.session_pre),
                               (bpy.app.handlers.load_pre,load_pre)]:
         if callback in handlers:
