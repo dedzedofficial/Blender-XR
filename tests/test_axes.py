@@ -81,13 +81,15 @@ try:
     tx.cancel()
 
     center=mesh.selected_center(obj).copy()
-    verts=mesh.selected_vertices(obj)
-    radius=max((v.co-center).length for v in verts)
+    bm=mesh.editable(obj)
+    coords=[v.co.copy() for v in bm.verts if v.select and not v.hide]
+    radius=max((co-center).length for co in coords)
     tx=mesh.Transaction(obj,'SCALE_FACE')
     tx.preview(.5)
     center2=mesh.selected_center(obj).copy()
-    verts2=mesh.selected_vertices(obj)
-    radius2=max((v.co-center2).length for v in verts2)
+    bm=mesh.editable(obj)
+    coords2=[v.co.copy() for v in bm.verts if v.select and not v.hide]
+    radius2=max((co-center2).length for co in coords2)
     assert abs(radius2-radius*1.5)<1e-5
     tx.cancel()
 
@@ -103,7 +105,7 @@ try:
     else:raise AssertionError('Empty face selection allowed')
 
     global_actions={action for _,action in drawing.BUTTONS}
-    for submenu in (drawing.EDIT_BUTTONS,drawing.PRIMITIVE_BUTTONS,drawing.TRAVEL_BUTTONS):
+    for submenu in (drawing.EDIT_BUTTONS,drawing.EDIT_MORE_BUTTONS,drawing.PRIMITIVE_BUTTONS,drawing.TRAVEL_BUTTONS):
         actions=[action for _,action in submenu]
         assert len(actions)==len(set(actions))
         assert not ({'SAVE','UNDO','REDO','STOP'} & set(actions))
