@@ -78,6 +78,21 @@ def turn_view(state, angle, base_origin, pivot=None):
     state.navigation_rotation = turn @ Quaternion(state.navigation_rotation)
 
 
+def matrix_changed(first, second, epsilon=1e-8):
+    return any(abs(first[row][column]-second[row][column]) > epsilon
+               for row in range(4) for column in range(4))
+
+
+def uniform_scaled(matrix, factor):
+    """Uniformly scale an object's local basis while keeping its world origin fixed."""
+    result = matrix.copy()
+    for row in range(3):
+        for column in range(3):
+            result[row][column] = matrix[row][column] * factor
+    result.translation = matrix.translation
+    return result
+
+
 def session_pre(*_args):
     global START_ERROR
     if PENDING or CURRENT is not None:
@@ -165,7 +180,7 @@ class Runtime:
     def cancel_work(self):
         self.air_grab = None
         if self.axis_move:
-            obj,before=self.axis_move
+            obj,before,*_ = self.axis_move
             try:obj.matrix_world=before
             except ReferenceError:pass
             self.axis_move=None
@@ -255,11 +270,16 @@ class Runtime:
             self.tool = 'PLACE'
             self.status = 'PLACE ' + self.pending_primitive
             return
-        if action in {'SELECT','EXTRUDE','BEVEL','INSET','MOVE'}:
+        if action in {'SELECT','EXTRUDE','BEVEL','INSET','MOVE','SCALE','MOVE_FACE','SCALE_FACE'}:
+            obj=context.view_layer.objects.active
+            if action in {'MOVE_FACE','SCALE_FACE'} and (not obj or obj.type!='MESH' or obj.mode!='EDIT'):
+                raise ValueError('Enter FACE MODE before using face transforms')
+            if action in {'MOVE','SCALE'} and obj and obj.mode=='EDIT':
+                raise ValueError('Use OBJECT MODE before transforming the whole object')
             self.pending_primitive = None
             self.spawn_preview = None
             self.tool = action
-            self.status = action + ' READY'
+            self.status = action.replace('_',' ') + ' READY'
         elif action == 'MODE':
             obj = context.view_layer.objects.active
             if not obj or obj.type != 'MESH':
@@ -342,18 +362,19 @@ class Runtime:
         editing = bool(obj and obj.mode == 'EDIT')
         hit = self.object_hit(context, origin, direction)
         face = mesh.face_hit(obj, origin, direction) if editing else None
-        if editing and self.tool == 'SELECT' and face:
+        face_tools={'SELECT','MOVE_FACE','SCALE_FACE'}
+        if editing and self.tool in face_tools and face:
             # Keep face editing when the current cage is the closest hit.
             if not hit or hit[0] == obj or (face[1]-origin).length <= (hit[1]-origin).length:
                 mesh.select_face(obj, face[0], additive)
                 self.pointer = face[1]
-                self.status = 'FACE SELECTED'
+                self.status = 'FACE SELECTED / ' + self.tool.replace('_',' ')
                 return
         if not hit:
             self.status = 'POINT AT A MESH'
             return
         target, point = hit
-        keep_edit = editing and self.tool == 'SELECT'
+        keep_edit = editing and self.tool in face_tools
         if keep_edit:
             # Validate before leaving the old mesh so a refused target does not
             # disturb the user's active mesh or editing mode.
@@ -378,7 +399,7 @@ class Runtime:
         bm = mesh.editable(obj)
         selected = [f for f in bm.faces if f.select and not f.hide]
         if not selected:
-            raise ValueError('Use SELECT to pick a face first')
+            raise ValueError('Use SELECT FACE to pick a face first')
         if self.tool == 'EXTRUDE':
             normal = sum((f.normal*f.calc_area() for f in selected), Vector())
             if normal.length < 1e-8:
@@ -398,18 +419,25 @@ class Runtime:
         anchor=self.gizmo.anchor.copy()
         value=gizmo.parameter(origin,direction,anchor,axis)
         if value is None:raise ValueError('Aim across the handle to drag it')
-        if self.tool=='MOVE':
+        if obj.mode=='OBJECT' and self.tool in {'MOVE','SCALE'}:
             if obj.library or obj.parent or obj.constraints:
-                raise ValueError('Axis movement requires a local unparented object without constraints')
-            self.axis_move=(obj,obj.matrix_world.copy())
-            local_axis=None;factor=1
+                raise ValueError('Object transforms require a local unparented object without constraints')
+            self.axis_move=(obj,obj.matrix_world.copy(),self.tool)
+            local_axis=None
+            factor=(1/max(self.gizmo.length,1e-6) if self.tool=='SCALE' else 1)
         else:
-            local=obj.matrix_world.inverted().to_3x3()@axis
-            factor=local.length
-            if factor<1e-9:raise ValueError('Object scale must be non-zero')
-            local_axis=local.normalized()
+            if obj.mode!='EDIT' or self.tool not in {'MOVE_FACE','SCALE_FACE','EXTRUDE','BEVEL','INSET'}:
+                raise ValueError('This handle is not available in the current mode')
+            if self.tool=='SCALE_FACE':
+                factor=1/max(self.gizmo.length,1e-6)
+                local_axis=None
+            else:
+                local=obj.matrix_world.inverted().to_3x3()@axis
+                factor=local.length
+                if factor<1e-9:raise ValueError('Object scale must be non-zero')
+                local_axis=local.normalized()
             self.transaction=mesh.Transaction(obj,self.tool)
-            self.start_step=self.settings.step
+            self.start_step=0.0 if self.tool in {'MOVE_FACE','SCALE_FACE'} else self.settings.step
             self.last_amount=None
         self.axis_drag=(anchor,axis.copy(),value[0],factor,local_axis,name)
         self.status='DRAG '+name+' / RELEASE TO APPLY'
@@ -453,12 +481,13 @@ class Runtime:
         origin = Vector(state.controller_aim_location_get(context, self.dom))
         direction = pose @ Vector((0,0,-1))
         hand = Vector(state.controller_grip_location_get(context, self.off))
+        viewer = Vector(state.viewer_pose_location)
         scale = state.viewer_scale if hasattr(state,'viewer_scale') else 1.0
-        self.menu.position(hand, Vector(state.viewer_pose_location), scale)
+        self.menu.position(hand, viewer, scale)
         self.ray = (origin, direction)
         self.hover, self.pointer = self.menu.hit(origin, direction)
         if not self.transaction and not self.axis_move:
-            self.gizmo=gizmo.make(context,self.tool,scale)
+            self.gizmo=gizmo.make(context,self.tool,scale,viewer)
         self.gizmo_hover=(self.gizmo.pick(origin,direction)
                           if self.gizmo and not self.hover else None)
         self.target = None
@@ -525,13 +554,15 @@ class Runtime:
             else:
                 delta = obj.matrix_world.inverted().to_3x3() @ (origin-self.start_pos)
                 amount = self.start_step + delta.dot(self.local_axis)
-            if self.tool != 'EXTRUDE':
+            if self.tool in {'BEVEL','INSET'}:
                 amount = max(0, amount)
+            elif self.tool == 'SCALE_FACE':
+                amount = max(-0.98, amount)
             amount = max(-10, min(10, amount))
             if self.last_amount is None or abs(amount-self.last_amount)>0.00005:
                 self.transaction.preview(amount, self.settings.bevel_segments,axis)
                 self.last_amount = amount
-            self.status = self.tool + ' ' + format(amount,'.4f')
+            self.status = self.tool.replace('_',' ') + ' ' + format(amount,'.4f')
             if release:
                 transaction, self.transaction = self.transaction, None
                 self.history.push(transaction.finish())
@@ -539,21 +570,25 @@ class Runtime:
                 self.status = 'APPLIED'
             return
         if self.axis_move:
-            target,before=self.axis_move
+            target,before,mode=self.axis_move
             if context.view_layer.objects.active!=target or target.mode!='OBJECT':
                 self.cancel_work()
-                raise ValueError('Active object changed; axis move cancelled')
-            anchor,axis,start,_,_,name=self.axis_drag
+                raise ValueError('Active object changed; transform cancelled')
+            anchor,axis,start,factor,_,name=self.axis_drag
             value=gizmo.parameter(origin,direction,anchor,axis)
             if value is not None:
-                result=before.copy()
-                result.translation=before.translation+axis*(value[0]-start)
+                delta=value[0]-start
+                if mode=='MOVE':
+                    result=before.copy()
+                    result.translation=before.translation+axis*delta
+                else:
+                    result=uniform_scaled(before,max(0.02,1+delta*factor))
                 target.matrix_world=result
             if release:
-                if (target.matrix_world.translation-before.translation).length>1e-8:
+                if matrix_changed(target.matrix_world,before):
                     self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
                 self.axis_move=None;self.axis_drag=None
-                self.status='AXIS MOVE APPLIED'
+                self.status='OBJECT '+('MOVED' if mode=='MOVE' else 'SCALED')
             return
         grip_pos = Vector(state.controller_grip_location_get(context,self.dom))
         grip_rot = Quaternion(state.controller_grip_rotation_get(context,self.dom))
@@ -573,7 +608,7 @@ class Runtime:
                 self.command(context,self.hover)
             elif self.gizmo_hover:
                 self.begin_axis(context,origin,direction,self.gizmo_hover)
-            elif self.tool in {'SELECT','MOVE'}:
+            elif self.tool in {'SELECT','MOVE','SCALE','MOVE_FACE','SCALE_FACE'}:
                 self.select(context,origin,direction,additive=self.grip.down)
             elif self.tool == 'PLACE':
                 self.spawn(context)

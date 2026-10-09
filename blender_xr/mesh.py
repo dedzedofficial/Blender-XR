@@ -9,9 +9,9 @@ def check_editable(obj):
     if not obj or obj.type != 'MESH':
         raise ValueError('Select a mesh object first')
     if obj.library or obj.data.library or obj.data.users > 1:
-        raise ValueError('Use a local, single-user mesh for v0.3 editing')
+        raise ValueError('Use a local, single-user mesh for v0.4 editing')
     if obj.data.shape_keys:
-        raise ValueError('Mesh editing with shape keys is outside v0.3')
+        raise ValueError('Mesh editing with shape keys is outside v0.4')
     if abs(obj.matrix_world.determinant()) < 1e-10:
         raise ValueError('Object scale must be non-zero')
 
@@ -77,6 +77,28 @@ def select_face(obj, index, additive=False):
     update(obj)
 
 
+def selected_faces(obj):
+    return [f for f in editable(obj).faces if f.select and not f.hide]
+
+
+def selected_vertices(obj):
+    faces = selected_faces(obj)
+    return list({v for face in faces for v in face.verts})
+
+
+def selected_center(obj):
+    faces = selected_faces(obj)
+    if not faces:
+        raise ValueError('Select at least one face')
+    weight = sum(face.calc_area() for face in faces)
+    if weight > 1e-9:
+        center = sum((face.calc_center_median()*face.calc_area() for face in faces), Vector()) / weight
+    else:
+        verts = list({v for face in faces for v in face.verts})
+        center = sum((v.co for v in verts), Vector()) / max(len(verts), 1)
+    return center
+
+
 def apply_tool(obj, tool, amount, segments=2, axis=None):
     bm = editable(obj)
     faces = [f for f in bm.faces if f.select and not f.hide]
@@ -84,7 +106,22 @@ def apply_tool(obj, tool, amount, segments=2, axis=None):
         raise ValueError('Select at least one face')
     if abs(amount) < 1e-7:
         return
-    if tool == 'EXTRUDE':
+    if tool == 'MOVE_FACE':
+        if axis is None:
+            raise ValueError('Face movement needs an axis')
+        direction = Vector(axis)
+        if direction.length < 1e-9:
+            raise ValueError('Face movement axis is invalid')
+        direction.normalize()
+        verts = list({v for face in faces for v in face.verts})
+        bmesh.ops.translate(bm, verts=verts, vec=direction * amount)
+    elif tool == 'SCALE_FACE':
+        verts = list({v for face in faces for v in face.verts})
+        center = selected_center(obj)
+        factor = max(0.02, 1.0 + amount)
+        for vert in verts:
+            vert.co = center + (vert.co-center) * factor
+    elif tool == 'EXTRUDE':
         normal = (Vector(axis) if axis is not None else
                   sum((f.normal * f.calc_area() for f in faces), Vector()))
         if normal.length < 1e-8:

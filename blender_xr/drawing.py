@@ -4,30 +4,30 @@ import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
 
+# Keep each action in one logical place. Edit-mode face tools live together,
+# while global project/history actions stay on the main tools page.
 BUTTONS = (
-    ('SELECT','SELECT'), ('MODE','MODE'),
-    ('MOVE','MOVE'), ('SHAPES','ADD_MENU'),
-    ('EDIT TOOLS','EDIT_MENU'), ('TRAVEL','NAV_MENU'),
+    ('SELECT OBJECT','SELECT'), ('MOVE OBJECT','MOVE'),
+    ('SCALE OBJECT','SCALE'), ('FACE MODE','MODE'),
+    ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
     ('UNDO','UNDO'), ('REDO','REDO'),
     ('SAVE BLEND','SAVE'), ('STOP VR','STOP'),
 )
 EDIT_BUTTONS = (
-    ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
-    ('INSET','INSET'), ('DEL FACES','DELETE_FACES'),
-    ('UNDO','UNDO'), ('REDO','REDO'),
-    ('TOOLS','BACK'), ('TRAVEL','NAV_MENU'),
-    ('SAVE BLEND','SAVE'), ('STOP VR','STOP'),
+    ('SELECT FACE','SELECT'), ('MOVE FACE','MOVE_FACE'),
+    ('SCALE FACE','SCALE_FACE'), ('EXTRUDE','EXTRUDE'),
+    ('BEVEL','BEVEL'), ('INSET','INSET'),
+    ('DEL FACES','DELETE_FACES'), ('STEP -','LESS'),
+    ('STEP +','MORE'), ('OBJECT MODE','MODE'),
 )
 PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
                          ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
-    ('TOOLS','BACK'), ('TRAVEL','NAV_MENU'))
+    ('TOOLS','BACK'),)
 TRAVEL_BUTTONS = (
     ('FLY/WALK','FLY_TOGGLE'), ('TURBO','TURBO'),
     ('SLOWER','SLOWER'), ('FASTER','FASTER'),
     ('SNAP/SMOOTH','TURN_TOGGLE'), ('RESET VIEW','RESET'),
-    ('STEP -','LESS'), ('STEP +','MORE'),
-    ('TOOLS','BACK'), ('STOP VR','STOP'),
-    ('SAVE BLEND','SAVE'), ('SHAPES','ADD_MENU'),
+    ('TOOLS','BACK'),
 )
 # Original compact 5x7 bitmap font. GPU triangles work in both stereo eyes.
 FONT = {
@@ -157,9 +157,9 @@ class Menu:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
         rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'EDIT TOOLS'}.get(self.page,'TOOLS')
+        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'FACE TOOLS'}.get(self.page,'TOOLS')
         text('BLENDER XR / '+title,-0.177,0.208,0.00275)
-        summary = ('FLY ' if settings.fly_mode else 'WALK ') + format(settings.move_speed,'.1f') + ' / '+settings.turn_mode if settings and self.page=='TRAVEL' else tool+' / STEP '+format(step,'.3f')
+        summary = ('FLY ' if settings.fly_mode else 'WALK ') + format(settings.move_speed,'.1f') + ' / '+settings.turn_mode if settings and self.page=='TRAVEL' else tool.replace('_',' ')+' / STEP '+format(step,'.3f')
         text(summary,-0.177,0.153,0.00265)
         for i,(label,action) in enumerate(self.buttons):
             bx,by,w,h=button_rect(i)
@@ -221,6 +221,13 @@ def draw(runtime):
                 lines=[handles.anchor,tip,tip,tail+sideways*handles.radius,
                        tip,tail-sideways*handles.radius]
                 draw_batch(shader,'LINES',lines,color)
+                # A billboard tip is much easier to see and hit at a distance.
+                r=handles.radius*.80
+                right=runtime.menu.right*r
+                up=runtime.menu.up*r
+                point=[tip-right-up,tip+right-up,tip+right+up,
+                       tip-right-up,tip+right+up,tip-right+up]
+                draw_batch(shader,'TRIS',point,color)
                 # Billboard axis labels using the existing stereo-safe bitmap font.
                 points=[];pixel=handles.length*.012
                 origin_label=tip+runtime.menu.up*handles.radius
