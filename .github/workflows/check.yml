@@ -50,6 +50,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_axes.py
+      - name: v0.5 vertex edge face mesh tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_mesh_v05.py
       - uses: actions/upload-artifact@v4
         with:
           name: blender-xr-${{ matrix.blender }}

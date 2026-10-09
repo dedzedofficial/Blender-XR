@@ -1,11 +1,23 @@
-# Blender XR v0.4.7
+# Blender XR v0.5.0
 
-- Tidied the desktop sidebar into clearer VR Session, Controller Setup, Modeling, Movement, Project, Quick Controls and Updates sections.
-- Simplified the hand-menu labels so common actions are faster to read in VR.
-- Officially packages the first v0.5-preview modeling improvements already added to the project: whole-object uniform scaling, selected-face XYZ movement and selected-face scaling.
-- Distance-aware transform gizmos remain larger and easier to target when the user is farther from the selected object or face.
-- Added Patreon and Website buttons at the bottom of the sidebar. They open the official Ded Zed Patreon and FISHHWB website in the system default browser.
-- Keeps Save Blend, primitive creation, scene flight, ray-based mesh switching, face extrude/bevel/inset/delete and VR-local undo/redo.
-- Bumps the extension, sidebar, hand-menu and updater version to v0.4.7.
+v0.5 turns the earlier face-focused editor into a broader VR mesh-modeling workflow.
 
-Automated checks continue to target Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset testing remains pending.
+## New in v0.5
+
+- Added **Vertex / Edge / Face** selection modes directly in the VR edit menu.
+- Grip + trigger keeps additive/toggle selection across all three mesh selection modes.
+- Move and Scale now work on selected vertices, edges or faces through the existing VR gizmos.
+- Extrude now supports selected vertices, edges and faces.
+- Bevel supports vertex and edge workflows; Inset remains face-only.
+- Delete now removes the currently selected geometry type instead of only faces.
+- Added **Merge**, **Subdivide**, **Duplicate**, **Recalculate Normals** and **Flip Normals** actions.
+- Added a compact secondary edit-tools page so the hand menu stays readable instead of becoming one large panel.
+- Added dedicated VR selection feedback for vertices, edges and faces.
+- Preserved object movement/scaling, primitives, scene flight, ray mesh switching, Save Blend, Undo/Redo and experimental finger features.
+- Patreon and Website buttons remain available at the bottom of the Blender sidebar.
+
+## Compatibility
+
+Automated regression coverage now includes the v0.5 mesh workflow on Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 remains blocked because of its known VR crash.
+
+Physical headset/runtime testing is still ongoing, so the automated matrix should not be treated as a complete hardware compatibility matrix.
