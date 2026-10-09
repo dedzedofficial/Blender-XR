@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        blender: ["5.0.0", "5.2.2"]
+        blender: ["4.2.0", "4.5.0", "5.0.0", "5.2.2"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,6 +40,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_flight.py
+      - name: Project saving tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_save.py
       - name: Updater tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}

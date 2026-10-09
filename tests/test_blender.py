@@ -151,6 +151,19 @@ def run():
     assert not session.trigger.down
     assert 'WAITING' in session.status
     print('PASS actual runtime cancels preview on finger input loss without committing')
+    # Background sessions cannot create XR maps, but the actual Blender RNA
+    # enum is available and must validate EVERY action, including optional ones.
+    import gpu
+    assert all(hasattr(gpu.state,name) for name in ('blend_get','blend_set','depth_test_get','depth_test_set'))
+    assert all(name in bpy.types.XrSessionState.bl_rna.functions for name in
+               ('action_set_create','action_create','action_binding_create','controller_pose_actions_set',
+                'active_action_set_set','action_state_get','controller_aim_rotation_get','controller_grip_location_get'))
+    valid_types={item.identifier for item in bpy.types.XrActionMapItem.bl_rna.properties['type'].enum_items}
+    for name,kind,_ in actions.ACTION_DEFINITIONS + actions.TOUCH_DEFINITIONS:
+        assert kind in valid_types, (name,kind,valid_types)
+    assert all(kind=='FLOAT' for name,kind,_ in actions.ACTION_DEFINITIONS + actions.TOUCH_DEFINITIONS
+               if name in {'boost','trigger_touch','thumb_touch'})
+    print('PASS all XR action types against actual Blender RNA schema')
     # RNA map construction does not require a connected headset.
     state=bpy.context.window_manager.xr_session_state
     if state is not None:

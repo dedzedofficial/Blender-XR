@@ -3,7 +3,7 @@ import math
 import time
 import bpy
 from mathutils import Matrix, Vector, Quaternion
-from . import actions, drawing, mesh, gestures, primitives
+from . import actions, drawing, mesh, gestures, primitives, project
 
 CURRENT = None
 PENDING = False
@@ -198,6 +198,13 @@ class Runtime:
 
     def command(self, context, action):
         if action == 'PANEL':
+            return
+        if action == 'SAVE':
+            if self.transaction or self.grab or self.air_grab:
+                raise ValueError('Finish or cancel the current operation before saving')
+            path = project.save(context, self.history)
+            self.status = 'SAVED ' + path.name.upper()
+            self.settings.status = 'Saved: ' + str(path)
             return
         if action == 'ADD_MENU':
             self.menu.page = 'PRIMITIVES'

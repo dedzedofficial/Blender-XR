@@ -82,3 +82,11 @@ Hardware retest:
 6. Try a linked/shared/shape-key mesh while editing and confirm the current mesh remains active. Confirm navigation and switching pause during a live preview.
 
 Hardware validation remains pending. Geometry/input simulations cannot establish stereo UI readability or controller runtime compatibility.
+
+## v0.4.3 startup, saving and compatibility
+
+The automated matrix is Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. XR action enum validation uses the actual Blender RNA schema, covering boost and finger-touch inputs as well as the core actions. Hardware action attachment and stereo rendering still need real runtime tests.
+
+Save tests write a real .blend file from edit mode, inspect a separate copy, verify committed geometry and absence of private snapshots, then verify VR undo/redo still works. Tests also check repeated current-file saves, first-save filename collisions, refusal of occupied first-save paths, live-preview guards and simulated write failure recovery.
+
+Manual checks: start VR without the BOOLEAN enum error; save from Tools and Travel on the headset; test an unsaved project, the configured first-save path and an already-open project; reopen the saved file and inspect scene objects and geometry. Use the same file in Blender 4.2/4.5 and 5.x only within Blender's supported file-version compatibility. Save behavior and Windows paths still need hardware/Windows verification.

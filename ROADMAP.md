@@ -61,6 +61,14 @@ Pending physical release validation: every headset/runtime combination above, co
 - Ray switching between meshes while face editing, with validation before leaving the current mesh.
 - Regression tests for flight, turning, pivot preservation, both dominant-hand settings and real scene ray switching.
 
+## v0.4.3: startup fix, saving and Blender 4.2+
+
+- Fixed unsupported BOOLEAN XR action types; trigger touch, thumb touch and boost use FLOAT state values.
+- Test every action type against Blender's real RNA enum, even without an XR session.
+- Save Blend in the hand menu and desktop sidebar, current-file saves, timestamped first saves and an optional first-save path.
+- Saved projects exclude private VR mesh history; saving retains live-session undo data in memory.
+- Minimum Blender 4.2.0 with automated 4.2.0, 4.5.0, 5.0.0 and 5.2.2 coverage.
+
 ## v0.4.x: follow-up after headset testing
 
 - Fix reported runtime/profile issues first; publish actual hardware results.

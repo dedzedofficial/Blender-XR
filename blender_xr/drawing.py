@@ -10,6 +10,7 @@ BUTTONS = (
     ('INSET','INSET'), ('MOVE','MOVE'),
     ('UNDO','UNDO'), ('REDO','REDO'),
     ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
+    ('SAVE BLEND','SAVE'), ('STOP VR','STOP'),
 )
 PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
                          ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
@@ -20,6 +21,7 @@ TRAVEL_BUTTONS = (
     ('SNAP/SMOOTH','TURN_TOGGLE'), ('RESET VIEW','RESET'),
     ('STEP -','LESS'), ('STEP +','MORE'),
     ('TOOLS','BACK'), ('STOP VR','STOP'),
+    ('SAVE BLEND','SAVE'), ('SHAPES','ADD_MENU'),
 )
 # Original compact 5x7 bitmap font. GPU triangles work in both stereo eyes.
 FONT = {
@@ -122,7 +124,7 @@ class Menu:
         pos = origin + direction*t
         local = (pos-self.center)/self.scale
         x, y = local.dot(self.right), local.dot(self.up)
-        if not (-0.19 <= x <= 0.19 and -0.24 <= y <= 0.23):
+        if not (-0.19 <= x <= 0.19 and -0.29 <= y <= 0.23):
             return None, None
         for i, (_, action) in enumerate(self.buttons):
             bx, by, w, h = button_rect(i)
@@ -147,7 +149,7 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.195,-0.24,0.39,0.47,(0.015,0.025,0.04,0.97))
+        rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
         title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL'}.get(self.page,'TOOLS')
         text('BLENDER XR / '+title,-0.177,0.208,0.00275)
@@ -163,11 +165,11 @@ class Menu:
             if action==hover: color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             text(label,bx+0.009,by+0.030,min(0.0032,0.15/(max(len(label),1)*6)))
-        text(('MESH '+selection)[:24],-0.174,-0.137,0.0023)
-        text(status[:25],-0.174,-0.161,0.00225)
+        text(('MESH '+selection)[:24],-0.174,-0.19,0.0023)
+        text(status[:25],-0.174,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
-        text(hint,-0.174,-0.193,0.0021)
-        text('V0.4.2',-0.174,-0.220,0.0021)
+        text(hint,-0.174,-0.246,0.0021)
+        text('V0.4.3',-0.174,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):

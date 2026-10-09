@@ -1,16 +1,16 @@
-# Blender XR v0.4.2
+# Blender XR v0.4.3
 
 **Free basic VR modeling inside Blender, by Ded Zed.**
 
 Choose your dominant hand before entering VR. The other hand holds a small tool menu; the dominant controller points, selects, edits, and moves objects.
 
-**v0.4.2 navigation update:** full-scene flight, physical left-stick movement, right-stick turning/lift, turbo and in-VR speed adjustment, a clearer Tools/Shapes/Travel menu, and mesh switching by ray while editing. Automated checks pass in Blender 5.0.0 and 5.2.2. Physical Quest/Valve and Windows runtime testing remains pending.
+**v0.4.3 fixing update:** fixes the unsupported BOOLEAN action type that prevented VR startup, adds Save Blend, and lowers the minimum Blender version to 4.2.0. Full-scene flight, right-stick turning, ray switching and basic modeling remain included. Automated checks use Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Physical headset and Windows testing remains pending.
 
-[Download v0.4.2 installer](https://github.com/dedzedofficial/Blender-XR/releases/download/v0.4.2/blender-xr-v0.4.2.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md)
+[Download v0.4.3 installer](https://github.com/dedzedofficial/Blender-XR/releases/download/v0.4.3/blender-xr-v0.4.3.zip) · [Latest releases](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md)
 
 ## Install
 
-1. Download `blender-xr-v0.4.2.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
+1. Download `blender-xr-v0.4.3.zip` from this repository's `dist` folder or Releases. Open the file and click **Download raw file** if GitHub shows its file page. Do not install GitHub's entire source-code ZIP.
 2. In Blender, open **Edit > Preferences > Add-ons**, open the menu at the upper right, and select **Install from Disk**.
 3. Select the installer ZIP and enable **Blender XR**.
 4. In the 3D viewport, press **N** and open the **Blender XR** tab.
@@ -41,7 +41,7 @@ Set the runtime before starting Blender; restart Blender if you change it. Hold 
 
 This is a compatibility target matrix, not a completed physical test matrix. It cannot make every Meta or Valve device compatible regardless of its runtime capabilities.
 
-Requires Blender 5+ with OpenXR, a PC capable of running VR, and two tracked controllers. Blender 5.0.1 is blocked due to a known VR crash; 5.0.0 and 5.2.2 were used for automated checks. Later versions need testing before being added to the compatibility matrix.
+Requires Blender 4.2+ with OpenXR, a PC capable of running VR, and two tracked controllers. Blender 5.0.1 is blocked due to a known VR crash; 4.2.0, 4.5.0, 5.0.0 and 5.2.2 are used for automated checks. Later versions need testing before being added to the compatibility matrix.
 
 ## Controls
 
@@ -64,6 +64,7 @@ Requires Blender 5+ with OpenXR, a PC capable of running VR, and two tracked con
 | LESS / MORE menu buttons | Halve or double the starting tool distance. |
 | UNDO / REDO | Undo/redo the latest 20 Blender XR edits, object moves and primitive creations during the current session. |
 | RESET VIEW | Reset viewer navigation to the starting location. |
+| SAVE BLEND (Tools or Travel) | Save the current project, or create a timestamped .blend file if unsaved. |
 | STOP VR, desktop Stop VR, or ESC | Stop the session and cancel unfinished work. |
 
 ### First edit
@@ -91,6 +92,16 @@ Left moves, right turns, independent of which hand edits. Default flight speed i
 The right stick snaps 30 degrees by default, with one turn per deflection. **Travel > Snap/Smooth** changes to continuous turning. Snap angle and smooth turn speed are adjustable in the sidebar. Turning pivots around your head, including when the starting 3D cursor is away from the origin. Navigation pauses during live edits, object grabs and grab-air movement.
 
 The menu separates **Tools**, **Shapes** and **Travel**, with larger labels, active-tool/turbo highlights, selected mesh name and control hints. A green ray and bounds identify the mesh under the pointer. In SELECT, trigger another mesh to switch targets. If you were face editing, the old mesh leaves edit mode and the new mesh enters it with the hit face selected. A linked/shared mesh, shape-key mesh or zero-scale target is refused before leaving the current edit target. Finish or cancel live work before switching.
+
+## Save your Blender project
+
+Use **Save Blend** on the **Tools** or **Travel** hand menu, or the desktop sidebar. The button writes a normal `.blend` file with your scene and committed mesh edits. Finish or cancel any live edit/move first. Saving preserves the current session's VR undo history and excludes its private mesh snapshots from the saved project.
+
+- Existing project: save back to its current filepath, using Blender's normal save behavior and backup preferences.
+- Unsaved project: create `BlenderXR-YYYYMMDD-HHMMSS.blend` in your home **Documents/BlenderXR** folder. An occupied timestamp gets a numbered filename.
+- Optional first-save location: choose an absolute **Blend save path** in the sidebar before VR. An existing file at that first-save path is refused; open it in Blender if you want to work on it.
+
+The chosen path appears in the sidebar and the hand menu confirms the saved filename. Saved projects can be reopened and edited normally in Blender. VR undo is session-local and is not restored when reopening the file.
 
 ## Update from GitHub
 
@@ -138,10 +149,11 @@ Run `python tests/test_gestures.py` for finger/protocol/profile checks. Run the 
 blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
 blender --background --factory-startup --python-exit-code 1 --python tests/test_controls.py
 blender --background --factory-startup --python-exit-code 1 --python tests/test_flight.py
+blender --background --factory-startup --python-exit-code 1 --python tests/test_save.py
 blender --background --factory-startup --python-exit-code 1 --python tests/test_updater.py
 ```
 
-GitHub Actions validates on Blender 5.0.0 and 5.2.2. The release workflow validates on 5.2.2 and publishes a version once. For the next release, update the manifest, `bl_info`, updater `VERSION`, documentation, and release notes together. Existing release assets are never silently replaced. A private repository must have GitHub Actions enabled for automated publishing.
+GitHub Actions validates on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. The release workflow validates on 5.2.2 and publishes a version once. For the next release, update the manifest, `bl_info`, updater `VERSION`, documentation, and release notes together. Existing release assets are never silently replaced. A private repository must have GitHub Actions enabled for automated publishing.
 
 See [TESTING.md](https://github.com/dedzedofficial/Blender-XR/blob/main/TESTING.md) for automated results and headset checks, and [ROADMAP.md](https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md) for future scope.
 

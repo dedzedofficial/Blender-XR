@@ -1,16 +1,13 @@
-# Blender XR v0.4.2
+# Blender XR v0.4.3
 
-Navigation and mesh-selection update by Ded Zed.
+Fixing update by Ded Zed.
 
-- Left stick flies through the scene; right stick turns and changes altitude, independent of dominant hand.
-- Faster default flight, optional level walk, left-stick click 4x boost, persistent turbo and Travel speed controls.
-- 30-degree snap turning with release-to-rearm, optional smooth turning and configurable angle/speed.
-- Turning pivots around the viewer's head without moving scene objects.
-- Updated Tools, Shapes and Travel pages with larger labels, selected mesh name, active state and hints.
-- Green ray and bounds highlight the mesh under the pointer.
-- SELECT can ray-switch meshes while face editing; invalid targets are refused before leaving the old mesh.
-- Regression checks for full flight, turning, both-handed controls, real ray switching and all menu pages.
+- Fixed the unsupported BOOLEAN XR action enum that prevented session startup. Optional touch and boost inputs now use Blender-supported FLOAT actions.
+- Added real Blender RNA action-type regression validation to catch this error without a headset.
+- Save Blend in Tools/Travel and the desktop sidebar. Existing projects save to the current filepath; unsaved projects get a timestamped file in Documents/BlenderXR, with an optional first-save path.
+- Committed edit-mode geometry is saved; private VR history stays out of the .blend file while current-session undo remains available.
+- Blender minimum lowered to 4.2.0, with automated checks on 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
 
-Install **blender-xr-v0.4.2.zip**, or stop VR and use Download & Install, then restart Blender. v0.4.1 remains available.
+Install **blender-xr-v0.4.3.zip**, or stop VR and use Download & Install, then restart Blender. This is an installable extension for Blender 4.2+ with OpenXR.
 
-Automated tests cover Blender 5.0.0 and 5.2.2. Real Quest/Valve hardware, Windows and stereo UI readability remain pending. Existing basic mesh tools, primitive creation, grab-air movement and experimental finger bridge remain included.
+Physical headset, Windows saving paths and stereo rendering remain pending user testing. Existing navigation, primitive creation, ray selection and mesh tools remain included.

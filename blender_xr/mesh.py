@@ -165,11 +165,11 @@ class Transaction:
 
 
 def creation_entry(obj):
-    template = obj.copy()
-    template.data = obj.data.copy()
-    template.name = '.BlenderXR_CreatedObject'
-    return ('CREATE', obj.name, obj.data.name, template,
-            tuple(obj.users_collection))
+    # Keep a zero-user mesh snapshot, rather than an unlinked Object that gives
+    # its mesh a real user and would cause private history data to be saved.
+    data = obj.data.copy()
+    return ('CREATE', obj.name, obj.data.name, data,
+            tuple(obj.users_collection), obj.matrix_world.copy())
 
 
 class History:
@@ -185,11 +185,7 @@ class History:
                 if mesh and mesh.name in bpy.data.meshes:
                     bpy.data.meshes.remove(mesh)
         elif entry[0] == 'CREATE':
-            template = entry[3]
-            data = template.data
-            bpy.data.objects.remove(template, do_unlink=True)
-            if data.users == 0:
-                bpy.data.meshes.remove(data)
+            bpy.data.meshes.remove(entry[3])
 
     def push(self, entry):
         if not entry:
@@ -226,9 +222,9 @@ class History:
                     raise ValueError('The original collection was removed; restart VR') from None
                 if not collections:
                     raise ValueError('The original collection was removed; restart VR')
-                obj = entry[3].copy()
-                obj.data = entry[3].data.copy()
-                obj.name, obj.data.name = entry[1], entry[2]
+                obj = bpy.data.objects.new(entry[1], entry[3].copy())
+                obj.data.name = entry[2]
+                obj.matrix_world = entry[5]
                 for collection in collections:
                     collection.objects.link(obj)
                 for selected in bpy.context.selected_objects:

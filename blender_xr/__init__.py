@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,2),
-    'blender': (5,0,0), 'location': '3D View > Sidebar > Blender XR',
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,4,3),
+    'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free basic VR mesh editing with a hand-mounted menu',
     'category': '3D View',
 }
@@ -9,7 +9,7 @@ import bpy
 import textwrap
 from bpy.props import EnumProperty, FloatProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import runtime, mesh, updater
+from . import runtime, mesh, updater, project
 
 
 class BXR_Settings(bpy.types.PropertyGroup):
@@ -46,6 +46,8 @@ class BXR_Settings(bpy.types.PropertyGroup):
     placement_distance: FloatProperty(name='Placement distance', default=1.5, min=0.1, max=10,
         description='Distance in physical VR metres when pointing into empty space')
     status: bpy.props.StringProperty(default='Ready')
+    save_path: bpy.props.StringProperty(name='Blend save path',subtype='FILE_PATH',default='',
+        description='For an unsaved project; blank creates a timestamped file in Documents/BlenderXR')
 
 
 class BXR_OT_session(bpy.types.Operator):
@@ -154,6 +156,32 @@ class BXR_OT_stop(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class BXR_OT_save(bpy.types.Operator):
+    bl_idname = 'blender_xr.save'
+    bl_label = 'Save Blend'
+    bl_description = 'Save the current project, or create a timestamped project if unsaved'
+
+    @classmethod
+    def poll(cls, context):
+        session = runtime.CURRENT
+        return not session or not (session.transaction or session.grab or session.air_grab)
+
+    def execute(self, context):
+        try:
+            if runtime.CURRENT:
+                runtime.CURRENT.command(context,'SAVE')
+                path = context.scene.blender_xr.save_path
+            else:
+                path = project.save(context)
+                context.scene.blender_xr.status = 'Saved: ' + str(path)
+            self.report({'INFO'},'Saved: ' + str(path))
+            return {'FINISHED'}
+        except ValueError as exc:
+            self.report({'ERROR'},str(exc))
+            context.scene.blender_xr.status = str(exc)
+            return {'CANCELLED'}
+
+
 class BXR_OT_tool(bpy.types.Operator):
     bl_idname='blender_xr.tool'
     bl_label='Apply Blender XR Tool'
@@ -195,7 +223,7 @@ class BXR_OT_bridge_command(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.4.2'
+    bl_label='Blender XR v0.4.3'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -229,6 +257,8 @@ class BXR_PT_panel(bpy.types.Panel):
         col.prop(settings,'grab_air')
         col.prop(settings,'primitive_size')
         col.prop(settings,'placement_distance')
+        col.prop(settings,'save_path')
+        layout.operator('blender_xr.save', icon='FILE_TICK')
         layout.operator('blender_xr.stop' if active else 'blender_xr.session',
                         text='Stop VR' if active else 'Start VR',icon='HIDE_OFF')
         for line in textwrap.wrap(settings.status,44):
@@ -267,7 +297,7 @@ def load_pre(*_args):
         runtime.CURRENT=None
 
 
-CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_tool,BXR_OT_bridge_command,BXR_PT_panel)
+CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,BXR_OT_bridge_command,BXR_PT_panel)
 
 def register():
     updater.register()

@@ -10,19 +10,21 @@ PROFILES = {
 }
 
 
-def build_map(state, family='AUTO', finger_touch=False):
-    amap = state.actionmaps.new(state, SET, replace_existing=True)
-    definitions = [
+ACTION_DEFINITIONS = (
         ('grip_pose', 'POSE', '/input/grip/pose'),
         ('aim_pose', 'POSE', '/input/aim/pose'),
         ('trigger', 'FLOAT', '/input/trigger/value'),
         ('grab', 'FLOAT', None),
         ('stick', 'VECTOR2D', '/input/thumbstick'),
-        ('boost', 'BOOLEAN', '/input/thumbstick/click'),
-    ]
-    if finger_touch:
-        definitions += [('trigger_touch', 'BOOLEAN', '/input/trigger/touch'),
-                        ('thumb_touch', 'BOOLEAN', '/input/thumbstick/touch')]
+        ('boost', 'FLOAT', '/input/thumbstick/click'),
+    )
+TOUCH_DEFINITIONS = (('trigger_touch', 'FLOAT', '/input/trigger/touch'),
+                     ('thumb_touch', 'FLOAT', '/input/thumbstick/touch'))
+
+
+def build_map(state, family='AUTO', finger_touch=False):
+    amap = state.actionmaps.new(state, SET, replace_existing=True)
+    definitions = ACTION_DEFINITIONS + (TOUCH_DEFINITIONS if finger_touch else ())
     families = {'AUTO': set(PROFILES), 'META': {'touch', 'simple'},
                 'VALVE': {'index', 'touch', 'vive', 'simple'}}
     for name, kind, component in definitions:
