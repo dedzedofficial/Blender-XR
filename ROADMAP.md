@@ -19,16 +19,6 @@ Implemented:
 - GitHub release check, checksum-verified download, installation rollback, and restart prompt.
 - Automated geometry, cancellation, history, packaging, and updater tests.
 
-Release gate still requiring real hardware:
-
-- Quest 3 with Air Link and Meta OpenXR.
-- Quest 3 with SteamVR as the OpenXR runtime.
-- Quest 3 with Virtual Desktop and VDXR, plus its SteamVR route.
-- Stereo menu readability, controller ordering, ray direction, and button feedback.
-- Windows installation/update/restart tests.
-
-v0.3 is an initial development release. Headless mesh tests do not establish headset compatibility.
-
 ## v0.4.0: Meta/Valve targets and optional fingers
 
 Implemented:
@@ -39,73 +29,83 @@ Implemented:
 - Experimental external SteamVR skeletal bridge: pinch selection/tool use and finger-curl object grab.
 - Loopback-only session-key protocol, bounded packet processing, input freshness and release-before-arming checks.
 - Tracking loss cancels unfinished work; estimated skeletal data cannot drive finger tools.
-- Automated profile, skeletal sample, gesture, malformed packet, replay and reconnection tests.
-
-Pending physical release validation: every headset/runtime combination above, controller touch behavior, skeletal measurements and background SteamVR input. Native OpenXR hand joints are not exposed through Blender's current Python API. Native Air Link hand tracking and native Steam Frame controller extensions need upstream integration or a different backend.
 
 ## v0.4.1: fixing update
 
 - Fixed the missing Event.timer access that interrupted the VR modal loop.
-- Left thumbstick locomotion independent of dominant-hand choice, with deadzone and speed limiting.
-- Either-hand grab-air translation, with object-grip priority and no navigation feedback drift.
-- Hand-menu primitive picker and placement preview: cube, sphere, cylinder, cone, torus and plane.
-- Primitive creation in object mode, with VR-local undo/redo and snapshot cleanup.
-- Regression tests reproduce timer events without the missing attribute and simulate both handedness settings.
+- Left thumbstick locomotion independent of dominant-hand choice.
+- Either-hand grab-air translation.
+- Hand-menu primitive picker and placement preview.
+- Primitive creation with VR-local undo/redo.
 
 ## v0.4.2: flight and mesh switching
 
-- Unbounded scene flight: left stick moves, right stick turns and changes altitude.
-- Default 3 m/s flight, 4x turbo, held left-stick click boost, Travel speed controls and configurable snap/smooth turning.
-- Head-pivot rotation with a nonzero starting 3D cursor.
-- Tools, Shapes and Travel menu pages with larger labels, selected mesh name and ray-target bounds.
-- Ray switching between meshes while face editing, with validation before leaving the current mesh.
-- Regression tests for flight, turning, pivot preservation, both dominant-hand settings and real scene ray switching.
+- Unbounded scene flight.
+- Left-stick movement, right-stick turning/height and turbo flight.
+- Tools, Shapes and Travel menu pages.
+- Ray switching between meshes while editing.
 
 ## v0.4.3: startup fix, saving and Blender 4.2+
 
-- Fixed unsupported BOOLEAN XR action types; trigger touch, thumb touch and boost use FLOAT state values.
-- Test every action type against Blender's real RNA enum, even without an XR session.
-- Save Blend in the hand menu and desktop sidebar, current-file saves, timestamped first saves and an optional first-save path.
-- Saved projects exclude private VR mesh history; saving retains live-session undo data in memory.
+- Fixed unsupported BOOLEAN XR action types.
+- Save Blend from the hand menu and desktop sidebar.
 - Minimum Blender 4.2.0 with automated 4.2.0, 4.5.0, 5.0.0 and 5.2.2 coverage.
 
-## v0.4.x: follow-up after headset testing
+## v0.4.4: easier building
 
-- Fix reported runtime/profile issues first; publish actual hardware results.
-- Improve gesture thresholds from measured headset behavior.
-- Adjustable menu position/size, axis snapping and improved diagnostics.
-- Test native Blender undo integration before replacing local history.
-
-## v0.4.4: easier building and public updates
-
-- [x] Ray-picked XYZ movement and extrusion handles.
-- [x] Bevel/inset thickness drag handles.
-- [x] Delete selected faces with undo/redo.
-- [x] Separate Edit Tools menu.
-- [x] One public updater button without authentication.
-- [x] Verified current release replaces older downloads.
-- [x] Face selection and direct face movement/scaling workflows.
-- [x] Whole-object scaling support.
-- [x] Distance-aware transform handles for easier VR targeting.
-- [x] Cleaner VR menus with duplicate options removed.
-- [ ] Quest and Valve headset usability testing for ray dragging and menu placement.
+- Ray-picked XYZ movement and extrusion handles.
+- Bevel/inset thickness handles.
+- Delete selected faces with undo/redo.
+- Whole-object scaling.
+- Selected-face movement and scaling.
+- Distance-aware transform handles.
+- Cleaner VR menus with duplicate options removed.
 
 ## v0.4.7: UI polish + early v0.5 preview
 
-- [x] Reorganize the desktop sidebar into clear Session, Controller, Modeling, Movement, Project and Update sections.
-- [x] Simplify the hand-menu labels so the most common actions are quicker to read in VR.
-- [x] Ship the first v0.5-preview tools already implemented in main: whole-object scaling, selected-face XYZ movement and selected-face scaling.
-- [x] Keep distance-aware gizmos that grow for easier targeting when farther from the mesh.
-- [x] Add Patreon and Website buttons at the bottom of the sidebar.
-- [x] Open Patreon and Website links in the system default browser.
-- [x] Keep existing save, primitive, travel, face editing and local history workflows intact.
-- [ ] Continue physical Quest / Valve usability testing before v0.5.
+- Reorganized the desktop sidebar.
+- Simplified the hand-menu labels.
+- Packaged whole-object scaling, face XYZ movement and face scaling as the first v0.5 preview.
+- Added Patreon and Website buttons to the Blender sidebar.
+- Preserved save, primitives, travel, editing and local history workflows.
+
+## v0.5.0: vertex, edge and face modeling
+
+Implemented for the v0.5.0 release:
+
+- [x] Vertex, Edge and Face selection modes directly in VR.
+- [x] Add/remove multi-selection using grip + trigger.
+- [x] Move selected vertices, edges and faces with XYZ gizmos.
+- [x] Scale selected vertices, edges and faces.
+- [x] Extrude selected vertices, edges and faces.
+- [x] Bevel selected vertices/edges and face boundaries.
+- [x] Face inset.
+- [x] Delete the currently selected geometry type.
+- [x] Merge selected vertices.
+- [x] Subdivide selected geometry.
+- [x] Duplicate selected geometry.
+- [x] Recalculate face normals.
+- [x] Flip face normals.
+- [x] Generalized distance-aware gizmos for edit-mode selections.
+- [x] Compact secondary edit page instead of overcrowding the main VR menu.
+- [x] Dedicated XR feedback for selected vertices, edges and faces.
+- [x] Automated regression coverage across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
+
+Still suitable for later v0.5.x modeling polish rather than blocking v0.5.0:
+
+- [ ] Rotate selected mesh geometry with VR gizmos.
+- [ ] Loop Cut.
+- [ ] Dissolve vertices/edges.
+- [ ] Bridge edge loops and fill holes.
+- [ ] Separate selected geometry and join meshes.
+- [ ] Shade Smooth / Flat controls.
+- [ ] Global / Local / Normal transform orientations.
+- [ ] Mesh/grid snapping and more precise transform controls.
 
 # Future roadmap
 
 | Version | Main goal | Ideal features |
 | --- | --- | --- |
-| **v0.5** | **Complete mesh modeling** | Vertex, edge and face selection; switch selection modes in VR; multi-select; move, rotate and scale selected geometry; extrude vertices, edges and faces; inset; bevel vertices and edges; loop cut; subdivide; merge vertices; dissolve geometry; delete vertices, edges and faces; duplicate geometry; bridge edge loops; fill faces and holes; separate selected geometry; join meshes; flip and recalculate normals; Shade Smooth / Flat; Global / Local / Normal transform orientation; improved XYZ gizmos. |
 | **v0.6** | **Materials + UV mapping** | Create and delete materials; material slots; assign materials to selected faces; Base Color, Metallic, Roughness, Alpha and Emission controls; texture image selection; UV unwrap; Smart UV Project; cube and planar projection; move, rotate and scale UVs; reset UVs; simple VR UV preview; material preview mode. |
 | **v0.7** | **Object transforms + modifiers** | Direct numeric Position X/Y/Z, Rotation X/Y/Z and Scale X/Y/Z; uniform scale; reset and apply transforms; copy/paste transforms; VR transform gizmos; set object origin; Origin to Geometry; Geometry to Origin; snap object to cursor; duplicate and linked duplicate; improved object snapping; Mirror modifier with X/Y/Z, Clipping, Merge and Mirror Object; Array modifier with Count, Relative/Constant Offset, X/Y/Z direction and Object Offset; Solidify modifier; apply/remove modifiers; visibility toggle; reorder supported modifiers. |
 | **v0.8** | **Rigging + armatures** | Add armatures and bones; select bones in VR; move, rotate and scale bones; extrude bones; bone parenting; bone naming; mirror bones; Pose Mode; Rest/Pose switching; parent mesh to armature; automatic weights; basic IK; Copy Rotation / Location constraints; armature display controls. |
