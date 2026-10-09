@@ -5,11 +5,58 @@ from mathutils import Vector
 from . import mesh
 
 
+def _selected_indices(obj, mode):
+    bm = mesh.editable(obj)
+    if mode == 'VERT':
+        bm.verts.ensure_lookup_table();bm.verts.index_update()
+        return [v.index for v in bm.verts if v.is_valid and v.select and not v.hide]
+    if mode == 'EDGE':
+        bm.edges.ensure_lookup_table();bm.edges.index_update()
+        return [e.index for e in bm.edges if e.is_valid and e.select and not e.hide]
+    bm.faces.ensure_lookup_table();bm.faces.index_update()
+    return [f.index for f in bm.faces if f.is_valid and f.select and not f.hide]
+
+
+def _restore_selection(obj, mode, indices):
+    bm = mesh.editable(obj)
+    mesh._clear_selection(bm)
+    collection = {'VERT':bm.verts,'EDGE':bm.edges,'FACE':bm.faces}[mode]
+    collection.ensure_lookup_table()
+    for index in indices:
+        if 0 <= index < len(collection) and collection[index].is_valid:
+            collection[index].select_set(True)
+    bm.select_mode = {'VERT': {'VERT'}, 'EDGE': {'EDGE'}, 'FACE': {'FACE'}}[mode]
+    bm.select_flush_mode()
+    mesh.update(obj)
+
+
 def patch(Runtime):
     if getattr(Runtime, '_v05_patched', False):
         return
     original_init = Runtime.__init__
     original_command = Runtime.command
+    OriginalTransaction = mesh.Transaction
+
+    class V05Transaction(OriginalTransaction):
+        """Keep vertex/edge selections stable across snapshot-based live previews."""
+        def __init__(self, obj, tool, mode=None):
+            self.mode = mode or mesh.selection_mode()
+            self.selection = _selected_indices(obj, self.mode)
+            super().__init__(obj, tool, self.mode)
+
+        def preview(self, amount, segments=2, axis=None):
+            mesh.restore(self.obj, self.before)
+            _restore_selection(self.obj, self.mode, self.selection)
+            mesh.apply_tool(self.obj, self.tool, amount, segments, axis, self.mode)
+            self.amount = amount
+            self.changed = abs(amount) > 1e-7
+
+        def cancel(self):
+            mesh.restore(self.obj, self.before)
+            _restore_selection(self.obj, self.mode, self.selection)
+            self.dispose()
+
+    mesh.Transaction = V05Transaction
 
     def init(self, context):
         original_init(self, context)
@@ -116,7 +163,7 @@ def patch(Runtime):
         if self.tool == 'INSET' and mode != 'FACE':
             raise ValueError('Inset is only available in face selection mode')
         if self.tool == 'EXTRUDE':
-            self.local_axis = mesh.selected_normal(obj)
+            self.local_axis = mesh.selected_normal(obj, mode)
         else:
             self.local_axis = (obj.matrix_world.inverted().to_3x3() @
                                (rotation @ Vector((1,0,0)))).normalized()
