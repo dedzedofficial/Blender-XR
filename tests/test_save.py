@@ -81,7 +81,7 @@ try:
         except ValueError:pass
         else:raise AssertionError('Live preview allowed Save')
         assert any(action=='SAVE' for _,action in drawing.BUTTONS)
-        assert any(action=='SAVE' for _,action in drawing.TRAVEL_BUTTONS)
+        assert not any(action=='SAVE' for _,action in drawing.TRAVEL_BUTTONS)
         history.clear()
         bpy.ops.object.mode_set(mode='OBJECT')
         print('PASS real project save, edit geometry, snapshot omission, undo retention, collision guards and failure recovery')
