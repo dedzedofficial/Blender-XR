@@ -16,6 +16,13 @@ def patch(Runtime):
         self.select_mode = mesh.selection_mode(context) if context.mode == 'EDIT_MESH' else 'FACE'
 
     def command(self, context, action):
+        if action == 'EDIT_MORE':
+            self.menu.page = 'EDIT_MORE'
+            self.status = 'MORE EDIT TOOLS'
+            return
+        if action == 'BACK' and self.menu.page == 'EDIT_MORE':
+            self.menu.page = 'EDIT'
+            return
         if action in {'SELECT_VERT','SELECT_EDGE','SELECT_FACE'}:
             obj = context.view_layer.objects.active
             if not obj or obj.type != 'MESH' or obj.mode != 'EDIT':
