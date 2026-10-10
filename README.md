@@ -1,4 +1,4 @@
-# Blender XR v0.5.2
+# Blender XR v0.5.3
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
@@ -6,14 +6,22 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/)
 
-## v0.5.2 highlights
+## v0.5.3 highlights
 
-- Native Blender color picker / hue wheel for the active mesh object.
-- Apply color to viewport display and the active Principled material Base Color.
-- Shared materials are copied before recoloring so other objects are not changed unexpectedly.
-- Scene Statistics box with Objects, Selected, Meshes, Materials, Vertices, Edges, Faces and Triangles.
-- Active-object vertex / edge / face / triangle counts.
-- Shade Smooth and Shade Flat controls.
+- Cleaner **Materials** section in the Blender XR sidebar.
+- Active material name and material-slot feedback.
+- Hue wheel / Blender color picker for quick material color changes.
+- **Apply to Object** in Object Mode.
+- **Assign to Selected Faces** in Edit Mode for multi-material meshes.
+- Scene Statistics can now be collapsed and uses a lightweight cache for larger scenes.
+- Main controller, movement, modeling and UI preferences persist between Blender files.
+- Safer shared Object/Edit mode switching and mesh-selection handling.
+- Centralized material, selection, transform, status, menu and statistics backends for future UV/material/rigging work.
+- Standardized distance-aware gizmo sizing without changing the existing interaction model.
+- Existing v0.5 mesh tools, primitives, navigation, Save Blend and VR-local Undo/Redo remain available.
+
+## Core modeling features
+
 - Vertex, edge and face selection in VR.
 - Add/remove from the selection with grip + trigger.
 - Move and scale selected vertices, edges and faces.
@@ -31,7 +39,7 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 ## Install
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download `blender-xr-v0.5.2.zip`.
+2. Download `blender-xr-v0.5.3.zip`.
 3. In Blender open **Edit > Preferences > Add-ons**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Blender XR**.
@@ -47,15 +55,44 @@ The add-on is free, open source and licensed under **GPL-3.0-or-later**.
 - Two tracked controllers for the standard controller workflow.
 - One active OpenXR runtime.
 
-Automated validation currently covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash.
+Automated validation covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash.
 
-## Object color and scene statistics
+## Materials and per-face color
 
-The **Object Appearance** section in the Blender XR sidebar includes a normal Blender color swatch. Click the swatch to open Blender's color picker / hue wheel, choose a color, then press **Apply Color**.
+The **Materials** section uses Blender's normal color picker / hue wheel.
 
-The color is applied to the active object's viewport color and active Principled BSDF Base Color. If the current material is shared with another object, Blender XR makes a local copy first so recoloring one object does not unexpectedly recolor the others.
+In **Object Mode**:
 
-The **Scene Statistics** section shows live base-mesh totals for visible objects: object count, selected count, mesh count, material count, vertices, edges, faces and triangles. The active mesh gets its own compact V/E/F/T readout as well.
+1. Select a mesh.
+2. Choose a color.
+3. Press **Apply to Object**.
+
+In **Edit Mode**:
+
+1. Switch to **Face** selection.
+2. Select one or more faces.
+3. Choose a color.
+4. Press **Assign to Selected Faces**.
+
+Blender XR creates or reuses a matching material slot and assigns it only to those faces. That means one mesh can have different materials, such as an orange cone with a grey base. The panel shows the active material and current slot so it is easier to see what is being edited.
+
+Shared materials are copied before whole-object recoloring so another object is not unexpectedly recolored.
+
+## Scene statistics
+
+The **Scene Statistics** panel can be expanded or collapsed. When open it shows base-mesh totals for visible objects:
+
+- Objects / Selected
+- Meshes / Materials
+- Vertices / Edges
+- Faces / Triangles
+- Active-object V/E/F/T counts
+
+Statistics are cached briefly and recomputed when the scene signature changes instead of being fully recounted on every sidebar redraw.
+
+## Persistent preferences
+
+Blender XR remembers the main controller, movement, modeling and statistics-panel settings between Blender files. Scene properties remain the live values used by the running XR session, so existing workflows and saved `.blend` files remain compatible.
 
 ## PCVR setup
 
@@ -141,9 +178,9 @@ Finger-touch shortcuts and the optional SteamVR skeletal bridge remain experimen
 - One local editable mesh at a time for topology work.
 - Shared/linked mesh data and shape-key meshes are rejected for topology edits.
 - Editing operates on the base mesh cage, not evaluated modifier geometry.
-- Scene Statistics currently reports base-mesh geometry rather than evaluated modifier output.
+- Scene Statistics reports base-mesh geometry rather than evaluated modifier output.
 - VR Undo/Redo is session-local.
-- Full material controls, UV mapping, rigging and weight painting are planned for later roadmap versions.
+- Full material controls, UV mapping, rigging and weight painting remain roadmap features.
 - Physical headset/runtime behavior can vary even when automated Blender tests pass.
 
 ## Development
