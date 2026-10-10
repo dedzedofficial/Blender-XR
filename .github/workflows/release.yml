@@ -2,7 +2,7 @@ name: Package and release Blender XR
 on:
   push:
     branches: [main]
-    paths: ["blender_xr/**", "scripts/build.py", ".github/workflows/release.yml"]
+    paths: ["blender_xr/**", "scripts/build.py", ".github/workflows/release.yml", "RELEASE_NOTES.md"]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -44,7 +44,7 @@ jobs:
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_axes.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_mesh_v05.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v052.py
-      - name: Publish version once
+      - name: Publish or refresh current version
         id: github_release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -57,8 +57,14 @@ jobs:
             exit 1
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
-            echo "created=false" >> "$GITHUB_OUTPUT"
-            echo "Release already exists. Bump the manifest version for another release."
+            echo "Refreshing existing ${tag} with the newly verified package."
+            gh release upload "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --clobber
+            gh release edit "$tag" --title "Blender XR v${version}" --notes-file RELEASE_NOTES.md --latest
+            if [[ "$GITHUB_REF_TYPE" != tag ]]; then
+              git tag -f "$tag" "$GITHUB_SHA"
+              git push origin "refs/tags/${tag}" --force
+            fi
+            echo "created=true" >> "$GITHUB_OUTPUT"
           else
             gh release create "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "Blender XR v${version}" --notes-file RELEASE_NOTES.md --latest
             echo "created=true" >> "$GITHUB_OUTPUT"
