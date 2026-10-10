@@ -5,8 +5,11 @@ v0.5.2 is a focused quality-of-life update built on the v0.5 mesh-editing releas
 ## New in v0.5.2
 
 - Added a native Blender **color picker / hue wheel** for the active mesh object.
-- **Apply Color** updates the object's viewport color and active Principled BSDF Base Color.
-- Shared materials are copied before recoloring so changing one object does not unexpectedly recolor others.
+- In **Object Mode**, **Apply Color** updates the object's viewport color and active Principled BSDF Base Color.
+- In **Face Edit Mode**, select one or more faces, choose a color and press **Apply Color** to automatically create or reuse a matching material and assign it only to those selected faces.
+- This allows multi-material objects such as a cone with an orange body and a grey base without leaving the Blender XR workflow.
+- Reapplying an existing color reuses its matching material slot instead of creating unnecessary duplicate materials.
+- Shared materials are copied before whole-object recoloring so changing one object does not unexpectedly recolor others.
 - Added a **Scene Statistics** section showing visible Objects, Selected Objects, Meshes, Materials, Vertices, Edges, Faces and Triangles.
 - Added an active-object V/E/F/T statistics readout.
 - Added **Shade Smooth** and **Shade Flat** controls.
