@@ -80,8 +80,8 @@ def apply_object_color(obj, color):
     color = rgba(color)
     material = obj.active_material
     if material is None:
-        _, material = create_material(obj, color, obj.name + ' Color')
-        obj.active_material = material
+        slot, material = create_material(obj, color, obj.name + ' Color')
+        obj.active_material_index = slot
     elif material.library or material.users > 1:
         material = material.copy()
         material.name = obj.name + ' Color'
@@ -112,6 +112,7 @@ def assign_color_to_selected_faces(obj, color):
     slot, material = ensure_color_material(obj, color, obj.name + ' Face Material')
     for face in faces:
         face.material_index = slot
+    obj.active_material_index = slot
     bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     return material, len(faces), slot
 
