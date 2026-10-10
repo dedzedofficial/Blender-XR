@@ -1,4 +1,4 @@
-# Blender XR v0.5.0
+# Blender XR v0.5.2
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
@@ -6,18 +6,21 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/)
 
-## v0.5 highlights
+## v0.5.2 highlights
 
+- Native Blender color picker / hue wheel for the active mesh object.
+- Apply color to viewport display and the active Principled material Base Color.
+- Shared materials are copied before recoloring so other objects are not changed unexpectedly.
+- Scene Statistics box with Objects, Selected, Meshes, Materials, Vertices, Edges, Faces and Triangles.
+- Active-object vertex / edge / face / triangle counts.
+- Shade Smooth and Shade Flat controls.
 - Vertex, edge and face selection in VR.
 - Add/remove from the selection with grip + trigger.
 - Move and scale selected vertices, edges and faces.
 - Extrude vertices, edges and faces.
 - Bevel vertex/edge selections and face boundaries.
 - Inset selected faces.
-- Delete the active geometry type.
-- Merge selected vertices.
-- Subdivide selected geometry.
-- Duplicate selected geometry.
+- Delete, merge, subdivide and duplicate selected geometry.
 - Recalculate and flip face normals.
 - Object movement and uniform scaling.
 - Distance-aware X/Y/Z and Size gizmos.
@@ -28,7 +31,7 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 ## Install
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download `blender-xr-v0.5.0.zip`.
+2. Download `blender-xr-v0.5.2.zip`.
 3. In Blender open **Edit > Preferences > Add-ons**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Blender XR**.
@@ -45,6 +48,14 @@ The add-on is free, open source and licensed under **GPL-3.0-or-later**.
 - One active OpenXR runtime.
 
 Automated validation currently covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash.
+
+## Object color and scene statistics
+
+The **Object Appearance** section in the Blender XR sidebar includes a normal Blender color swatch. Click the swatch to open Blender's color picker / hue wheel, choose a color, then press **Apply Color**.
+
+The color is applied to the active object's viewport color and active Principled BSDF Base Color. If the current material is shared with another object, Blender XR makes a local copy first so recoloring one object does not unexpectedly recolor the others.
+
+The **Scene Statistics** section shows live base-mesh totals for visible objects: object count, selected count, mesh count, material count, vertices, edges, faces and triangles. The active mesh gets its own compact V/E/F/T readout as well.
 
 ## PCVR setup
 
@@ -110,15 +121,7 @@ The current selection mode is shown in the menu header and highlighted in the to
 
 Use **Shapes** to add basic meshes directly in VR. A placement preview appears before creation. Newly created objects use the normal Blender mesh system and can immediately be moved or edited.
 
-Use **Travel** for:
-
-- Fly / Walk
-- Turbo
-- Faster / Slower
-- Snap / Smooth turning
-- Reset View
-
-The left stick controls movement regardless of dominant-hand choice. The right stick handles turning and vertical travel.
+Use **Travel** for Fly/Walk, Turbo, Faster/Slower, Snap/Smooth turning and Reset View. The left stick controls movement regardless of dominant-hand choice. The right stick handles turning and vertical travel.
 
 ## Saving
 
@@ -138,8 +141,9 @@ Finger-touch shortcuts and the optional SteamVR skeletal bridge remain experimen
 - One local editable mesh at a time for topology work.
 - Shared/linked mesh data and shape-key meshes are rejected for topology edits.
 - Editing operates on the base mesh cage, not evaluated modifier geometry.
+- Scene Statistics currently reports base-mesh geometry rather than evaluated modifier output.
 - VR Undo/Redo is session-local.
-- Materials, UV mapping, rigging and weight painting are planned for later roadmap versions.
+- Full material controls, UV mapping, rigging and weight painting are planned for later roadmap versions.
 - Physical headset/runtime behavior can vary even when automated Blender tests pass.
 
 ## Development

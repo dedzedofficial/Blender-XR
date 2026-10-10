@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,0),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,2),
     'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free VR mesh modeling with a hand-mounted OpenXR menu',
     'category': '3D View',
@@ -8,9 +8,9 @@ bl_info = {
 import bpy
 import textwrap
 import webbrowser
-from bpy.props import EnumProperty, FloatProperty, IntProperty, PointerProperty
+from bpy.props import EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import runtime, mesh, project, v05
+from . import runtime, mesh, project, v05, v052
 v05.patch(runtime.Runtime)
 
 
@@ -47,6 +47,9 @@ class BXR_Settings(bpy.types.PropertyGroup):
         description='Primitive size in physical VR metres, scaled to the scene')
     placement_distance: FloatProperty(name='Placement distance', default=1.5, min=0.1, max=10,
         description='Distance in physical VR metres when pointing into empty space')
+    object_color: FloatVectorProperty(name='Object Color', subtype='COLOR_GAMMA', size=4,
+        min=0.0, max=1.0, default=(0.18,0.55,0.95,1.0),
+        description='Open the color picker / hue wheel, then apply it to the active mesh object')
     status: bpy.props.StringProperty(default='Ready')
     save_path: bpy.props.StringProperty(name='Blend save path',subtype='FILE_PATH',default='',
         description='For an unsaved project; blank creates a timestamped file in Documents/BlenderXR')
@@ -197,6 +200,41 @@ class BXR_OT_tool(bpy.types.Operator):
             return {'CANCELLED'}
 
 
+class BXR_OT_apply_color(bpy.types.Operator):
+    bl_idname='blender_xr.apply_color'
+    bl_label='Apply Object Color'
+    bl_description='Apply the hue-wheel color to the active mesh object and its active material'
+    bl_options={'REGISTER','UNDO'}
+
+    def execute(self,context):
+        try:
+            material=v052.apply_object_color(context.view_layer.objects.active,
+                                             context.scene.blender_xr.object_color)
+            context.scene.blender_xr.status='Color applied: '+material.name
+            return {'FINISHED'}
+        except ValueError as exc:
+            self.report({'ERROR'},str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_shade(bpy.types.Operator):
+    bl_idname='blender_xr.shade'
+    bl_label='Shade Blender XR Object'
+    bl_description='Set all faces on the active mesh to smooth or flat shading'
+    bl_options={'REGISTER','UNDO'}
+    mode: EnumProperty(items=[('SMOOTH','Smooth','Shade faces smooth'),
+                             ('FLAT','Flat','Shade faces flat')])
+
+    def execute(self,context):
+        try:
+            count=v052.set_shading(context.view_layer.objects.active,self.mode=='SMOOTH')
+            context.scene.blender_xr.status=('Smooth' if self.mode=='SMOOTH' else 'Flat')+' shading: '+str(count)+' faces'
+            return {'FINISHED'}
+        except ValueError as exc:
+            self.report({'ERROR'},str(exc))
+            return {'CANCELLED'}
+
+
 class BXR_OT_bridge_command(bpy.types.Operator):
     bl_idname = 'blender_xr.bridge_command'
     bl_label = 'Copy Hand Bridge Command'
@@ -234,7 +272,7 @@ class BXR_OT_link(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.5.0'
+    bl_label='Blender XR v0.5.2'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -278,7 +316,40 @@ class BXR_PT_panel(bpy.types.Panel):
         grid.prop(settings,'bevel_segments')
         grid.prop(settings,'primitive_size')
         grid.prop(settings,'placement_distance')
-        modeling.label(text='v0.5: vertex / edge / face editing',icon='MODIFIER')
+        modeling.label(text='Vertex / edge / face editing',icon='MODIFIER')
+
+        appearance=layout.box()
+        appearance.label(text='Object Appearance',icon='MATERIAL')
+        appearance.prop(settings,'object_color',text='Color')
+        appearance.label(text='Click the color swatch for the hue wheel')
+        appearance.operator('blender_xr.apply_color',text='Apply Color',icon='COLOR')
+        shade=appearance.row(align=True)
+        smooth=shade.operator('blender_xr.shade',text='Shade Smooth',icon='SHADING_RENDERED')
+        smooth.mode='SMOOTH'
+        flat=shade.operator('blender_xr.shade',text='Shade Flat',icon='SHADING_SOLID')
+        flat.mode='FLAT'
+
+        stats=v052.scene_stats(context)
+        statistics=layout.box()
+        statistics.label(text='Scene Statistics',icon='INFO')
+        row=statistics.row(align=True)
+        row.label(text='Objects: '+str(stats['objects']))
+        row.label(text='Selected: '+str(stats['selected']))
+        row=statistics.row(align=True)
+        row.label(text='Meshes: '+str(stats['meshes']))
+        row.label(text='Materials: '+str(stats['materials']))
+        row=statistics.row(align=True)
+        row.label(text='Verts: '+str(stats['vertices']))
+        row.label(text='Edges: '+str(stats['edges']))
+        row=statistics.row(align=True)
+        row.label(text='Faces: '+str(stats['faces']))
+        row.label(text='Triangles: '+str(stats['triangles']))
+        if stats['active']:
+            current=stats['active']
+            statistics.separator()
+            statistics.label(text='Active: '+current['name'],icon='OBJECT_DATA')
+            statistics.label(text='V '+str(current['vertices'])+'  E '+str(current['edges'])+
+                                  '  F '+str(current['faces'])+'  T '+str(current['triangles']))
 
         movement=layout.box()
         movement.label(text='Movement',icon='ORIENTATION_VIEW')
@@ -327,7 +398,7 @@ def load_pre(*_args):
 
 
 CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_bridge_command,BXR_OT_link,BXR_PT_panel)
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_OT_link,BXR_PT_panel)
 
 def register():
     for cls in CLASSES:

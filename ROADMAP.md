@@ -91,14 +91,25 @@ Implemented for the v0.5.0 release:
 - [x] Dedicated XR feedback for selected vertices, edges and faces.
 - [x] Automated regression coverage across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
 
-Still suitable for later v0.5.x modeling polish rather than blocking v0.5.0:
+## v0.5.2: color + statistics quality-of-life update
+
+Implemented/planned for the v0.5.2 release:
+
+- [x] Native Blender color picker / hue wheel for the active mesh object.
+- [x] Apply the chosen color to the object's viewport color and active Principled material Base Color.
+- [x] Avoid unexpectedly recoloring other objects by copying shared materials before changing them.
+- [x] Scene Statistics area showing visible Objects, Selected Objects, Meshes, Materials, Vertices, Edges, Faces and Triangles.
+- [x] Active-object vertex/edge/face/triangle counts.
+- [x] Shade Smooth and Shade Flat controls.
+- [x] Keep the existing v0.5 mesh editing, axis gizmos, travel, save and local history workflows unchanged.
+
+Still suitable for later v0.5.x modeling polish rather than blocking v0.5.2:
 
 - [ ] Rotate selected mesh geometry with VR gizmos.
 - [ ] Loop Cut.
 - [ ] Dissolve vertices/edges.
 - [ ] Bridge edge loops and fill holes.
 - [ ] Separate selected geometry and join meshes.
-- [ ] Shade Smooth / Flat controls.
 - [ ] Global / Local / Normal transform orientations.
 - [ ] Mesh/grid snapping and more precise transform controls.
 
@@ -110,7 +121,7 @@ Still suitable for later v0.5.x modeling polish rather than blocking v0.5.0:
 | **v0.7** | **Object transforms + modifiers** | Direct numeric Position X/Y/Z, Rotation X/Y/Z and Scale X/Y/Z; uniform scale; reset and apply transforms; copy/paste transforms; VR transform gizmos; set object origin; Origin to Geometry; Geometry to Origin; snap object to cursor; duplicate and linked duplicate; improved object snapping; Mirror modifier with X/Y/Z, Clipping, Merge and Mirror Object; Array modifier with Count, Relative/Constant Offset, X/Y/Z direction and Object Offset; Solidify modifier; apply/remove modifiers; visibility toggle; reorder supported modifiers. |
 | **v0.8** | **Rigging + armatures** | Add armatures and bones; select bones in VR; move, rotate and scale bones; extrude bones; bone parenting; bone naming; mirror bones; Pose Mode; Rest/Pose switching; parent mesh to armature; automatic weights; basic IK; Copy Rotation / Location constraints; armature display controls. |
 | **v0.9** | **Weight painting + character tools** | Weight Paint mode; add/remove weights; brush size and strength; bone/vertex-group selection; create, delete and rename vertex groups; assign selected vertices; normalize, mirror and smooth weights; automatic cleanup; visual weight heatmap; test deformation while painting; shape keys/blendshapes; create, rename and delete shape keys; adjust shape-key values. |
-| **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems; reliable Object/Edit/Pose/Weight/UV/Material switching; unified Undo/Redo; grid, vertex, edge and face snapping; pivot controls; collection and hierarchy controls; common modifier management; better object duplication; transform presets; customizable VR menu; large-scene performance improvements; clearer error feedback; controller accessibility options; full tutorials and documentation; broad Blender-version and OpenXR compatibility testing. |
+| **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems; reliable Object/Edit/Pose/Weight/UV/Material switching; unified Undo/Redo; grid, vertex, edge and face snapping; pivot controls; collection and hierarchy controls; common modifier management; better object duplication; transform presets; customizable VR menu; large-scene performance improvements; clearer error feedback; controller accessibility options; direct hand-grab positioning and rotation for objects, vertices, edges and faces while preserving axis gizmos for precision; dominant-thumbstick-click Extrude-to-Hand; full tutorials and documentation; broad Blender-version and OpenXR compatibility testing. |
 
 ## v0.7 transform workflow target
 
@@ -153,6 +164,17 @@ v0.7 should translate the most useful parts of Blender's Object Properties and b
 - Even Thickness where supported
 - Apply
 - Remove
+
+## v1.0 direct-hand interaction target
+
+The precision axis workflow remains available in v1.0. Direct controller manipulation is an additional faster way to model naturally in VR.
+
+- Grab an **object** with the dominant hand and use controller movement/rotation to position and rotate it directly.
+- Grab selected **vertices, edges or faces** and move/rotate that selection with the dominant controller pose.
+- Keep the existing X/Y/Z and Size gizmos for precise constrained transforms.
+- Allow switching between direct-hand manipulation and axis-constrained manipulation without losing the current selection.
+- Add **Extrude-to-Hand**: clicking the dominant-hand thumbstick while a vertex/edge/face selection is active starts an extrusion controlled by the dominant hand, with the existing axis-based Extrude remaining available for precision.
+- Extrude-to-Hand must use the same safe preview/cancel/Undo history behavior as the existing extrusion tools.
 
 ## Beyond v1.0
 
