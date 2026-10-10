@@ -136,78 +136,336 @@ Still suitable for later v0.5.x modeling polish rather than blocking v0.5.3:
 
 # Future roadmap
 
-| Version | Main goal | Ideal features |
+| Version | Main goal | Ideal direction |
 | --- | --- | --- |
-| **v0.6** | **Materials + UV mapping** | Expand the current basic color/per-face assignment into full material management: create/delete/rename materials and slots; select/assign material slots; Base Color, Metallic, Roughness, Alpha and Emission controls; texture image selection; UV unwrap; Smart UV Project; cube and planar projection; seam marking; move, rotate and scale UV islands; reset/pack UVs; diagnostic checker/direction textures; simple VR UV preview; material preview mode. |
-| **v0.7** | **Object transforms + modifiers** | Direct numeric Position X/Y/Z, Rotation X/Y/Z and Scale X/Y/Z; uniform scale; reset and apply transforms; copy/paste transforms; VR transform gizmos; set object origin; Origin to Geometry; Geometry to Origin; snap object to cursor; duplicate and linked duplicate; improved object snapping; Mirror modifier with X/Y/Z, Clipping, Merge and Mirror Object; Array modifier with Count, Relative/Constant Offset, X/Y/Z direction and Object Offset; Solidify modifier; apply/remove modifiers; visibility toggle; reorder supported modifiers. |
-| **v0.8** | **Rigging + armatures** | Add armatures and bones; select bones in VR; move, rotate and scale bones; extrude bones; bone parenting; bone naming; mirror bones; Pose Mode; Rest/Pose switching; parent mesh to armature; automatic weights; basic IK; Copy Rotation / Location constraints; armature display controls. |
-| **v0.9** | **Weight painting + character tools** | Weight Paint mode; add/remove weights; brush size and strength; bone/vertex-group selection; create, delete and rename vertex groups; assign selected vertices; normalize, mirror and smooth weights; automatic cleanup; visual weight heatmap; test deformation while painting; shape keys/blendshapes; create, rename and delete shape keys; adjust shape-key values. |
-| **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems; reliable Object/Edit/Pose/Weight/UV/Material switching; unified Undo/Redo; grid, vertex, edge and face snapping; pivot controls; collection and hierarchy controls; common modifier management; better object duplication; transform presets; customizable VR menu; large-scene performance improvements; clearer error feedback; controller accessibility options; direct hand-grab positioning and rotation for objects, vertices, edges and faces while preserving axis gizmos for precision; dominant-thumbstick-click Extrude-to-Hand; full tutorials and documentation; broad Blender-version and OpenXR compatibility testing. |
+| **v0.6** | **Materials + UV mapping** | Full material management, textures, UV unwrapping, UV editing and diagnostic texture tools. |
+| **v0.7** | **Object transforms + modifiers** | Numeric transforms, origins, snapping, duplication and a focused set of common modifiers. |
+| **v0.8** | **Rigging + Weight Painting** | Armatures, bones, posing, vertex groups, weighting, deformation testing and basic rig constraints in one complete rigging workflow. |
+| **v0.9** | **Deformation + Animation** | Shape keys/blendshapes, corrective deformation, pose presets, basic drivers and practical keyframe animation tools in VR. |
+| **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems and make the complete workflow stable, performant and VR-native, including direct-hand manipulation and Extrude-to-Hand. |
 
-## v0.7 transform workflow target
+## v0.6 materials + UV mapping target
 
-v0.7 should translate the most useful parts of Blender's Object Properties and basic Modifier workflow into VR without turning the menu into a desktop UI clone.
+- [ ] Create materials.
+- [ ] Delete materials.
+- [ ] Rename materials.
+- [ ] Create and remove material slots.
+- [ ] Select and assign material slots to selected faces.
+- [ ] Base Color control.
+- [ ] Metallic control.
+- [ ] Roughness control.
+- [ ] Alpha control.
+- [ ] Emission control.
+- [ ] Select texture images.
+- [ ] Standard UV unwrap.
+- [ ] Smart UV Project.
+- [ ] Cube projection.
+- [ ] Planar projection.
+- [ ] Mark seams.
+- [ ] Clear seams.
+- [ ] Move UV islands.
+- [ ] Rotate UV islands.
+- [ ] Scale UV islands.
+- [ ] Reset UVs.
+- [ ] Pack UV islands.
+- [ ] Built-in numbered checker diagnostic texture.
+- [ ] Built-in directional UV diagnostic texture.
+- [ ] Built-in color-grid diagnostic texture.
+- [ ] Simple VR UV preview.
+- [ ] Material preview mode.
+
+## v0.7 object transforms + modifiers target
 
 ### Transform
 
-- Location: X / Y / Z
-- Rotation: X / Y / Z
-- Scale: X / Y / Z
-- Uniform scale
-- Reset Location / Rotation / Scale
-- Apply Location / Rotation / Scale
-- Copy and paste transforms
-- Global/local transform handling
+- [ ] Location X / Y / Z.
+- [ ] Rotation X / Y / Z.
+- [ ] Scale X / Y / Z.
+- [ ] Uniform scale.
+- [ ] Reset Location.
+- [ ] Reset Rotation.
+- [ ] Reset Scale.
+- [ ] Apply Location.
+- [ ] Apply Rotation.
+- [ ] Apply Scale.
+- [ ] Copy transforms.
+- [ ] Paste transforms.
+- [ ] Global/local transform handling.
+- [ ] Set object origin.
+- [ ] Origin to Geometry.
+- [ ] Geometry to Origin.
+- [ ] Snap object to cursor.
+- [ ] Duplicate object.
+- [ ] Linked duplicate.
+- [ ] Improved object snapping.
 
 ### Mirror
 
-- X / Y / Z axes
-- Clipping
-- Merge
-- Mirror Object
-- Apply
-- Remove
+- [ ] X / Y / Z axes.
+- [ ] Clipping.
+- [ ] Merge.
+- [ ] Mirror Object.
+- [ ] Apply Mirror.
+- [ ] Remove Mirror.
 
 ### Array
 
-- Count
-- X / Y / Z direction
-- Relative Offset
-- Constant Offset
-- Object Offset
-- Apply
-- Remove
+- [ ] Count.
+- [ ] X / Y / Z direction.
+- [ ] Relative Offset.
+- [ ] Constant Offset.
+- [ ] Object Offset.
+- [ ] Apply Array.
+- [ ] Remove Array.
 
 ### Solidify
 
-- Thickness
-- Offset
-- Even Thickness where supported
-- Apply
-- Remove
+- [ ] Thickness.
+- [ ] Offset.
+- [ ] Even Thickness where supported.
+- [ ] Apply Solidify.
+- [ ] Remove Solidify.
 
-## v1.0 direct-hand interaction target
+### Modifier management
+
+- [ ] Toggle supported modifier viewport visibility.
+- [ ] Reorder supported modifiers.
+- [ ] Apply supported modifiers.
+- [ ] Remove supported modifiers.
+
+## v0.8 rigging + weight painting target
+
+Rigging and weighting belong in the same workflow, so v0.8 should take a mesh from an unrigged state through a usable weighted armature without forcing the user to leave XR.
+
+### Armatures + bones
+
+- [ ] Add a new armature.
+- [ ] Add bones.
+- [ ] Select bones in VR.
+- [ ] Multi-select bones.
+- [ ] Move bones.
+- [ ] Rotate bones.
+- [ ] Scale bones.
+- [ ] Extrude bones.
+- [ ] Parent bones.
+- [ ] Unparent bones.
+- [ ] Rename bones.
+- [ ] Mirror bones.
+- [ ] Duplicate bones.
+- [ ] Delete bones.
+- [ ] Armature display controls.
+- [ ] Bone display controls.
+
+### Pose workflow
+
+- [ ] Enter Pose Mode from VR.
+- [ ] Switch between Rest Position and Pose Position.
+- [ ] Select pose bones.
+- [ ] Move pose bones.
+- [ ] Rotate pose bones.
+- [ ] Scale pose bones.
+- [ ] Reset individual bone transforms.
+- [ ] Reset the full pose.
+- [ ] Test mesh deformation while posing.
+
+### Mesh parenting + automatic weights
+
+- [ ] Parent a mesh to an armature.
+- [ ] Parent with automatic weights.
+- [ ] Parent with empty groups.
+- [ ] Clear armature parenting safely.
+- [ ] Recalculate automatic weights when requested.
+
+### Vertex groups
+
+- [ ] Create vertex groups.
+- [ ] Delete vertex groups.
+- [ ] Rename vertex groups.
+- [ ] Select the active vertex group.
+- [ ] Assign selected vertices to a group.
+- [ ] Remove selected vertices from a group.
+- [ ] Select vertices belonging to a group.
+- [ ] Deselect vertices belonging to a group.
+
+### Weight Painting
+
+- [ ] Enter Weight Paint Mode from VR.
+- [ ] Choose the active bone / vertex group while painting.
+- [ ] Add weight.
+- [ ] Remove weight.
+- [ ] Adjust brush size.
+- [ ] Adjust brush strength.
+- [ ] Set exact weight values where useful.
+- [ ] Normalize weights.
+- [ ] Normalize all weights.
+- [ ] Mirror weights.
+- [ ] Smooth weights.
+- [ ] Clean very small / unused weights.
+- [ ] Limit total influences per vertex.
+- [ ] Visual weight heatmap.
+- [ ] Pose bones while testing weight deformation.
+- [ ] Quickly return to the active weight-paint bone.
+
+### Rig constraints
+
+- [ ] Basic IK constraint creation.
+- [ ] Basic IK target assignment.
+- [ ] IK chain-length control.
+- [ ] Copy Rotation constraint.
+- [ ] Copy Location constraint.
+- [ ] Enable / disable supported constraints.
+- [ ] Remove supported constraints.
+
+## v0.9 deformation + animation target
+
+v0.9 should build on the completed v0.8 rigging workflow and add shape-based deformation plus practical animation tools without trying to recreate the entire desktop Graph Editor in VR.
+
+### Shape Keys / Blendshapes
+
+- [ ] Create Basis shape key.
+- [ ] Create new shape keys.
+- [ ] Delete shape keys.
+- [ ] Rename shape keys.
+- [ ] Duplicate shape keys.
+- [ ] Select the active shape key.
+- [ ] Adjust shape-key value from 0 to 1.
+- [ ] Reset an individual shape-key value.
+- [ ] Reset all shape-key values.
+- [ ] Compare active shape key against Basis.
+- [ ] Mirror a shape key.
+- [ ] Copy deformation from another shape key.
+- [ ] Clear a shape key back toward Basis.
+- [ ] Edit the active shape key directly in VR using vertex/edge/face tools.
+- [ ] Preview shape-key deformation live while editing.
+- [ ] Combine multiple shape-key values for deformation testing.
+
+### Corrective deformation
+
+- [ ] Pose a bone and create a corrective shape key for that pose.
+- [ ] Capture the current deformed mesh as a corrective target where safe.
+- [ ] Associate a corrective shape key with a bone transform.
+- [ ] Preview corrective deformation while moving the driving bone.
+- [ ] Reset corrective preview safely.
+
+### Simplified drivers
+
+- [ ] Connect a shape-key value to a bone transform.
+- [ ] Connect a shape-key value to another supported property.
+- [ ] Choose a driver axis/property.
+- [ ] Set driver minimum input.
+- [ ] Set driver maximum input.
+- [ ] Set driven minimum output.
+- [ ] Set driven maximum output.
+- [ ] Enable / disable a simple driver.
+- [ ] Remove a simple driver.
+
+### Timeline + playback
+
+- [ ] Show the current frame in VR.
+- [ ] Set current frame.
+- [ ] Scrub the timeline.
+- [ ] Previous frame.
+- [ ] Next frame.
+- [ ] Previous keyframe.
+- [ ] Next keyframe.
+- [ ] Play animation.
+- [ ] Pause animation.
+- [ ] Set animation start frame.
+- [ ] Set animation end frame.
+- [ ] Loop playback toggle.
+
+### Keyframing
+
+- [ ] Insert keyframe.
+- [ ] Delete keyframe.
+- [ ] Key object Location.
+- [ ] Key object Rotation.
+- [ ] Key object Scale.
+- [ ] Key object Location + Rotation + Scale together.
+- [ ] Key pose-bone Location.
+- [ ] Key pose-bone Rotation.
+- [ ] Key pose-bone Scale.
+- [ ] Key pose-bone Location + Rotation + Scale together.
+- [ ] Key shape-key values.
+- [ ] Show whether the current property/frame already has a key.
+
+### Pose animation
+
+- [ ] Pose a bone in VR and key the pose.
+- [ ] Move to another frame and create another pose key.
+- [ ] Preview keyed armature animation inside XR.
+- [ ] Reset a pose without deleting its animation keys.
+
+### Shape-key animation
+
+- [ ] Set a shape-key value and key it.
+- [ ] Animate multiple shape keys together.
+- [ ] Preview shape-key animation in XR.
+- [ ] Mix pose animation and shape-key animation during playback.
+
+### Pose presets / Pose Library
+
+- [ ] Save the current pose as a preset.
+- [ ] Load a saved pose.
+- [ ] Rename a pose preset.
+- [ ] Delete a pose preset.
+- [ ] Mirror a pose preset.
+- [ ] Reset to rest pose from the pose library workflow.
+
+### Deformation testing
+
+- [ ] Test armature deformation and shape keys together.
+- [ ] Quickly switch between Rest, Pose and animated states.
+- [ ] Temporarily mute shape keys for comparison.
+- [ ] Temporarily mute armature deformation for comparison.
+- [ ] One-click reset of pose and shape-key preview values without deleting data.
+
+## v1.0 stable complete XR modeling workflow target
 
 The precision axis workflow remains available in v1.0. Direct controller manipulation is an additional faster way to model naturally in VR.
 
-- Grab an **object** with the dominant hand and use controller movement/rotation to position and rotate it directly.
-- Grab selected **vertices, edges or faces** and move/rotate that selection with the dominant controller pose.
-- Keep the existing X/Y/Z and Size gizmos for precise constrained transforms.
-- Allow switching between direct-hand manipulation and axis-constrained manipulation without losing the current selection.
-- Add **Extrude-to-Hand**: clicking the dominant-hand thumbstick while a vertex/edge/face selection is active starts an extrusion controlled by the dominant hand, with the existing axis-based Extrude remaining available for precision.
-- Extrude-to-Hand must use the same safe preview/cancel/Undo history behavior as the existing extrusion tools.
+- [ ] Polish all earlier systems into one consistent workflow.
+- [ ] Reliable Object/Edit/Pose/Weight/UV/Material mode switching.
+- [ ] Unified Undo/Redo across supported XR operations.
+- [ ] Grid snapping.
+- [ ] Vertex snapping.
+- [ ] Edge snapping.
+- [ ] Face snapping.
+- [ ] Pivot controls.
+- [ ] Collection controls.
+- [ ] Hierarchy controls.
+- [ ] Common modifier management.
+- [ ] Better object duplication.
+- [ ] Transform presets.
+- [ ] Customizable VR menu.
+- [ ] Large-scene performance improvements.
+- [ ] Clearer error feedback.
+- [ ] Controller accessibility options.
+- [ ] Grab an **object** with the dominant hand and use controller movement/rotation to position and rotate it directly.
+- [ ] Grab selected **vertices** and move/rotate them with the dominant controller pose.
+- [ ] Grab selected **edges** and move/rotate them with the dominant controller pose.
+- [ ] Grab selected **faces** and move/rotate them with the dominant controller pose.
+- [ ] Keep the existing X/Y/Z and Size gizmos for precise constrained transforms.
+- [ ] Switch between direct-hand manipulation and axis-constrained manipulation without losing the current selection.
+- [ ] **Extrude-to-Hand** by clicking the dominant-hand thumbstick while a vertex/edge/face selection is active.
+- [ ] Extrude-to-Hand follows the dominant hand while the operation is active.
+- [ ] Keep the existing axis-based Extrude available for precision.
+- [ ] Extrude-to-Hand uses the same preview/cancel/Undo safety as the existing extrusion tools.
+- [ ] Full tutorials and documentation.
+- [ ] Broad Blender-version compatibility testing.
+- [ ] Broad OpenXR runtime/controller compatibility testing.
 
 ## Beyond v1.0
 
-The following are intentionally outside the initial 1.0 target so the core VR modeling workflow can become stable first:
+The following are intentionally outside the initial 1.0 target so the core VR workflow can become stable first:
 
 - Sculpting.
 - Full Shader Node editing.
 - Geometry Nodes editing.
 - Grease Pencil workflows.
-- Animation graph editing.
+- Advanced Graph Editor / animation-curve editing beyond the practical v0.9 animation controls.
 - Video editing and compositing.
 - Cloth, fluid and other advanced simulation workflows.
 - Advanced retopology systems.
 
-These may be explored in later 1.x releases after the core XR modeling, material, UV, rigging and character workflows are stable.
+These may be explored in later 1.x releases after the core XR modeling, materials, UV, rigging, weighting, deformation and animation workflows are stable.
