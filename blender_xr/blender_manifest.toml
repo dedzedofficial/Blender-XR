@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 id = "blender_xr"
-version = "0.5.2"
+version = "0.5.3"
 name = "Blender XR"
-tagline = "VR mesh modeling with color tools and scene statistics"
+tagline = "VR mesh modeling with cleaner materials selection and scene tools"
 maintainer = "Ded Zed"
 type = "add-on"
 tags = ["3D View", "Mesh", "User Interface"]

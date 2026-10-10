@@ -93,17 +93,38 @@ Implemented for the v0.5.0 release:
 
 ## v0.5.2: color + statistics quality-of-life update
 
-Implemented/planned for the v0.5.2 release:
+Implemented:
 
 - [x] Native Blender color picker / hue wheel for the active mesh object.
 - [x] Apply the chosen color to the object's viewport color and active Principled material Base Color.
-- [x] Avoid unexpectedly recoloring other objects by copying shared materials before changing them.
+- [x] Assign a chosen color/material only to selected faces in Edit Mode.
+- [x] Reuse matching material slots instead of creating unnecessary duplicate color materials.
+- [x] Avoid unexpectedly recoloring other objects by copying shared materials before whole-object changes.
 - [x] Scene Statistics area showing visible Objects, Selected Objects, Meshes, Materials, Vertices, Edges, Faces and Triangles.
 - [x] Active-object vertex/edge/face/triangle counts.
 - [x] Shade Smooth and Shade Flat controls.
 - [x] Keep the existing v0.5 mesh editing, axis gizmos, travel, save and local history workflows unchanged.
 
-Still suitable for later v0.5.x modeling polish rather than blocking v0.5.2:
+## v0.5.3: cleanup + stronger foundations
+
+Implemented for the v0.5.3 release:
+
+- [x] Rename the sidebar appearance workflow to a clearer **Materials** section.
+- [x] Show active material name and material-slot position.
+- [x] Context-aware **Apply to Object** / **Assign to Selected Faces** wording.
+- [x] Cache scene statistics instead of fully recounting geometry on every panel redraw.
+- [x] Make Scene Statistics collapsible.
+- [x] Persist controller, movement, modeling and UI preferences between Blender files.
+- [x] Centralize material creation/reuse/face assignment in `materials.py`.
+- [x] Centralize vertex/edge/face selection handling in `selection.py` while keeping old APIs compatible.
+- [x] Centralize transform helper behavior in `transforms.py` while keeping existing runtime call sites stable.
+- [x] Centralize safe Object/Edit mode switching in `modes.py`.
+- [x] Centralize short status feedback in `status.py`.
+- [x] Move VR menu page definitions out of the GPU renderer into `menus.py`.
+- [x] Keep `v052.py` as a small compatibility layer instead of a growing version-specific feature file.
+- [x] Standardize gizmo sizing/picking constants without changing the existing controller interaction model.
+
+Still suitable for later v0.5.x modeling polish rather than blocking v0.5.3:
 
 - [ ] Rotate selected mesh geometry with VR gizmos.
 - [ ] Loop Cut.
@@ -117,7 +138,7 @@ Still suitable for later v0.5.x modeling polish rather than blocking v0.5.2:
 
 | Version | Main goal | Ideal features |
 | --- | --- | --- |
-| **v0.6** | **Materials + UV mapping** | Create and delete materials; material slots; assign materials to selected faces; Base Color, Metallic, Roughness, Alpha and Emission controls; texture image selection; UV unwrap; Smart UV Project; cube and planar projection; move, rotate and scale UVs; reset UVs; simple VR UV preview; material preview mode. |
+| **v0.6** | **Materials + UV mapping** | Expand the current basic color/per-face assignment into full material management: create/delete/rename materials and slots; select/assign material slots; Base Color, Metallic, Roughness, Alpha and Emission controls; texture image selection; UV unwrap; Smart UV Project; cube and planar projection; seam marking; move, rotate and scale UV islands; reset/pack UVs; diagnostic checker/direction textures; simple VR UV preview; material preview mode. |
 | **v0.7** | **Object transforms + modifiers** | Direct numeric Position X/Y/Z, Rotation X/Y/Z and Scale X/Y/Z; uniform scale; reset and apply transforms; copy/paste transforms; VR transform gizmos; set object origin; Origin to Geometry; Geometry to Origin; snap object to cursor; duplicate and linked duplicate; improved object snapping; Mirror modifier with X/Y/Z, Clipping, Merge and Mirror Object; Array modifier with Count, Relative/Constant Offset, X/Y/Z direction and Object Offset; Solidify modifier; apply/remove modifiers; visibility toggle; reorder supported modifiers. |
 | **v0.8** | **Rigging + armatures** | Add armatures and bones; select bones in VR; move, rotate and scale bones; extrude bones; bone parenting; bone naming; mirror bones; Pose Mode; Rest/Pose switching; parent mesh to armature; automatic weights; basic IK; Copy Rotation / Location constraints; armature display controls. |
 | **v0.9** | **Weight painting + character tools** | Weight Paint mode; add/remove weights; brush size and strength; bone/vertex-group selection; create, delete and rename vertex groups; assign selected vertices; normalize, mirror and smooth weights; automatic cleanup; visual weight heatmap; test deformation while painting; shape keys/blendshapes; create, rename and delete shape keys; adjust shape-key values. |

@@ -4,3 +4,5 @@ __pycache__/
 *.blend1
 .env
 build/
+dist/*.zip
+dist/*.sha256

@@ -4,6 +4,12 @@ from mathutils import Vector
 from . import mesh
 
 COLORS={'X':(1,.22,.18,1),'Y':(.2,1,.35,1),'Z':(.25,.55,1,1),'SIZE':(1,.8,.18,1)}
+HANDLE_LENGTH=0.30
+HANDLE_RADIUS=0.04
+MIN_PICK=0.14
+MAX_PICK=1.12
+MAX_DISTANCE_SCALE=8.0
+DISTANCE_SCALE=0.35
 
 
 def parameter(origin, direction, anchor, axis):
@@ -24,16 +30,16 @@ class Handles:
         self.axes=axes
         base=max(scale,1e-6)
         distance=(self.anchor-Vector(viewer)).length if viewer is not None else 0.0
-        visual=max(base,min(base*8.0,distance*.35))
+        visual=max(base,min(base*MAX_DISTANCE_SCALE,distance*DISTANCE_SCALE))
         self.visual_scale=visual
-        self.length=visual*.30
-        self.radius=visual*.04
+        self.length=visual*HANDLE_LENGTH
+        self.radius=visual*HANDLE_RADIUS
 
     def pick(self,origin,direction):
         hits=[]
         for name,axis in self.axes:
             point=parameter(origin,direction,self.anchor,axis)
-            if point and self.length*.14<=point[0]<=self.length*1.12 and point[2]<=self.radius:
+            if point and self.length*MIN_PICK<=point[0]<=self.length*MAX_PICK and point[2]<=self.radius:
                 hits.append((point[1],name,axis))
         return min(hits,key=lambda hit:hit[0])[1:] if hits else None
 

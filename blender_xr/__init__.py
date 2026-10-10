@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,2),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,3),
     'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
     'description': 'Free VR mesh modeling with a hand-mounted OpenXR menu',
     'category': '3D View',
@@ -8,48 +8,53 @@ bl_info = {
 import bpy
 import textwrap
 import webbrowser
-from bpy.props import EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import runtime, mesh, project, v05, v052
+from . import materials, mesh, preferences, project, runtime, statistics, status, v05, v052
 v05.patch(runtime.Runtime)
+
+
+def _persist_setting(self, context):
+    preferences.capture(self, context)
 
 
 class BXR_Settings(bpy.types.PropertyGroup):
     dominant_hand: EnumProperty(name='Dominant hand',items=[
         ('RIGHT','Right','Right edits, left holds the menu'),
-        ('LEFT','Left','Left edits, right holds the menu')],default='RIGHT')
+        ('LEFT','Left','Left edits, right holds the menu')],default='RIGHT',update=_persist_setting)
     controller_family: EnumProperty(name='Controller family', items=[
         ('AUTO','Automatic','Touch, Index, Vive and simple controller bindings'),
         ('META','Meta','Touch-compatible controllers and simple fallback'),
-        ('VALVE','Valve / SteamVR','Index, Touch-compatible, Vive and simple bindings')], default='AUTO')
+        ('VALVE','Valve / SteamVR','Index, Touch-compatible, Vive and simple bindings')], default='AUTO',update=_persist_setting)
     input_source: EnumProperty(name='Input', items=[
         ('CONTROLLERS','Controllers','Use trigger and grip controls'),
-        ('STEAMVR_HANDS','Finger bridge (experimental)','Requires external SteamVR skeletal bridge and tracked hand poses')], default='CONTROLLERS')
-    finger_touch: bpy.props.BoolProperty(name='Finger-touch shortcuts', default=False,
-        description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel')
-    bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535)
+        ('STEAMVR_HANDS','Finger bridge (experimental)','Requires external SteamVR skeletal bridge and tracked hand poses')], default='CONTROLLERS',update=_persist_setting)
+    finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
+        description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
+    bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
     step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
-                        description='Initial tool amount in local mesh units')
-    bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8)
+                        description='Initial tool amount in local mesh units',update=_persist_setting)
+    bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8,update=_persist_setting)
     move_speed: FloatProperty(name='Flight speed',default=3.0,min=0.1,max=1000,
-        description='VR metres per second; adjust from the hand Travel menu')
-    fly_mode: bpy.props.BoolProperty(name='Fly in head direction', default=True,
-        description='Left stick follows head pitch in flight; disable for level movement')
-    fast_flight: bpy.props.BoolProperty(name='Turbo flight', default=False,
-        description='Multiply flight speed by four; also available by holding the left stick click')
+        description='VR metres per second; adjust from the hand Travel menu',update=_persist_setting)
+    fly_mode: BoolProperty(name='Fly in head direction', default=True,
+        description='Left stick follows head pitch in flight; disable for level movement',update=_persist_setting)
+    fast_flight: BoolProperty(name='Turbo flight', default=False,
+        description='Multiply flight speed by four; also available by holding the left stick click',update=_persist_setting)
     turn_mode: EnumProperty(name='Turning', items=[('SNAP','Snap','One turn per stick deflection'),
-        ('SMOOTH','Smooth','Continuous turning')], default='SNAP')
-    turn_angle: FloatProperty(name='Snap angle', default=30, min=15, max=90)
-    turn_speed: FloatProperty(name='Turn speed', default=90, min=15, max=180)
-    grab_air: bpy.props.BoolProperty(name='Grab empty space to move', default=True,
-        description='Point into empty space and hold either grip; pull your hand to move the viewer')
+        ('SMOOTH','Smooth','Continuous turning')], default='SNAP',update=_persist_setting)
+    turn_angle: FloatProperty(name='Snap angle', default=30, min=15, max=90,update=_persist_setting)
+    turn_speed: FloatProperty(name='Turn speed', default=90, min=15, max=180,update=_persist_setting)
+    grab_air: BoolProperty(name='Grab empty space to move', default=True,
+        description='Point into empty space and hold either grip; pull your hand to move the viewer',update=_persist_setting)
     primitive_size: FloatProperty(name='Shape size', default=0.5, min=0.01, max=10,
-        description='Primitive size in physical VR metres, scaled to the scene')
+        description='Primitive size in physical VR metres, scaled to the scene',update=_persist_setting)
     placement_distance: FloatProperty(name='Placement distance', default=1.5, min=0.1, max=10,
-        description='Distance in physical VR metres when pointing into empty space')
-    object_color: FloatVectorProperty(name='Object Color', subtype='COLOR_GAMMA', size=4,
+        description='Distance in physical VR metres when pointing into empty space',update=_persist_setting)
+    show_statistics: BoolProperty(name='Scene Statistics',default=True,update=_persist_setting)
+    object_color: FloatVectorProperty(name='Material Color', subtype='COLOR_GAMMA', size=4,
         min=0.0, max=1.0, default=(0.18,0.55,0.95,1.0),
-        description='Open the color picker / hue wheel, then apply it to the active mesh object')
+        description='Choose a color, then apply it to the active object or selected faces')
     status: bpy.props.StringProperty(default='Ready')
     save_path: bpy.props.StringProperty(name='Blend save path',subtype='FILE_PATH',default='',
         description='For an unsaved project; blank creates a timestamped file in Documents/BlenderXR')
@@ -68,6 +73,8 @@ class BXR_OT_session(bpy.types.Operator):
         if runtime.CURRENT:
             runtime.CURRENT.request_stop = True
             return {'FINISHED'}
+        preferences.ensure(context.scene.blender_xr, context)
+        preferences.capture(context.scene.blender_xr, context)
         if not bpy.app.build_options.xr_openxr:
             self.report({'ERROR'},'This Blender build has no OpenXR support')
             return {'CANCELLED'}
@@ -194,6 +201,7 @@ class BXR_OT_tool(bpy.types.Operator):
         try:
             mesh.apply_tool(context.active_object,self.tool,self.amount,
                             context.scene.blender_xr.bevel_segments)
+            statistics.invalidate()
             return {'FINISHED'}
         except ValueError as exc:
             self.report({'ERROR'},str(exc))
@@ -202,18 +210,25 @@ class BXR_OT_tool(bpy.types.Operator):
 
 class BXR_OT_apply_color(bpy.types.Operator):
     bl_idname='blender_xr.apply_color'
-    bl_label='Apply Object Color'
-    bl_description='Apply the hue-wheel color to the active mesh object and its active material'
+    bl_label='Apply Material Color'
+    bl_description='Apply the hue-wheel color to the active object or selected Edit Mode faces'
     bl_options={'REGISTER','UNDO'}
 
     def execute(self,context):
         try:
-            material=v052.apply_object_color(context.view_layer.objects.active,
-                                             context.scene.blender_xr.object_color)
-            context.scene.blender_xr.status='Color applied: '+material.name
+            obj=context.view_layer.objects.active
+            settings=context.scene.blender_xr
+            face_count=materials.selected_face_count(obj) if obj and obj.mode=='EDIT' else 0
+            material=v052.apply_object_color(obj,settings.object_color)
+            statistics.invalidate()
+            if face_count:
+                status.set_status(settings,status.material_assigned(material.name,face_count))
+            else:
+                status.set_status(settings,'Color applied: '+material.name)
             return {'FINISHED'}
         except ValueError as exc:
             self.report({'ERROR'},str(exc))
+            status.set_status(context.scene.blender_xr,str(exc))
             return {'CANCELLED'}
 
 
@@ -228,10 +243,11 @@ class BXR_OT_shade(bpy.types.Operator):
     def execute(self,context):
         try:
             count=v052.set_shading(context.view_layer.objects.active,self.mode=='SMOOTH')
-            context.scene.blender_xr.status=('Smooth' if self.mode=='SMOOTH' else 'Flat')+' shading: '+str(count)+' faces'
+            status.set_status(context.scene.blender_xr,('Smooth' if self.mode=='SMOOTH' else 'Flat')+' shading: '+str(count)+' faces')
             return {'FINISHED'}
         except ValueError as exc:
             self.report({'ERROR'},str(exc))
+            status.set_status(context.scene.blender_xr,str(exc))
             return {'CANCELLED'}
 
 
@@ -272,7 +288,7 @@ class BXR_OT_link(bpy.types.Operator):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.5.2'
+    bl_label='Blender XR v0.5.3'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -281,6 +297,7 @@ class BXR_PT_panel(bpy.types.Panel):
     def draw(self,context):
         layout=self.layout
         settings=context.scene.blender_xr
+        preferences.ensure(settings, context)
         active=runtime.CURRENT is not None
 
         session_box=layout.box()
@@ -319,37 +336,49 @@ class BXR_PT_panel(bpy.types.Panel):
         modeling.label(text='Vertex / edge / face editing',icon='MODIFIER')
 
         appearance=layout.box()
-        appearance.label(text='Object Appearance',icon='MATERIAL')
+        appearance.label(text='Materials',icon='MATERIAL')
+        active_obj=context.view_layer.objects.active
+        material_name,slot,total=materials.active_material_summary(active_obj)
+        if active_obj and active_obj.type=='MESH':
+            if total:
+                appearance.label(text='Material: '+material_name+'   Slot '+str(slot)+'/'+str(total))
+            else:
+                appearance.label(text='Material: None')
+            if active_obj.mode=='EDIT':
+                selected_faces=materials.selected_face_count(active_obj)
+                appearance.label(text='Selected faces: '+str(selected_faces))
         appearance.prop(settings,'object_color',text='Color')
         appearance.label(text='Click the color swatch for the hue wheel')
-        appearance.operator('blender_xr.apply_color',text='Apply Color',icon='COLOR')
+        button_text='Assign to Selected Faces' if active_obj and active_obj.type=='MESH' and active_obj.mode=='EDIT' else 'Apply to Object'
+        appearance.operator('blender_xr.apply_color',text=button_text,icon='COLOR')
         shade=appearance.row(align=True)
         smooth=shade.operator('blender_xr.shade',text='Shade Smooth',icon='SHADING_RENDERED')
         smooth.mode='SMOOTH'
         flat=shade.operator('blender_xr.shade',text='Shade Flat',icon='SHADING_SOLID')
         flat.mode='FLAT'
 
-        stats=v052.scene_stats(context)
-        statistics=layout.box()
-        statistics.label(text='Scene Statistics',icon='INFO')
-        row=statistics.row(align=True)
-        row.label(text='Objects: '+str(stats['objects']))
-        row.label(text='Selected: '+str(stats['selected']))
-        row=statistics.row(align=True)
-        row.label(text='Meshes: '+str(stats['meshes']))
-        row.label(text='Materials: '+str(stats['materials']))
-        row=statistics.row(align=True)
-        row.label(text='Verts: '+str(stats['vertices']))
-        row.label(text='Edges: '+str(stats['edges']))
-        row=statistics.row(align=True)
-        row.label(text='Faces: '+str(stats['faces']))
-        row.label(text='Triangles: '+str(stats['triangles']))
-        if stats['active']:
-            current=stats['active']
-            statistics.separator()
-            statistics.label(text='Active: '+current['name'],icon='OBJECT_DATA')
-            statistics.label(text='V '+str(current['vertices'])+'  E '+str(current['edges'])+
-                                  '  F '+str(current['faces'])+'  T '+str(current['triangles']))
+        statistics_box=layout.box()
+        statistics_box.prop(settings,'show_statistics',text='Scene Statistics',toggle=True,icon='INFO')
+        if settings.show_statistics:
+            stats=statistics.scene_stats(context)
+            row=statistics_box.row(align=True)
+            row.label(text='Objects: '+str(stats['objects']))
+            row.label(text='Selected: '+str(stats['selected']))
+            row=statistics_box.row(align=True)
+            row.label(text='Meshes: '+str(stats['meshes']))
+            row.label(text='Materials: '+str(stats['materials']))
+            row=statistics_box.row(align=True)
+            row.label(text='Verts: '+str(stats['vertices']))
+            row.label(text='Edges: '+str(stats['edges']))
+            row=statistics_box.row(align=True)
+            row.label(text='Faces: '+str(stats['faces']))
+            row.label(text='Triangles: '+str(stats['triangles']))
+            if stats['active']:
+                current=stats['active']
+                statistics_box.separator()
+                statistics_box.label(text='Active: '+current['name'],icon='OBJECT_DATA')
+                statistics_box.label(text='V '+str(current['vertices'])+'  E '+str(current['edges'])+
+                                          '  F '+str(current['faces'])+'  T '+str(current['triangles']))
 
         movement=layout.box()
         movement.label(text='Movement',icon='ORIENTATION_VIEW')
@@ -389,6 +418,8 @@ class BXR_PT_panel(bpy.types.Panel):
 
 @persistent
 def load_pre(*_args):
+    preferences.reset_restore_state()
+    statistics.invalidate()
     if runtime.CURRENT:
         session=runtime.CURRENT
         if bpy.types.XrSessionState.is_running(bpy.context):
@@ -397,7 +428,7 @@ def load_pre(*_args):
         runtime.CURRENT=None
 
 
-CLASSES=(BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
+CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
          BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_OT_link,BXR_PT_panel)
 
 def register():
