@@ -46,6 +46,23 @@ def patch(Runtime):
         if action == 'BACK' and self.menu.page == 'EDIT_MORE':
             self.menu.page = 'EDIT'
             return
+        if action == 'MODE':
+            transforms.ensure_idle(self)
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'MESH':
+                raise ValueError('Select a mesh object')
+            if obj.mode == 'OBJECT':
+                modes.enter_edit(context, obj, 'FACE')
+                self.select_mode = 'FACE'
+                self.tool = 'SELECT'
+                self.menu.page = 'EDIT'
+                status.set_status(self, 'FACE EDIT MODE')
+            else:
+                modes.exit_edit(context, obj)
+                self.tool = 'MOVE'
+                self.menu.page = 'TOOLS'
+                status.set_status(self, 'OBJECT MODE')
+            return
         if action in {'SELECT_VERT','SELECT_EDGE','SELECT_FACE'}:
             obj = context.view_layer.objects.active
             if not obj or obj.type != 'MESH' or obj.mode != 'EDIT':
@@ -83,11 +100,6 @@ def patch(Runtime):
             status.set_status(self, status.operation(message))
             return
         original_command(self, context, action)
-        if action == 'MODE':
-            obj = context.view_layer.objects.active
-            if obj and obj.type == 'MESH' and obj.mode == 'EDIT':
-                self.select_mode = 'FACE'
-                selection.set_mode(context, 'FACE')
 
     def select(self, context, origin, direction, additive=False):
         transforms.ensure_idle(self)
