@@ -3,7 +3,8 @@
 
 The implementation now lives in purpose-based modules used by v0.5.3+.
 """
-from . import materials, statistics
+from . import materials, mesh, runtime, statistics, v053
+v053.patch(runtime, mesh)
 
 
 def apply_object_color(obj, color):
