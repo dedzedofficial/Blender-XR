@@ -11,7 +11,9 @@ FIELDS = (
     'dominant_hand','controller_family','input_source','finger_touch','bridge_port',
     'step','bevel_segments','move_speed','fly_mode','fast_flight','turn_mode',
     'turn_angle','turn_speed','grab_air','primitive_size','placement_distance',
+    'show_statistics',
 )
+_RESTORED_SCENES = set()
 
 
 class BXR_Preferences(bpy.types.AddonPreferences):
@@ -33,10 +35,11 @@ class BXR_Preferences(bpy.types.AddonPreferences):
     grab_air: BoolProperty(default=True)
     primitive_size: FloatProperty(default=0.5,min=0.01,max=10)
     placement_distance: FloatProperty(default=1.5,min=0.1,max=10)
+    show_statistics: BoolProperty(default=True)
 
     def draw(self, context):
         layout=self.layout
-        layout.label(text='Blender XR remembers the main controller, movement and modeling settings automatically.')
+        layout.label(text='Blender XR remembers controller, movement, modeling and UI settings automatically.')
 
 
 def get(context=None):
@@ -61,3 +64,20 @@ def restore(settings, context=None):
     for name in FIELDS:
         if hasattr(settings,name) and hasattr(prefs,name):
             setattr(settings,name,getattr(prefs,name))
+
+
+def ensure(settings, context=None):
+    """Restore preferences once per Scene pointer for the current Blender session."""
+    context = context or bpy.context
+    scene = getattr(context, 'scene', None)
+    if scene is None:
+        return
+    key = int(scene.as_pointer())
+    if key in _RESTORED_SCENES:
+        return
+    restore(settings, context)
+    _RESTORED_SCENES.add(key)
+
+
+def reset_restore_state():
+    _RESTORED_SCENES.clear()
