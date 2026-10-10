@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Shared selection helpers for Blender XR mesh tools."""
+import bpy
 import bmesh
 
 SELECT_MODES = ('VERT', 'EDGE', 'FACE')
 
 
-def mode(context):
+def mode(context=None):
+    context = context or bpy.context
     flags = tuple(bool(value) for value in context.tool_settings.mesh_select_mode)
     if flags[0]:
         return 'VERT'
