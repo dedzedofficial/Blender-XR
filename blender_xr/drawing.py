@@ -3,37 +3,8 @@
 import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
+from . import menus
 
-BUTTONS = (
-    ('SELECT','SELECT'), ('MOVE','MOVE'),
-    ('SCALE','SCALE'), ('EDIT MODE','MODE'),
-    ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
-    ('UNDO','UNDO'), ('REDO','REDO'),
-    ('SAVE','SAVE'), ('STOP','STOP'),
-)
-EDIT_BUTTONS = (
-    ('VERT','SELECT_VERT'), ('EDGE','SELECT_EDGE'),
-    ('FACE','SELECT_FACE'), ('SELECT','SELECT'),
-    ('MOVE','MOVE_FACE'), ('SCALE','SCALE_FACE'),
-    ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
-    ('MORE','EDIT_MORE'), ('OBJECT','MODE'),
-)
-EDIT_MORE_BUTTONS = (
-    ('INSET','INSET'), ('DELETE','DELETE_GEOM'),
-    ('MERGE','MERGE'), ('SUBDIVIDE','SUBDIVIDE'),
-    ('DUPLICATE','DUPLICATE'), ('RECALC','RECALC'),
-    ('FLIP NORMAL','FLIP_NORMALS'), ('STEP -','LESS'),
-    ('STEP +','MORE'), ('BACK','BACK'),
-)
-PRIMITIVE_BUTTONS = tuple((kind, 'ADD_' + kind) for kind in
-                         ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
-    ('TOOLS','BACK'),)
-TRAVEL_BUTTONS = (
-    ('FLY/WALK','FLY_TOGGLE'), ('TURBO','TURBO'),
-    ('SLOWER','SLOWER'), ('FASTER','FASTER'),
-    ('SNAP/SMOOTH','TURN_TOGGLE'), ('RESET VIEW','RESET'),
-    ('TOOLS','BACK'),
-)
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
 'B':['11110','10001','10001','11110','10001','10001','11110'],
@@ -102,8 +73,7 @@ class Menu:
 
     @property
     def buttons(self):
-        return {'PRIMITIVES':PRIMITIVE_BUTTONS,'TRAVEL':TRAVEL_BUTTONS,
-                'EDIT':EDIT_BUTTONS,'EDIT_MORE':EDIT_MORE_BUTTONS}.get(self.page,BUTTONS)
+        return menus.buttons(self.page)
 
     def position(self, hand, viewer, scale):
         self.scale = max(scale, 1e-6)
@@ -162,8 +132,7 @@ class Menu:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
         rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        title = {'PRIMITIVES':'SHAPES','TRAVEL':'TRAVEL','EDIT':'EDIT','EDIT_MORE':'MORE EDIT'}.get(self.page,'TOOLS')
-        text('BLENDER XR / '+title,-0.177,0.208,0.00275)
+        text('BLENDER XR / '+menus.title(self.page),-0.177,0.208,0.00275)
         if settings and self.page=='TRAVEL':
             summary=('FLY ' if settings.fly_mode else 'WALK ')+format(settings.move_speed,'.1f')+' / '+settings.turn_mode
         elif self.page in {'EDIT','EDIT_MORE'}:
@@ -188,7 +157,7 @@ class Menu:
         text(status[:25],-0.174,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
         text(hint,-0.174,-0.246,0.0021)
-        text('V0.5.0',-0.174,-0.274,0.0021)
+        text('V0.5.3',-0.174,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):
