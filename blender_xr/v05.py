@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """v0.5 mesh-mode extensions layered onto the stable XR runtime."""
 from mathutils import Vector
-from . import mesh, modes, selection, status, transforms
+from . import mesh, modes, selection, status, transforms, v056
 
 
 def patch(Runtime):
@@ -154,3 +154,6 @@ def patch(Runtime):
     Runtime.select = select
     Runtime.begin_tool = begin_tool
     Runtime._v05_patched = True
+    # v0.5.6 intentionally layers after the selection-aware v0.5 methods so
+    # its public MOVE_EDIT/SCALE_EDIT and VR color commands reuse this behavior.
+    v056.patch(Runtime)
