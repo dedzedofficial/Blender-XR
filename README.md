@@ -1,4 +1,4 @@
-# Blender XR v0.5.3
+# Blender XR v0.5.5
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
@@ -6,19 +6,23 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/)
 
-## v0.5.3 highlights
+## v0.5.5 highlights
 
-- Cleaner **Materials** section in the Blender XR sidebar.
-- Active material name and material-slot feedback.
-- Hue wheel / Blender color picker for quick material color changes.
-- **Apply to Object** in Object Mode.
-- **Assign to Selected Faces** in Edit Mode for multi-material meshes.
-- Scene Statistics can now be collapsed and uses a lightweight cache for larger scenes.
-- Main controller, movement, modeling and UI preferences persist between Blender files.
-- Safer shared Object/Edit mode switching and mesh-selection handling.
-- Centralized material, selection, transform, status, menu and statistics backends for future UV/material/rigging work.
-- Standardized distance-aware gizmo sizing without changing the existing interaction model.
+- Keeps the normal **Blender XR** sidebar **Start VR** button.
+- Adds **3D Viewport > View > Start Blender XR** as a second native Blender desktop launch route.
+- The View menu entry switches to **Stop Blender XR** while a Blender XR session is active.
+- Adds regression coverage for the launch UI across the supported Blender test matrix.
+- Keeps the v0.5.3 Materials, Scene Statistics, persistent preferences and refactored foundations unchanged.
 - Existing v0.5 mesh tools, primitives, navigation, Save Blend and VR-local Undo/Redo remain available.
+
+## Blender XR vs Blender's VR Scene Inspection button
+
+Blender's own **VR** sidebar and **Start VR Session** control come from the separate **VR Scene Inspection** add-on. Blender XR does not remove or replace that add-on. If Blender's native VR tab is missing, enable **VR Scene Inspection** in Blender's add-on/extensions preferences.
+
+Blender XR itself can be started without that sidebar from either:
+
+- **3D Viewport > Sidebar (`N`) > Blender XR > Start VR**
+- **3D Viewport > View > Start Blender XR**
 
 ## Core modeling features
 
@@ -39,12 +43,12 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 ## Install
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download `blender-xr-v0.5.3.zip`.
+2. Download `blender-xr-v0.5.5.zip`.
 3. In Blender open **Edit > Preferences > Add-ons**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Blender XR**.
-6. In the 3D Viewport press **N** and open the **Blender XR** tab.
-7. Pick your dominant hand and press **Start VR**.
+6. In the 3D Viewport press **N** and open the **Blender XR** tab, or open the **View** menu.
+7. Pick your dominant hand and press **Start VR**, or choose **View > Start Blender XR**.
 
 The add-on is free, open source and licensed under **GPL-3.0-or-later**.
 
