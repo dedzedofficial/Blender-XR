@@ -11,21 +11,26 @@ v0.5.6 completes the headset-side edit/color workflow and closes several version
 
 ## VR colors
 
-- Adds **Colors** to both Object Mode and Edit Mode VR menus.
-- Adds quick Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink presets.
-- Adds **Pick** and **Apply** directly in VR.
-- Adds an **Adjust** page with hue, saturation and brightness controls plus White and Black.
-- Object Mode Apply recolors the active object's material.
-- Edit Mode Apply requires Face selection and assigns the chosen color only to the selected faces.
-- Edit-mode face color assignment is stored in Blender XR's session-local Undo / Redo history.
-- Keeps the existing desktop Blender hue-wheel picker, per-face material assignment, material-slot reuse and Shade Smooth / Flat controls.
+- **Colors now opens directly to three full-width HSL sliders: Hue, Saturation and Lightness.**
+- Point anywhere on a slider and hold the trigger to drag it continuously.
+- The Hue bar shows the full spectrum; Saturation and Lightness bars update from the currently selected HSL color.
+- The headset shows the current H/S/L values alongside the live color swatch.
+- **Pick** reads the active object material or the selected Edit Mode face color back into the sliders.
+- **Apply** recolors the active object in Object Mode.
+- In Edit Mode, **Apply requires Face selection and changes only the selected faces**, allowing different faces on the same mesh to keep different colors.
+- Face-color changes remain in Blender XR's lightweight session-local Undo / Redo history without creating temporary topology snapshots.
+- Re-applying an unchanged face color does not waste an Undo history entry.
+- White and Black change Lightness while retaining the selected Hue/Saturation, so moving Lightness back restores the chosen color family.
+- Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink remain available on an optional **Presets** page.
+- VR material changes invalidate cached scene statistics so material counts stay current.
+- The existing desktop Blender hue-wheel picker, per-face material assignment, material-slot reuse and Shade Smooth / Flat controls remain available.
 
 ## Version and package consistency
 
 - Adds a shared Python version source for v0.5.6.
-- The Blender add-on metadata, sidebar title and in-headset footer now all report v0.5.6 from that shared source.
+- The Blender add-on metadata, sidebar title and in-headset footer all report v0.5.6 from that shared source.
 - Replaces the stale packaged README that still identified itself as v0.5.3.
-- The build now fails if the manifest, Python version source, sidebar metadata, VR version source or packaged README drift apart again.
+- The build fails if the manifest, Python version source, sidebar metadata, VR version source or packaged README drift apart again.
 
 ## Previous-update audit
 
