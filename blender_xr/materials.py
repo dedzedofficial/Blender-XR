@@ -33,7 +33,7 @@ def rgba(color):
 
 
 def adjust_hsv(color, hue=0.0, saturation=0.0, value=0.0):
-    """Adjust an RGBA color in HSV space for the controller-first VR picker."""
+    """Legacy incremental HSV adjustment kept for compatibility."""
     red, green, blue, alpha = rgba(color)
     h, s, v = colorsys.rgb_to_hsv(red, green, blue)
     h = (h + float(hue)) % 1.0
@@ -43,9 +43,46 @@ def adjust_hsv(color, hue=0.0, saturation=0.0, value=0.0):
     return red, green, blue, alpha
 
 
+def color_hsl(color):
+    """Return hue, saturation and lightness in normalized 0..1 ranges."""
+    red, green, blue, _alpha = rgba(color)
+    hue, lightness, saturation = colorsys.rgb_to_hls(red, green, blue)
+    return float(hue), float(saturation), float(lightness)
+
+
+def color_from_hsl(hue, saturation, lightness, alpha=1.0):
+    """Create RGBA from normalized HSL controls."""
+    hue = max(0.0, min(1.0, float(hue)))
+    saturation = max(0.0, min(1.0, float(saturation)))
+    lightness = max(0.0, min(1.0, float(lightness)))
+    red, green, blue = colorsys.hls_to_rgb(hue % 1.0, lightness, saturation)
+    return red, green, blue, max(0.0, min(1.0, float(alpha)))
+
+
+def adjust_hsl(color, hue=0.0, saturation=0.0, lightness=0.0):
+    """Increment an RGBA color in HSL space."""
+    red, green, blue, alpha = rgba(color)
+    h, s, l = color_hsl((red, green, blue, alpha))
+    return color_from_hsl((h + float(hue)) % 1.0,
+                          max(0.0, min(1.0, s + float(saturation))),
+                          max(0.0, min(1.0, l + float(lightness))), alpha)
+
+
 def color_summary(color):
     red, green, blue, _alpha = rgba(color)
     return 'R{} G{} B{}'.format(round(red * 255), round(green * 255), round(blue * 255))
+
+
+def hsl_summary(hsl_or_color, is_hsl=False):
+    """Compact headset-readable HSL summary."""
+    if is_hsl:
+        hue, saturation, lightness = (float(v) for v in hsl_or_color[:3])
+    else:
+        hue, saturation, lightness = color_hsl(hsl_or_color)
+    hue = max(0.0, min(1.0, hue))
+    saturation = max(0.0, min(1.0, saturation))
+    lightness = max(0.0, min(1.0, lightness))
+    return 'H{} S{} L{}'.format(round(hue * 360), round(saturation * 100), round(lightness * 100))
 
 
 def set_material_color(material, color):
