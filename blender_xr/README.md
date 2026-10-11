@@ -1,53 +1,74 @@
-# Blender XR v0.5.3
+# Blender XR v0.5.6
 
 Blender XR is a free OpenXR-based VR modeling add-on for Blender by Ded Zed.
 
 ## Current workflow
 
-- Vertex / Edge / Face selection in VR.
-- Move, scale, extrude, bevel and inset selected geometry.
+- Vertex / Edge / Face selection directly in VR.
+- Grip + trigger adds/removes individual mesh elements from the selection.
+- **Move Selected** and **Scale Selected** edit only the current vertex/edge/face selection.
+- Extrude vertices, edges and faces.
+- Bevel selections and inset selected faces.
 - Delete, merge, subdivide and duplicate selected geometry.
 - Recalculate / flip normals.
-- Object movement and uniform scaling.
+- Edit-mode Undo directly on the main Edit page, with Redo on More Edit.
+- Whole-object movement and uniform scaling in Object Mode.
 - Distance-aware X/Y/Z and Size gizmos.
 - Primitive placement for cube, sphere, cylinder, cone, torus and plane.
 - Full-scene flight, snap/smooth turning and grab-air movement.
 - Save Blend and session-local Undo / Redo.
-- Materials color picker with whole-object or selected-face assignment.
+- VR color palette with Pick, Apply and HSV adjustment controls.
+- Desktop Blender hue-wheel color picker with whole-object or selected-face assignment.
 - Shade Smooth / Flat.
 - Collapsible scene/object statistics.
 - Persistent controller, movement, modeling and UI preferences.
 
-## Materials
+## VR mesh editing
 
-In Object Mode, choose a color and use **Apply to Object**.
+Choose **Edit Mode** from the hand menu. Blender XR starts in Face selection mode, and you can switch between **Vert**, **Edge** and **Face** at any time.
 
-In Edit Mode, select one or more faces, choose a color and use **Assign to Selected Faces**. Blender XR creates or reuses a matching material slot, so a single mesh can use multiple materials.
+1. Choose **Select**.
+2. Point at mesh geometry and press the dominant trigger.
+3. Hold grip while triggering to add/remove elements from the current selection.
+4. Choose **Move Sel** or **Scale Sel**.
+5. Drag the X/Y/Z or Size handle to transform only the selected geometry.
+6. Use **Undo** without leaving Edit Mode if you need to revert the last VR edit.
+
+Object-mode **Scale** remains a separate whole-object transform.
+
+## VR colors
+
+Choose **Colors** from either Object Mode or Edit Mode.
+
+The first page provides quick Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink choices plus **Pick**, **Apply** and **Adjust**. Adjust provides hue, saturation and brightness controls plus White and Black.
+
+- In **Object Mode**, Apply recolors the active object material.
+- In **Edit Mode**, switch to **Face** selection first. Apply assigns the chosen color only to the selected faces.
+- **Pick** reads the active object's material color, or the selected face material color in Edit Mode.
+- Edit-mode face color assignment participates in Blender XR's local Undo / Redo history.
+
+The desktop Blender XR sidebar still provides Blender's normal hue-wheel color picker and Shade Smooth / Flat controls.
+
+## Launch
+
+Blender XR can be launched from either:
+
+- **3D Viewport > Sidebar (`N`) > Blender XR > Start VR**
+- **3D Viewport > View > Start Blender XR**
+
+Blender's separate **VR Scene Inspection** add-on supplies Blender's own VR sidebar / Start VR Session control; Blender XR does not replace it.
 
 ## Install
 
-1. Download the current `blender-xr-v0.5.3.zip` from GitHub Releases.
-2. In Blender open **Edit > Preferences > Add-ons**.
+1. Download `blender-xr-v0.5.6.zip` from the current GitHub release.
+2. In Blender open **Edit > Preferences > Add-ons / Extensions**.
 3. Choose **Install from Disk** and select the ZIP.
 4. Enable **Blender XR**.
-5. Open the 3D Viewport sidebar with **N**, choose the **Blender XR** tab and press **Start VR**.
+5. Start Blender XR from the sidebar or the 3D Viewport View menu.
 
-Requires Blender **4.2+** with OpenXR support. Automated checks cover Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Blender 5.0.1 is blocked because of its known VR crash.
+Requires Blender **4.2+** with OpenXR support. Automated checks cover Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Blender 5.0.1 remains blocked because of its known VR crash.
 
-## v0.5.3 cleanup
-
-v0.5.3 keeps the existing VR input/locomotion workflow intact while moving growing systems into purpose-based modules:
-
-- `materials.py`
-- `selection.py`
-- `transforms.py`
-- `modes.py`
-- `status.py`
-- `menus.py`
-- `statistics.py`
-- `preferences.py`
-
-Legacy version helpers remain as compatibility layers where needed so existing tests and call sites do not have to be rewritten all at once.
+Blender 5.2's restricted UI draw context is handled by deferring persistent-setting restoration when Scene writes are temporarily forbidden.
 
 ## Development
 
@@ -57,7 +78,9 @@ Build the extension with:
 python scripts/build.py
 ```
 
-The repository README, testing notes and roadmap contain the full current documentation:
+The build verifies that the extension manifest, Python version source and packaged README all report the same release version.
+
+Repository documentation:
 
 - https://github.com/dedzedofficial/Blender-XR
 - https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md
