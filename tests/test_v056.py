@@ -19,9 +19,10 @@ def clear_selection(bm):
 
 blender_xr.register()
 try:
+    assert blender_xr.bl_info['version'] == (0, 5, 6)
     assert version.VERSION == (0, 5, 6)
     assert version.DISPLAY_VERSION == 'V0.5.6'
-    assert getattr(drawing.Menu, '_v056_patched', False)
+    assert drawing.version.DISPLAY_VERSION == 'V0.5.6'
     assert 'COLOR_MENU' in {action for _label, action in drawing.BUTTONS}
     assert {'MOVE_EDIT', 'SCALE_EDIT', 'COLOR_MENU', 'UNDO'} <= {action for _label, action in drawing.EDIT_BUTTONS}
     assert 'REDO' in {action for _label, action in drawing.EDIT_MORE_BUTTONS}
@@ -54,8 +55,10 @@ try:
     assert tuple(session.settings.object_color)!=orange
     session.command(bpy.context,'COLOR_PALETTE')
     assert session.menu.page=='MATERIALS'
+    session.command(bpy.context,'COLOR_ADJUST_MENU')
     session.command(bpy.context,'COLOR_WHITE')
     assert tuple(session.settings.object_color)==(1.0,1.0,1.0,1.0)
+    session.command(bpy.context,'COLOR_PALETTE')
     session.command(bpy.context,'COLOR_APPLY')
     assert materials.colors_match(materials.material_color(obj.active_material),(1,1,1,1))
     materials.set_material_color(obj.active_material,(0.2,0.4,0.6,1.0))
