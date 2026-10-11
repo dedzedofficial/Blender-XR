@@ -6,7 +6,7 @@ from types import SimpleNamespace as NS
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import bpy
 import blender_xr
-from blender_xr import preferences, runtime
+from blender_xr import preferences, runtime, version
 
 
 class FakeLayout:
@@ -22,8 +22,9 @@ class FakeLayout:
 
 
 def run():
-    assert blender_xr.bl_info['version']==(0,5,5)
-    assert blender_xr.BXR_PT_panel.bl_label=='Blender XR v0.5.5'
+    assert version.VERSION==(0,5,6)
+    assert blender_xr.bl_info['version']==version.VERSION
+    assert blender_xr.BXR_PT_panel.bl_label=='Blender XR v'+version.VERSION_TEXT
     assert hasattr(bpy.types,'VIEW3D_MT_view')
 
     blender_xr.register()
@@ -77,7 +78,7 @@ def run():
 
     blender_xr.unregister()
     assert not hasattr(bpy.types.Scene,'blender_xr')
-    print('PASS v0.5.5 native Blender launch UI and deferred preference restore')
+    print('PASS v0.5.6 native Blender launch UI, shared version and deferred preference restore')
 
 
 run()
