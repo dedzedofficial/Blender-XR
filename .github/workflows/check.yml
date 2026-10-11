@@ -30,6 +30,18 @@ jobs:
           series="${BLENDER_VERSION%.*}"
           curl -fsSL "https://download.blender.org/release/Blender${series}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" -o /tmp/blender.tar.xz
           tar -xf /tmp/blender.tar.xz -C /tmp
+      - name: Installed extension package smoke test
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: |
+          BLENDER="/tmp/blender-${BLENDER_VERSION}-linux-x64/blender"
+          TEST_HOME="/tmp/blender-xr-extension-home-${BLENDER_VERSION}"
+          rm -rf "$TEST_HOME"
+          mkdir -p "$TEST_HOME"
+          PACKAGE=$(ls dist/blender-xr-v*.zip)
+          HOME="$TEST_HOME" "$BLENDER" --command extension repo-add bxr_test --name "Blender XR Test" --directory "$TEST_HOME/extensions" --clear-all
+          HOME="$TEST_HOME" "$BLENDER" --command extension install-file -r bxr_test -e "$PACKAGE"
+          HOME="$TEST_HOME" "$BLENDER" --background --python-exit-code 1 --python-expr "import bpy; m='bl_ext.bxr_test.blender_xr'; assert m in bpy.context.preferences.addons, [a.module for a in bpy.context.preferences.addons]; assert hasattr(bpy.ops.blender_xr,'session'); assert hasattr(bpy.types,'BXR_PT_panel'); print('PASS installed extension package',m)"
       - name: Mesh and registration tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
