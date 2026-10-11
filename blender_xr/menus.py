@@ -9,23 +9,34 @@ PAGES = {
     'TOOLS': (
         ('SELECT','SELECT'), ('MOVE','MOVE'),
         ('SCALE','SCALE'), ('EDIT MODE','MODE'),
-        ('SHAPES','ADD_MENU'), ('TRAVEL','NAV_MENU'),
-        ('UNDO','UNDO'), ('REDO','REDO'),
-        ('SAVE','SAVE'), ('STOP','STOP'),
+        ('SHAPES','ADD_MENU'), ('COLORS','COLOR_MENU'),
+        ('TRAVEL','NAV_MENU'), ('UNDO','UNDO'),
+        ('REDO','REDO'), ('SAVE','SAVE'),
+        ('STOP','STOP'),
     ),
     'EDIT': (
         ('VERT','SELECT_VERT'), ('EDGE','SELECT_EDGE'),
         ('FACE','SELECT_FACE'), ('SELECT','SELECT'),
-        ('MOVE','MOVE_FACE'), ('SCALE','SCALE_FACE'),
+        ('MOVE','MOVE_EDIT'), ('SCALE','SCALE_EDIT'),
         ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
+        ('COLORS','COLOR_MENU'), ('UNDO','UNDO'),
         ('MORE','EDIT_MORE'), ('OBJECT','MODE'),
     ),
     'EDIT_MORE': (
         ('INSET','INSET'), ('DELETE','DELETE_GEOM'),
         ('MERGE','MERGE'), ('SUBDIVIDE','SUBDIVIDE'),
         ('DUPLICATE','DUPLICATE'), ('RECALC','RECALC'),
-        ('FLIP NORMAL','FLIP_NORMALS'), ('STEP -','LESS'),
-        ('STEP +','MORE'), ('BACK','BACK'),
+        ('FLIP NORMAL','FLIP_NORMALS'), ('REDO','REDO'),
+        ('STEP -','LESS'), ('STEP +','MORE'),
+        ('BACK','BACK'),
+    ),
+    'MATERIALS': (
+        ('HUE -','COLOR_HUE_MINUS'), ('HUE +','COLOR_HUE_PLUS'),
+        ('SAT -','COLOR_SAT_MINUS'), ('SAT +','COLOR_SAT_PLUS'),
+        ('DARKER','COLOR_VALUE_MINUS'), ('BRIGHTER','COLOR_VALUE_PLUS'),
+        ('PICK','COLOR_PICK'), ('APPLY','COLOR_APPLY'),
+        ('WHITE','COLOR_WHITE'), ('BLACK','COLOR_BLACK'),
+        ('BACK','BACK'),
     ),
     'PRIMITIVES': tuple((kind, 'ADD_' + kind) for kind in
                         ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
@@ -43,6 +54,7 @@ TITLES = {
     'TOOLS': 'TOOLS',
     'EDIT': 'EDIT',
     'EDIT_MORE': 'MORE EDIT',
+    'MATERIALS': 'COLORS',
     'PRIMITIVES': 'SHAPES',
     'TRAVEL': 'TRAVEL',
 }
