@@ -6,7 +6,7 @@ from types import SimpleNamespace as NS
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import bpy
 import blender_xr
-from blender_xr import runtime
+from blender_xr import preferences, runtime
 
 
 class FakeLayout:
@@ -43,9 +43,41 @@ def run():
     finally:
         runtime.CURRENT=previous
 
+    # Blender 5.2 forbids writing Scene properties while a Panel.draw callback
+    # is running. ensure() must swallow only that specific restriction and
+    # finish the restore later through the timer callback.
+    settings=bpy.context.scene.blender_xr
+    key=int(bpy.context.scene.as_pointer())
+    original_restore=preferences.restore
+    preferences.reset_restore_state()
+    try:
+        def blocked(_settings,context=None):
+            raise AttributeError(preferences._DRAW_WRITE_ERROR+': Scene')
+        preferences.restore=blocked
+        assert preferences.ensure(settings,bpy.context) is False
+        assert key in preferences._PENDING_SCENES
+        assert key not in preferences._RESTORED_SCENES
+
+        preferences.restore=lambda _settings,context=None: True
+        assert preferences._restore_pending() is None
+        assert key not in preferences._PENDING_SCENES
+        assert key in preferences._RESTORED_SCENES
+
+        preferences.reset_restore_state()
+        preferences.restore=lambda _settings,context=None: (_ for _ in ()).throw(AttributeError('unexpected restore error'))
+        try:
+            preferences.ensure(settings,bpy.context)
+        except AttributeError as exc:
+            assert 'unexpected restore error' in str(exc)
+        else:
+            raise AssertionError('Unexpected preference restore errors were hidden')
+    finally:
+        preferences.restore=original_restore
+        preferences.reset_restore_state()
+
     blender_xr.unregister()
     assert not hasattr(bpy.types.Scene,'blender_xr')
-    print('PASS v0.5.5 native Blender launch UI')
+    print('PASS v0.5.5 native Blender launch UI and deferred preference restore')
 
 
 run()
