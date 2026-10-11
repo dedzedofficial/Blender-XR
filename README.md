@@ -10,9 +10,9 @@ Blender XR adds a controller-first modeling workflow to Blender through OpenXR. 
 
 - Makes Edit Mode transforms explicit: **Move Sel** and **Scale Sel** affect only the currently selected vertices, edges or faces.
 - Adds **Undo** directly to the main Edit page and **Redo** to More Edit.
-- Adds a controller-friendly **Colors** menu inside VR with quick presets, Pick, Apply and an adjustment page for hue, saturation, brightness, white and black.
-- In Edit Mode, color Apply is face-only and participates in Blender XR's local Undo / Redo history.
-- Keeps the desktop Blender hue-wheel color picker, per-face material assignment and Shade Smooth / Flat controls.
+- Adds controller-friendly **Hue / Saturation / Lightness sliders** inside VR with continuous trigger dragging, Pick and Apply.
+- In Edit Mode, color Apply is face-only, supports different colors on different faces, and participates in Blender XR's local Undo / Redo history.
+- Keeps optional quick color presets plus the desktop Blender hue-wheel color picker, per-face material assignment and Shade Smooth / Flat controls.
 - Fixes version drift so the manifest, Blender sidebar, packaged README and in-headset footer all report **v0.5.6** from the same source.
 - Adds build-time checks that fail if those version sources diverge again.
 - Preserves the v0.5.5 Blender 5.2 UI-draw fix and native Blender launch route.
@@ -41,7 +41,7 @@ Blender XR itself can be started from either:
 - Primitive placement: cube, sphere, cylinder, cone, torus and plane.
 - Full-scene flight, snap/smooth turning and grab-air navigation.
 - Session Undo / Redo and Save Blend from VR.
-- VR color palette and per-face color assignment.
+- HSL color sliders and per-face material assignment in VR.
 
 ## Install
 
@@ -68,24 +68,27 @@ Automated validation covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5
 
 ### In VR
 
-Choose **Colors** from Object Mode or Edit Mode.
+Choose **Colors** from Object Mode or Edit Mode. Blender XR opens directly to three full-width **Hue**, **Saturation** and **Lightness** sliders. Point anywhere on a bar and hold the dominant trigger to drag continuously. The Hue bar spans the full spectrum; Saturation ranges from grey to full color; Lightness ranges from black through the chosen color to white. The current H/S/L values and a live swatch are shown in the headset.
 
-The quick palette contains Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink, plus **Pick**, **Apply** and **Adjust**. The Adjust page adds hue, saturation and brightness controls plus White and Black.
+**Pick** reads the active material color back into the sliders. **Apply** commits the current color. **White** and **Black** set Lightness to its extremes without discarding the chosen Hue/Saturation. Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink remain available from the optional **Presets** page.
 
 In **Object Mode**:
 
 1. Select a mesh object.
-2. Pick a preset or adjust the current color.
+2. Adjust Hue, Saturation and Lightness, or choose a preset.
 3. Press **Apply** to recolor the active object material.
-4. Press **Pick** to read the active material color back into the VR color control.
+4. Press **Pick** to load the active material color back into the HSL controls.
 
 In **Edit Mode**:
 
 1. Switch to **Face** selection.
 2. Select one or more faces.
-3. Choose a color.
+3. Adjust HSL or choose a preset.
 4. Press **Apply** to assign that color only to the selected faces.
-5. Use **Undo** / **Redo** if needed without leaving Edit Mode.
+5. Select other faces and Apply another color to give different faces different colors on the same mesh.
+6. Use **Undo** / **Redo** if needed without leaving Edit Mode.
+
+Face-color history stores only material-slot assignments rather than temporary topology snapshots, and re-applying an unchanged face color does not waste an Undo entry.
 
 ### In the Blender sidebar
 
@@ -105,7 +108,7 @@ The **Scene Statistics** panel can be expanded or collapsed. When open it shows 
 - Faces / Triangles
 - Active-object V/E/F/T counts
 
-Statistics are cached briefly and recomputed when the scene signature changes instead of being fully recounted on every sidebar redraw.
+Statistics are cached briefly and recomputed when the scene signature changes instead of being fully recounted on every sidebar redraw. VR material changes invalidate that cache so material counts stay current.
 
 ## Persistent preferences
 
@@ -128,6 +131,7 @@ Controller bindings target Touch-compatible controllers, Valve Index, Vive and s
 | Control | Action |
 | --- | --- |
 | Dominant trigger on menu | Choose a tool or command. |
+| Dominant trigger on HSL slider | Set the value; hold and drag for continuous adjustment. |
 | Dominant trigger while selecting | Select the pointed object or mesh element. |
 | Grip + trigger while selecting | Add/remove the pointed mesh element from the selection. |
 | Trigger on X/Y/Z gizmo | Drag along that axis. |
