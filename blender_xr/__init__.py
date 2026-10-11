@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
+from .version import VERSION, VERSION_TEXT
+
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,5),
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': VERSION,
     'blender': (4,2,0), 'location': '3D View > Sidebar / View Menu > Blender XR',
     'description': 'Free VR mesh modeling with a hand-mounted OpenXR menu',
     'category': '3D View',
@@ -297,7 +299,7 @@ def draw_view_menu(self, context):
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.5.5'
+    bl_label='Blender XR v'+VERSION_TEXT
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
