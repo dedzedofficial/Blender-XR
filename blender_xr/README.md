@@ -17,7 +17,8 @@ Blender XR is a free OpenXR-based VR modeling add-on for Blender by Ded Zed.
 - Primitive placement for cube, sphere, cylinder, cone, torus and plane.
 - Full-scene flight, snap/smooth turning and grab-air movement.
 - Save Blend and session-local Undo / Redo.
-- VR color palette with Pick, Apply and HSV adjustment controls.
+- VR **Hue / Saturation / Lightness sliders** with continuous trigger dragging, Pick, Apply and optional presets.
+- Different selected faces can keep different colors through Blender material slots.
 - Desktop Blender hue-wheel color picker with whole-object or selected-face assignment.
 - Shade Smooth / Flat.
 - Collapsible scene/object statistics.
@@ -38,14 +39,20 @@ Object-mode **Scale** remains a separate whole-object transform.
 
 ## VR colors
 
-Choose **Colors** from either Object Mode or Edit Mode.
+Choose **Colors** from either Object Mode or Edit Mode. The color page opens directly to full-width **Hue**, **Saturation** and **Lightness** sliders.
 
-The first page provides quick Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink choices plus **Pick**, **Apply** and **Adjust**. Adjust provides hue, saturation and brightness controls plus White and Black.
-
-- In **Object Mode**, Apply recolors the active object material.
-- In **Edit Mode**, switch to **Face** selection first. Apply assigns the chosen color only to the selected faces.
+- Point anywhere on a slider to set its value; hold the dominant trigger and drag for continuous adjustment.
+- Hue spans the full spectrum.
+- Saturation ranges from grey to fully saturated color.
+- Lightness ranges from black through the selected color to white.
+- The menu shows the current H/S/L values and a live color swatch.
 - **Pick** reads the active object's material color, or the selected face material color in Edit Mode.
-- Edit-mode face color assignment participates in Blender XR's local Undo / Redo history.
+- **Apply** recolors the active object in Object Mode.
+- In **Edit Mode**, switch to **Face** selection first. Apply assigns the chosen color only to the selected faces, so different faces on the same mesh can use different colors.
+- **White** and **Black** adjust Lightness to its extremes without discarding the chosen Hue/Saturation.
+- **Presets** provides Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink as optional shortcuts.
+- Edit-mode face color assignment participates in Blender XR's lightweight local Undo / Redo history without creating topology snapshots.
+- Re-applying the same color to an already matching face does not consume another Undo history entry.
 
 The desktop Blender XR sidebar still provides Blender's normal hue-wheel color picker and Shade Smooth / Flat controls.
 
