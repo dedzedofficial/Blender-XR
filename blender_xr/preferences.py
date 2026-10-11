@@ -14,6 +14,8 @@ FIELDS = (
     'show_statistics',
 )
 _RESTORED_SCENES = set()
+_PENDING_SCENES = set()
+_TIMER_SCHEDULED = False
 
 
 class BXR_Preferences(bpy.types.AddonPreferences):
@@ -60,24 +62,80 @@ def capture(settings, context=None):
 def restore(settings, context=None):
     prefs = get(context)
     if not prefs:
-        return
+        return False
     for name in FIELDS:
         if hasattr(settings,name) and hasattr(prefs,name):
             setattr(settings,name,getattr(prefs,name))
+    return True
 
 
-def ensure(settings, context=None):
-    """Restore preferences once per Scene pointer for the current Blender session."""
+def _scene_key(scene):
+    try:
+        return int(scene.as_pointer())
+    except ReferenceError:
+        return None
+
+
+def _restore_pending():
+    """Timer callback: restore saved values after Blender leaves UI draw context."""
+    global _TIMER_SCHEDULED
+    _TIMER_SCHEDULED = False
+    if not _PENDING_SCENES:
+        return None
+
+    live_keys = set()
+    for scene in tuple(bpy.data.scenes):
+        key = _scene_key(scene)
+        if key is None:
+            continue
+        live_keys.add(key)
+        if key not in _PENDING_SCENES:
+            continue
+        if not hasattr(scene, 'blender_xr'):
+            _PENDING_SCENES.discard(key)
+            continue
+        try:
+            restored = restore(scene.blender_xr)
+        except (AttributeError, RuntimeError):
+            restored = False
+        if restored:
+            _PENDING_SCENES.discard(key)
+            _RESTORED_SCENES.add(key)
+
+    _PENDING_SCENES.intersection_update(live_keys)
+    if _PENDING_SCENES:
+        _TIMER_SCHEDULED = True
+        return 0.05
+    return None
+
+
+def ensure(settings, context=None, deferred=True):
+    """Restore preferences once per Scene, deferring writes when called from UI draw."""
+    global _TIMER_SCHEDULED
     context = context or bpy.context
     scene = getattr(context, 'scene', None)
     if scene is None:
-        return
-    key = int(scene.as_pointer())
+        return False
+    key = _scene_key(scene)
+    if key is None:
+        return False
     if key in _RESTORED_SCENES:
-        return
-    restore(settings, context)
-    _RESTORED_SCENES.add(key)
+        return True
+
+    if not deferred:
+        if restore(settings, context):
+            _PENDING_SCENES.discard(key)
+            _RESTORED_SCENES.add(key)
+            return True
+        return False
+
+    _PENDING_SCENES.add(key)
+    if not _TIMER_SCHEDULED:
+        _TIMER_SCHEDULED = True
+        bpy.app.timers.register(_restore_pending, first_interval=0.0)
+    return False
 
 
 def reset_restore_state():
     _RESTORED_SCENES.clear()
+    _PENDING_SCENES.clear()
