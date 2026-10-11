@@ -1,25 +1,27 @@
-# Blender XR v0.5.5
+# Blender XR v0.5.6
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
-Blender XR adds a controller-first modeling workflow to Blender through OpenXR. One hand carries a compact tool menu while the other points, selects, edits, transforms, places primitives and moves around the scene.
+Blender XR adds a controller-first modeling workflow to Blender through OpenXR. One hand carries a compact tool menu while the other points, selects, edits, transforms, places primitives, assigns colors and moves around the scene.
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Roadmap](ROADMAP.md) · [Testing](TESTING.md) · [Website](https://fishhwb.github.io/)
 
-## v0.5.5 highlights
+## v0.5.6 highlights
 
-- Keeps the normal **Blender XR** sidebar **Start VR** button.
-- Adds **3D Viewport > View > Start Blender XR** as a second native Blender desktop launch route.
-- The View menu entry switches to **Stop Blender XR** while a Blender XR session is active.
-- Adds regression coverage for the launch UI across the supported Blender test matrix.
-- Keeps the v0.5.3 Materials, Scene Statistics, persistent preferences and refactored foundations unchanged.
-- Existing v0.5 mesh tools, primitives, navigation, Save Blend and VR-local Undo/Redo remain available.
+- Makes Edit Mode transforms explicit: **Move Sel** and **Scale Sel** affect only the currently selected vertices, edges or faces.
+- Adds **Undo** directly to the main Edit page and **Redo** to More Edit.
+- Adds a controller-friendly **Colors** menu inside VR with quick presets, Pick, Apply and an adjustment page for hue, saturation, brightness, white and black.
+- In Edit Mode, color Apply is face-only and participates in Blender XR's local Undo / Redo history.
+- Keeps the desktop Blender hue-wheel color picker, per-face material assignment and Shade Smooth / Flat controls.
+- Fixes version drift so the manifest, Blender sidebar, packaged README and in-headset footer all report **v0.5.6** from the same source.
+- Adds build-time checks that fail if those version sources diverge again.
+- Preserves the v0.5.5 Blender 5.2 UI-draw fix and native Blender launch route.
 
 ## Blender XR vs Blender's VR Scene Inspection button
 
 Blender's own **VR** sidebar and **Start VR Session** control come from the separate **VR Scene Inspection** add-on. Blender XR does not remove or replace that add-on. If Blender's native VR tab is missing, enable **VR Scene Inspection** in Blender's add-on/extensions preferences.
 
-Blender XR itself can be started without that sidebar from either:
+Blender XR itself can be started from either:
 
 - **3D Viewport > Sidebar (`N`) > Blender XR > Start VR**
 - **3D Viewport > View > Start Blender XR**
@@ -39,12 +41,13 @@ Blender XR itself can be started without that sidebar from either:
 - Primitive placement: cube, sphere, cylinder, cone, torus and plane.
 - Full-scene flight, snap/smooth turning and grab-air navigation.
 - Session Undo / Redo and Save Blend from VR.
+- VR color palette and per-face color assignment.
 
 ## Install
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download `blender-xr-v0.5.5.zip`.
-3. In Blender open **Edit > Preferences > Add-ons**.
+2. Download `blender-xr-v0.5.6.zip`.
+3. In Blender open **Edit > Preferences > Add-ons / Extensions**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Blender XR**.
 6. In the 3D Viewport press **N** and open the **Blender XR** tab, or open the **View** menu.
@@ -61,26 +64,36 @@ The add-on is free, open source and licensed under **GPL-3.0-or-later**.
 
 Automated validation covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash.
 
-## Materials and per-face color
+## Materials and color
 
-The **Materials** section uses Blender's normal color picker / hue wheel.
+### In VR
+
+Choose **Colors** from Object Mode or Edit Mode.
+
+The quick palette contains Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink, plus **Pick**, **Apply** and **Adjust**. The Adjust page adds hue, saturation and brightness controls plus White and Black.
 
 In **Object Mode**:
 
-1. Select a mesh.
-2. Choose a color.
-3. Press **Apply to Object**.
+1. Select a mesh object.
+2. Pick a preset or adjust the current color.
+3. Press **Apply** to recolor the active object material.
+4. Press **Pick** to read the active material color back into the VR color control.
 
 In **Edit Mode**:
 
 1. Switch to **Face** selection.
 2. Select one or more faces.
 3. Choose a color.
-4. Press **Assign to Selected Faces**.
+4. Press **Apply** to assign that color only to the selected faces.
+5. Use **Undo** / **Redo** if needed without leaving Edit Mode.
 
-Blender XR creates or reuses a matching material slot and assigns it only to those faces. That means one mesh can have different materials, such as an orange cone with a grey base. The panel shows the active material and current slot so it is easier to see what is being edited.
+### In the Blender sidebar
 
-Shared materials are copied before whole-object recoloring so another object is not unexpectedly recolored.
+The **Materials** section uses Blender's normal color picker / hue wheel.
+
+In Object Mode use **Apply to Object**. In Edit Mode select faces and use **Assign to Selected Faces**. Blender XR creates or reuses matching material slots so one mesh can use multiple materials, such as an orange cone with a grey base.
+
+The panel shows the active material and slot. Shared materials are copied before whole-object recoloring so another object is not unexpectedly recolored. **Shade Smooth** and **Shade Flat** remain available in the sidebar.
 
 ## Scene statistics
 
@@ -97,6 +110,8 @@ Statistics are cached briefly and recomputed when the scene signature changes in
 ## Persistent preferences
 
 Blender XR remembers the main controller, movement, modeling and statistics-panel settings between Blender files. Scene properties remain the live values used by the running XR session, so existing workflows and saved `.blend` files remain compatible.
+
+Blender 5.2 can forbid Scene writes while a UI panel is drawing. Blender XR detects that specific restriction and safely defers restoring persistent settings until Blender leaves the restricted draw context.
 
 ## PCVR setup
 
@@ -116,8 +131,8 @@ Controller bindings target Touch-compatible controllers, Valve Index, Vive and s
 | Dominant trigger while selecting | Select the pointed object or mesh element. |
 | Grip + trigger while selecting | Add/remove the pointed mesh element from the selection. |
 | Trigger on X/Y/Z gizmo | Drag along that axis. |
-| Trigger on Size gizmo | Scale selected geometry or the selected object. |
-| Dominant grip in object Move | Grab and reposition the object. |
+| Trigger on Size gizmo | Scale selected geometry in Edit Mode or the selected object in Object Mode. |
+| Dominant grip in Object Move | Grab and reposition the object. |
 | Other trigger | Toggle menu or cancel live work. |
 | Left thumbstick | Move/fly. |
 | Right thumbstick | Turn and move vertically. |
@@ -136,12 +151,14 @@ The current selection mode is shown in the menu header and highlighted in the to
 
 ### Main edit page
 
+- Vert / Edge / Face selection mode
 - Select
-- Move
-- Scale
+- Move Sel
+- Scale Sel
 - Extrude
 - Bevel
-- Vertex / Edge / Face mode switch
+- Colors
+- Undo
 - More
 - Object Mode
 
@@ -154,6 +171,7 @@ The current selection mode is shown in the menu header and highlighted in the to
 - Duplicate
 - Recalculate Normals
 - Flip Normals
+- Redo
 - Tool-distance controls
 
 **Inset** is face-only. **Merge** merges the selected vertices to their average position. Vertex/edge picking starts from the visible mesh face under the controller ray so it does not select hidden geometry through the back of the mesh.
@@ -184,7 +202,8 @@ Finger-touch shortcuts and the optional SteamVR skeletal bridge remain experimen
 - Editing operates on the base mesh cage, not evaluated modifier geometry.
 - Scene Statistics reports base-mesh geometry rather than evaluated modifier output.
 - VR Undo/Redo is session-local.
-- Full material controls, UV mapping, rigging and weight painting remain roadmap features.
+- VR color controls cover normal material color assignment, not full shader-node authoring.
+- UV mapping, rigging and weight painting remain roadmap features.
 - Physical headset/runtime behavior can vary even when automated Blender tests pass.
 
 ## Development
@@ -195,7 +214,9 @@ Build the extension with:
 python scripts/build.py
 ```
 
-The GitHub test matrix validates Blender XR against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release.
+The build refuses to package a release if the manifest, Python version source, Blender sidebar metadata, in-headset version source and packaged README drift apart.
+
+The GitHub test matrix validates Blender XR against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release, including a clean-profile install of the actual generated extension ZIP.
 
 See [TESTING.md](TESTING.md) for validation details and [ROADMAP.md](ROADMAP.md) for upcoming features.
 
