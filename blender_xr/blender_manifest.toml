@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 id = "blender_xr"
-version = "0.5.5"
+version = "0.5.6"
 name = "Blender XR"
-tagline = "VR mesh modeling with reliable native Blender launch controls"
+tagline = "VR mesh editing, selected scaling and in-headset color controls"
 maintainer = "Ded Zed"
 type = "add-on"
 tags = ["3D View", "Mesh", "User Interface"]

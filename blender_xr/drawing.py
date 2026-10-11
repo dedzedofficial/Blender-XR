@@ -3,7 +3,7 @@
 import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
-from . import menus
+from . import materials, menus, version
 
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
@@ -135,16 +135,24 @@ class Menu:
         text('BLENDER XR / '+menus.title(self.page),-0.177,0.208,0.00275)
         if settings and self.page=='TRAVEL':
             summary=('FLY ' if settings.fly_mode else 'WALK ')+format(settings.move_speed,'.1f')+' / '+settings.turn_mode
+        elif settings and self.page in {'MATERIALS','MATERIAL_ADJUST'}:
+            color=tuple(float(v) for v in settings.object_color[:4])
+            rect(-0.174,0.139,0.055,0.020,color,0.0005)
+            summary=materials.color_summary(color)
         elif self.page in {'EDIT','EDIT_MORE'}:
-            summary=select_mode+' / '+tool.replace('_',' ')+' / '+format(step,'.3f')
+            display_tool={'MOVE_FACE':'MOVE SELECTED','SCALE_FACE':'SCALE SELECTED'}.get(tool,tool.replace('_',' '))
+            summary=select_mode+' / '+display_tool+' / '+format(step,'.3f')
         else:
             summary=tool.replace('_',' ')+' / STEP '+format(step,'.3f')
-        text(summary,-0.177,0.153,0.00265)
+        text(summary,-0.108 if settings and self.page in {'MATERIALS','MATERIAL_ADJUST'} else -0.177,
+             0.153,0.0024 if settings and self.page in {'MATERIALS','MATERIAL_ADJUST'} else 0.00265)
         mode_actions={'SELECT_VERT':'VERT','SELECT_EDGE':'EDGE','SELECT_FACE':'FACE'}
+        tool_actions={'MOVE_FACE':'MOVE_EDIT','SCALE_FACE':'SCALE_EDIT'}
         for i,(label,action) in enumerate(self.buttons):
             bx,by,w,h=button_rect(i)
-            color=(0.06,0.12,0.18,1)
-            selected = (action==tool or mode_actions.get(action)==select_mode or (settings and (
+            color=materials.PRESET_COLORS.get(action,(0.06,0.12,0.18,1))
+            selected = (action==tool or action==tool_actions.get(tool) or
+                        mode_actions.get(action)==select_mode or (settings and (
                 (action=='TURBO' and settings.fast_flight) or
                 (action=='FLY_TOGGLE' and settings.fly_mode))))
             if selected:
@@ -157,7 +165,7 @@ class Menu:
         text(status[:25],-0.174,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
         text(hint,-0.174,-0.246,0.0021)
-        text('V0.5.3',-0.174,-0.274,0.0021)
+        text(version.DISPLAY_VERSION,-0.174,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):

@@ -105,13 +105,23 @@ try:
     else:raise AssertionError('Empty face selection allowed')
 
     global_actions={action for _,action in drawing.BUTTONS}
-    for submenu in (drawing.EDIT_BUTTONS,drawing.EDIT_MORE_BUTTONS,drawing.PRIMITIVE_BUTTONS,drawing.TRAVEL_BUTTONS):
+    # Save and Stop remain global. v0.5.6 deliberately exposes Undo directly
+    # in Edit Mode and Redo on More Edit so mesh work can be corrected without
+    # leaving Edit Mode.
+    for submenu in (drawing.PRIMITIVE_BUTTONS,drawing.TRAVEL_BUTTONS):
         actions=[action for _,action in submenu]
         assert len(actions)==len(set(actions))
         assert not ({'SAVE','UNDO','REDO','STOP'} & set(actions))
+    edit_actions=[action for _,action in drawing.EDIT_BUTTONS]
+    more_actions=[action for _,action in drawing.EDIT_MORE_BUTTONS]
+    assert len(edit_actions)==len(set(edit_actions))
+    assert len(more_actions)==len(set(more_actions))
+    assert 'UNDO' in edit_actions and 'REDO' in more_actions
+    assert not ({'SAVE','STOP'} & set(edit_actions))
+    assert not ({'SAVE','STOP'} & set(more_actions))
     assert {'SAVE','UNDO','REDO','STOP'} <= global_actions
 
-    print('PASS adaptive XYZ handles, face/object scale, face movement, menu cleanup and delete undo/redo')
+    print('PASS adaptive XYZ handles, face/object scale, face movement, edit undo/redo and delete history')
 finally:
     if bpy.context.object and bpy.context.object.mode=='EDIT':bpy.ops.object.mode_set(mode='OBJECT')
     blender_xr.unregister()
