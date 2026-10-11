@@ -34,6 +34,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+      - name: Native Blender launch UI tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_ui.py
       - name: Locomotion, modal regression and primitive tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
