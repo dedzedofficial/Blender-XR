@@ -16,6 +16,7 @@ FIELDS = (
 _RESTORED_SCENES = set()
 _PENDING_SCENES = set()
 _TIMER_SCHEDULED = False
+_DRAW_WRITE_ERROR = 'Writing to ID classes in this context is not allowed'
 
 
 class BXR_Preferences(bpy.types.AddonPreferences):
@@ -76,6 +77,18 @@ def _scene_key(scene):
         return None
 
 
+def _draw_write_blocked(exc):
+    return _DRAW_WRITE_ERROR in str(exc)
+
+
+def _queue_restore(key):
+    global _TIMER_SCHEDULED
+    _PENDING_SCENES.add(key)
+    if not _TIMER_SCHEDULED:
+        _TIMER_SCHEDULED = True
+        bpy.app.timers.register(_restore_pending, first_interval=0.0)
+
+
 def _restore_pending():
     """Timer callback: restore saved values after Blender leaves UI draw context."""
     global _TIMER_SCHEDULED
@@ -96,7 +109,9 @@ def _restore_pending():
             continue
         try:
             restored = restore(scene.blender_xr)
-        except (AttributeError, RuntimeError):
+        except (AttributeError, RuntimeError) as exc:
+            if not _draw_write_blocked(exc):
+                raise
             restored = False
         if restored:
             _PENDING_SCENES.discard(key)
@@ -109,9 +124,8 @@ def _restore_pending():
     return None
 
 
-def ensure(settings, context=None, deferred=True):
-    """Restore preferences once per Scene, deferring writes when called from UI draw."""
-    global _TIMER_SCHEDULED
+def ensure(settings, context=None):
+    """Restore once per Scene; defer only when Blender forbids writes during UI drawing."""
     context = context or bpy.context
     scene = getattr(context, 'scene', None)
     if scene is None:
@@ -122,17 +136,18 @@ def ensure(settings, context=None, deferred=True):
     if key in _RESTORED_SCENES:
         return True
 
-    if not deferred:
-        if restore(settings, context):
-            _PENDING_SCENES.discard(key)
-            _RESTORED_SCENES.add(key)
-            return True
+    try:
+        restored = restore(settings, context)
+    except (AttributeError, RuntimeError) as exc:
+        if not _draw_write_blocked(exc):
+            raise
+        _queue_restore(key)
         return False
 
-    _PENDING_SCENES.add(key)
-    if not _TIMER_SCHEDULED:
-        _TIMER_SCHEDULED = True
-        bpy.app.timers.register(_restore_pending, first_interval=0.0)
+    if restored:
+        _PENDING_SCENES.discard(key)
+        _RESTORED_SCENES.add(key)
+        return True
     return False
 
 
