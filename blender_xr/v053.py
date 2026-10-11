@@ -20,6 +20,7 @@ def patch(runtime_module, mesh_module):
     drawing.EDIT_BUTTONS = menus.PAGES['EDIT']
     drawing.EDIT_MORE_BUTTONS = menus.PAGES['EDIT_MORE']
     drawing.MATERIAL_BUTTONS = menus.PAGES['MATERIALS']
+    drawing.MATERIAL_ADJUST_BUTTONS = menus.PAGES['MATERIAL_ADJUST']
     drawing.PRIMITIVE_BUTTONS = menus.PAGES['PRIMITIVES']
     drawing.TRAVEL_BUTTONS = menus.PAGES['TRAVEL']
     runtime_module._v053_patched = True
