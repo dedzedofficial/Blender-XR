@@ -7,7 +7,10 @@ v0.5.5 restores a clear native Blender desktop launch path for Blender XR withou
 - Kept the existing **3D Viewport > Sidebar > Blender XR > Start VR** button.
 - Added **3D Viewport > View > Start Blender XR** as a second native Blender launch entry.
 - The View menu entry automatically changes to **Stop Blender XR** while a Blender XR session is active.
-- Added Blender-side regression coverage so the launch operator, panel version and native View-menu entry are checked across supported Blender versions.
+- Fixed a Blender 5.2 sidebar draw failure where restoring persistent settings attempted to write Scene properties from `Panel.draw()`, causing `Writing to ID classes in this context is not allowed` and preventing the Blender XR panel from drawing.
+- Persistent settings now restore immediately where Blender permits writes and automatically defer to a safe timer callback when invoked from a restricted UI draw context.
+- Added Blender-side regression coverage so the launch operator, panel version, native View-menu entry and draw-context restore fallback are checked across supported Blender versions.
+- Added a clean-profile package smoke test that installs and enables the built ZIP through Blender's Extensions CLI before validating registration.
 - Updated package metadata and documentation to v0.5.5.
 
 ## About Blender's own VR button
