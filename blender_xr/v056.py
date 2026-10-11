@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """v0.5.6 VR edit-mode and color-menu fixes."""
 import bpy
+import bmesh
 from . import materials, mesh, transforms
 
 
@@ -26,7 +27,7 @@ def _restore_face_material_state(obj, state):
         if not face.is_valid:
             raise ValueError('Mesh topology changed; undo geometry changes before color history')
         face.material_index = int(material_index)
-    mesh.update(obj)
+    bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
 
 
 def _patch_material_history():
