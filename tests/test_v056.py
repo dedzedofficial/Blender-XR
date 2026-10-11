@@ -94,8 +94,11 @@ try:
     session.menu.page='EDIT'
     session.command(bpy.context,'COLOR_MENU')
     assert session.color_return_page=='EDIT'
+    snapshots_before={m.name for m in bpy.data.meshes if m.name.startswith('.BlenderXR_Snapshot')}
     session.command(bpy.context,'COLOR_RED')
     session.command(bpy.context,'COLOR_APPLY')
+    assert session.history.undo[-1][0]=='FACE_MATERIAL'
+    assert {m.name for m in bpy.data.meshes if m.name.startswith('.BlenderXR_Snapshot')}==snapshots_before
     bm=mesh.editable(obj);bm.faces.ensure_lookup_table()
     colored_slot=bm.faces[0].material_index
     assert colored_slot != old_slot
@@ -115,7 +118,8 @@ try:
     assert session.menu.page=='EDIT'
 
     session.history.clear()
-    print('PASS v0.5.6 selected edit scale, edit undo/redo, VR colors and shared version')
+    assert {m.name for m in bpy.data.meshes if m.name.startswith('.BlenderXR_Snapshot')}==snapshots_before
+    print('PASS v0.5.6 selected edit scale, lightweight color undo/redo, VR colors and shared version')
 finally:
     if bpy.context.object and bpy.context.object.mode=='EDIT':
         bpy.ops.object.mode_set(mode='OBJECT')
