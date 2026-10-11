@@ -5,6 +5,18 @@ import bpy
 import bmesh
 
 
+PRESET_COLORS = {
+    'COLOR_RED': (1.0, 0.08, 0.05, 1.0),
+    'COLOR_ORANGE': (1.0, 0.35, 0.04, 1.0),
+    'COLOR_YELLOW': (1.0, 0.9, 0.03, 1.0),
+    'COLOR_GREEN': (0.08, 0.8, 0.16, 1.0),
+    'COLOR_CYAN': (0.04, 0.8, 0.9, 1.0),
+    'COLOR_BLUE': (0.08, 0.24, 1.0, 1.0),
+    'COLOR_PURPLE': (0.55, 0.12, 0.95, 1.0),
+    'COLOR_PINK': (1.0, 0.12, 0.58, 1.0),
+}
+
+
 def editable_mesh_object(obj):
     if not obj or obj.type != 'MESH':
         raise ValueError('Select a mesh object first')
