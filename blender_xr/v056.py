@@ -1,63 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""v0.5.6 VR edit-mode, color-menu and version-display fixes."""
-from . import drawing, materials, mesh, transforms, version
-
-
-PRESET_COLORS = {
-    'COLOR_RED': (1.0, 0.08, 0.05, 1.0),
-    'COLOR_ORANGE': (1.0, 0.35, 0.04, 1.0),
-    'COLOR_YELLOW': (1.0, 0.9, 0.03, 1.0),
-    'COLOR_GREEN': (0.08, 0.8, 0.16, 1.0),
-    'COLOR_CYAN': (0.04, 0.8, 0.9, 1.0),
-    'COLOR_BLUE': (0.08, 0.24, 1.0, 1.0),
-    'COLOR_PURPLE': (0.55, 0.12, 0.95, 1.0),
-    'COLOR_PINK': (1.0, 0.12, 0.58, 1.0),
-}
-
-
-def _text(menu, shader, label, x, y, pixel=0.0024, color=(0.88, 0.95, 1, 1)):
-    points = []
-    for i, char in enumerate(label.upper()):
-        for row, line in enumerate(drawing.FONT.get(char, drawing.FONT[' '])):
-            for col, value in enumerate(line):
-                if value != '1':
-                    continue
-                for px, py in drawing.rectangle_points(
-                        x + i * 6 * pixel + col * pixel,
-                        y - row * pixel, pixel * 0.86, pixel * 0.86):
-                    points.append(menu.world(px, py, 0.0018))
-    if points:
-        drawing.draw_batch(shader, 'TRIS', points, color)
-
-
-def _rect(menu, shader, x, y, w, h, color, depth=0.0016):
-    drawing.draw_batch(shader, 'TRIS',
-        [menu.world(px, py, depth) for px, py in drawing.rectangle_points(x, y, w, h)],
-        color)
-
-
-def patch_draw():
-    if getattr(drawing.Menu, '_v056_patched', False):
-        return
-    original_draw = drawing.Menu.draw
-
-    def draw(self, shader, tool, hover, step, status, settings=None,
-             selection='', select_mode='FACE'):
-        original_draw(self, shader, tool, hover, step, status, settings, selection, select_mode)
-        if not self.ready or not self.visible:
-            return
-        # Cover the old duplicated footer and always show the shared version source.
-        _rect(self, shader, -0.181, -0.286, 0.112, 0.022, (0.015, 0.025, 0.04, 1))
-        _text(self, shader, version.DISPLAY_VERSION, -0.174, -0.274, 0.0021)
-        if settings is not None and self.page in {'MATERIALS', 'MATERIAL_ADJUST'}:
-            # Replace the generic tool summary with a live swatch and RGB readout.
-            _rect(self, shader, -0.184, 0.137, 0.368, 0.026, (0.015, 0.025, 0.04, 1))
-            color = tuple(float(v) for v in settings.object_color[:4])
-            _rect(self, shader, -0.174, 0.141, 0.058, 0.018, color)
-            _text(self, shader, materials.color_summary(color), -0.105, 0.155, 0.00215)
-
-    drawing.Menu.draw = draw
-    drawing.Menu._v056_patched = True
+"""v0.5.6 VR edit-mode and color-menu fixes."""
+from . import materials, mesh, transforms
 
 
 def patch(Runtime):
@@ -102,8 +45,8 @@ def patch(Runtime):
                 self.status = 'COLOR MENU CLOSED'
             return
 
-        if action in PRESET_COLORS:
-            self.settings.object_color = PRESET_COLORS[action]
+        if action in materials.PRESET_COLORS:
+            self.settings.object_color = materials.PRESET_COLORS[action]
             self.status = 'COLOR ' + action.removeprefix('COLOR_')
             return
 
@@ -142,7 +85,7 @@ def patch(Runtime):
                     raise ValueError('Switch to FACE selection before applying a face color')
                 before = mesh.snapshot(obj)
                 try:
-                    material, count, _slot = materials.assign_color_to_selected_faces(
+                    _material, count, _slot = materials.assign_color_to_selected_faces(
                         obj, self.settings.object_color)
                     after = mesh.snapshot(obj)
                 except Exception:
@@ -161,4 +104,3 @@ def patch(Runtime):
 
     Runtime.command = command
     Runtime._v056_patched = True
-    patch_draw()
