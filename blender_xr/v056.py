@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """v0.5.6 VR edit-mode, color-menu and version-display fixes."""
-from . import drawing, materials, transforms, version
+from . import drawing, materials, mesh, transforms, version
 
 
 PRESET_COLORS = {
@@ -140,8 +140,17 @@ def patch(Runtime):
             if obj and obj.mode == 'EDIT':
                 if getattr(self, 'select_mode', 'FACE') != 'FACE':
                     raise ValueError('Switch to FACE selection before applying a face color')
-                material, count, _slot = materials.assign_color_to_selected_faces(
-                    obj, self.settings.object_color)
+                before = mesh.snapshot(obj)
+                try:
+                    material, count, _slot = materials.assign_color_to_selected_faces(
+                        obj, self.settings.object_color)
+                    after = mesh.snapshot(obj)
+                except Exception:
+                    mesh.restore(obj, before)
+                    import bpy
+                    bpy.data.meshes.remove(before)
+                    raise
+                self.history.push(('MESH', obj.name, obj.data.name, before, after))
                 self.status = 'COLOR APPLIED TO ' + str(count) + ' FACE' + ('' if count == 1 else 'S')
             else:
                 material = materials.apply_object_color(obj, self.settings.object_color)
