@@ -1,13 +1,33 @@
 """Build a root-layout Blender extension ZIP and checksum from source."""
 from pathlib import Path
+import ast
 import hashlib
+import re
 import tomllib
 import zipfile
+
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'blender_xr'
 manifest=tomllib.loads((SOURCE/'blender_manifest.toml').read_text())
 assert manifest['id']=='blender_xr'
 version=manifest['version']
+
+# Keep every user-visible version source synchronized. This specifically guards
+# against the old situation where the manifest had advanced but the VR footer
+# and packaged README still advertised v0.5.3.
+version_source=(SOURCE/'version.py').read_text()
+match=re.search(r'^VERSION\s*=\s*(.+)$',version_source,re.MULTILINE)
+assert match, 'version.py must define VERSION'
+python_version='.'.join(str(part) for part in ast.literal_eval(match.group(1)))
+assert python_version==version, f'manifest {version} != Python {python_version}'
+assert (SOURCE/'README.md').read_text().startswith('# Blender XR v'+version+'\n')
+init_text=(SOURCE/'__init__.py').read_text()
+assert "'version': VERSION" in init_text
+assert "bl_label='Blender XR v'+VERSION_TEXT" in init_text
+drawing_text=(SOURCE/'drawing.py').read_text()
+assert 'version.DISPLAY_VERSION' in drawing_text
+assert "V0.5.3" not in drawing_text
+
 output=ROOT/'dist'/('blender-xr-v'+version+'.zip')
 output.parent.mkdir(exist_ok=True)
 # Keep the current installer only; source history remains in Git.
