@@ -18,6 +18,9 @@ def clear_selection(bm):
 
 
 blender_xr.register()
+session=None
+bm=None
+tx=None
 try:
     assert blender_xr.bl_info['version'] == (0, 5, 6)
     assert version.VERSION == (0, 5, 6)
@@ -83,7 +86,7 @@ try:
     assert any((after[i]-before[i]).length>1e-6 for i in (0,1))
     assert all((after[i]-before[i]).length<1e-6 for i in range(2,len(before)))
     assert tuple(obj.scale)==object_scale
-    tx.cancel()
+    tx.cancel(); tx=None
 
     # VR colors in Edit Mode apply only to selected faces, are undoable, and PICK reads them back.
     mesh.set_selection_mode(bpy.context,'FACE')
@@ -121,6 +124,16 @@ try:
     assert {m.name for m in bpy.data.meshes if m.name.startswith('.BlenderXR_Snapshot')}==snapshots_before
     print('PASS v0.5.6 selected edit scale, lightweight color undo/redo, VR colors and shared version')
 finally:
+    # Release Python references to edit BMesh/RNA data before unregister removes
+    # Scene.blender_xr. Blender 4.2 can crash at process shutdown if a test keeps
+    # a stale PropertyGroup reference alive after its RNA property is unregistered.
+    bm=None
+    tx=None
+    if session is not None:
+        session.history.clear()
+        session.settings=None
+        session.menu=None
+        session=None
     if bpy.context.object and bpy.context.object.mode=='EDIT':
         bpy.ops.object.mode_set(mode='OBJECT')
     blender_xr.unregister()
