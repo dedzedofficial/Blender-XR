@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Shared material helpers for Blender XR."""
+import colorsys
 import bpy
 import bmesh
 
@@ -17,6 +18,22 @@ def rgba(color):
     if len(values) != 4:
         raise ValueError('Color must contain RGBA values')
     return values
+
+
+def adjust_hsv(color, hue=0.0, saturation=0.0, value=0.0):
+    """Adjust an RGBA color in HSV space for the controller-first VR picker."""
+    red, green, blue, alpha = rgba(color)
+    h, s, v = colorsys.rgb_to_hsv(red, green, blue)
+    h = (h + float(hue)) % 1.0
+    s = max(0.0, min(1.0, s + float(saturation)))
+    v = max(0.0, min(1.0, v + float(value)))
+    red, green, blue = colorsys.hsv_to_rgb(h, s, v)
+    return red, green, blue, alpha
+
+
+def color_summary(color):
+    red, green, blue, _alpha = rgba(color)
+    return 'R{} G{} B{}'.format(round(red * 255), round(green * 255), round(blue * 255))
 
 
 def set_material_color(material, color):
@@ -115,6 +132,26 @@ def assign_color_to_selected_faces(obj, color):
     obj.active_material_index = slot
     bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     return material, len(faces), slot
+
+
+def picked_color(obj):
+    """Return the active/selected material color for the VR PICK command."""
+    obj = editable_mesh_object(obj)
+    material = None
+    if obj.mode == 'EDIT':
+        bm = bmesh.from_edit_mesh(obj.data)
+        faces = [face for face in bm.faces if face.is_valid and face.select and not face.hide]
+        if not faces:
+            raise ValueError('Select a face before picking its color')
+        index = int(faces[0].material_index)
+        if 0 <= index < len(obj.material_slots):
+            material = obj.material_slots[index].material
+    else:
+        material = obj.active_material
+    color = material_color(material)
+    if color is None:
+        raise ValueError('The selected mesh has no material color to pick')
+    return rgba(color)
 
 
 def active_material_summary(obj):
