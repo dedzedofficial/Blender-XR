@@ -3,6 +3,18 @@
 from . import drawing, materials, transforms, version
 
 
+PRESET_COLORS = {
+    'COLOR_RED': (1.0, 0.08, 0.05, 1.0),
+    'COLOR_ORANGE': (1.0, 0.35, 0.04, 1.0),
+    'COLOR_YELLOW': (1.0, 0.9, 0.03, 1.0),
+    'COLOR_GREEN': (0.08, 0.8, 0.16, 1.0),
+    'COLOR_CYAN': (0.04, 0.8, 0.9, 1.0),
+    'COLOR_BLUE': (0.08, 0.24, 1.0, 1.0),
+    'COLOR_PURPLE': (0.55, 0.12, 0.95, 1.0),
+    'COLOR_PINK': (1.0, 0.12, 0.58, 1.0),
+}
+
+
 def _text(menu, shader, label, x, y, pixel=0.0024, color=(0.88, 0.95, 1, 1)):
     points = []
     for i, char in enumerate(label.upper()):
@@ -34,10 +46,10 @@ def patch_draw():
         original_draw(self, shader, tool, hover, step, status, settings, selection, select_mode)
         if not self.ready or not self.visible:
             return
-        # Cover the old hard-coded v0.5.3 footer and always use the shared version.
+        # Cover the old duplicated footer and always show the shared version source.
         _rect(self, shader, -0.181, -0.286, 0.112, 0.022, (0.015, 0.025, 0.04, 1))
         _text(self, shader, version.DISPLAY_VERSION, -0.174, -0.274, 0.0021)
-        if settings is not None and self.page == 'MATERIALS':
+        if settings is not None and self.page in {'MATERIALS', 'MATERIAL_ADJUST'}:
             # Replace the generic tool summary with a live swatch and RGB readout.
             _rect(self, shader, -0.184, 0.137, 0.368, 0.026, (0.015, 0.025, 0.04, 1))
             color = tuple(float(v) for v in settings.object_color[:4])
@@ -73,9 +85,26 @@ def patch(Runtime):
             self.menu.page = 'MATERIALS'
             self.status = 'CHOOSE / PICK / APPLY COLOR'
             return
-        if action == 'BACK' and self.menu.page == 'MATERIALS':
-            self.menu.page = getattr(self, 'color_return_page', 'TOOLS')
-            self.status = 'COLOR MENU CLOSED'
+        if action == 'COLOR_ADJUST_MENU':
+            self.menu.page = 'MATERIAL_ADJUST'
+            self.status = 'ADJUST CURRENT COLOR'
+            return
+        if action == 'COLOR_PALETTE':
+            self.menu.page = 'MATERIALS'
+            self.status = 'CHOOSE / PICK / APPLY COLOR'
+            return
+        if action == 'BACK' and self.menu.page in {'MATERIALS', 'MATERIAL_ADJUST'}:
+            if self.menu.page == 'MATERIAL_ADJUST':
+                self.menu.page = 'MATERIALS'
+                self.status = 'COLOR PALETTE'
+            else:
+                self.menu.page = getattr(self, 'color_return_page', 'TOOLS')
+                self.status = 'COLOR MENU CLOSED'
+            return
+
+        if action in PRESET_COLORS:
+            self.settings.object_color = PRESET_COLORS[action]
+            self.status = 'COLOR ' + action.removeprefix('COLOR_')
             return
 
         adjustments = {
