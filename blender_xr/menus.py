@@ -17,7 +17,7 @@ PAGES = {
     'EDIT': (
         ('VERT','SELECT_VERT'), ('EDGE','SELECT_EDGE'),
         ('FACE','SELECT_FACE'), ('SELECT','SELECT'),
-        ('MOVE','MOVE_EDIT'), ('SCALE','SCALE_EDIT'),
+        ('MOVE SEL','MOVE_EDIT'), ('SCALE SEL','SCALE_EDIT'),
         ('EXTRUDE','EXTRUDE'), ('BEVEL','BEVEL'),
         ('COLORS','COLOR_MENU'), ('UNDO','UNDO'),
         ('MORE','EDIT_MORE'), ('OBJECT','MODE'),
@@ -31,12 +31,20 @@ PAGES = {
         ('BACK','BACK'),
     ),
     'MATERIALS': (
+        ('RED','COLOR_RED'), ('ORANGE','COLOR_ORANGE'),
+        ('YELLOW','COLOR_YELLOW'), ('GREEN','COLOR_GREEN'),
+        ('CYAN','COLOR_CYAN'), ('BLUE','COLOR_BLUE'),
+        ('PURPLE','COLOR_PURPLE'), ('PINK','COLOR_PINK'),
+        ('PICK','COLOR_PICK'), ('APPLY','COLOR_APPLY'),
+        ('ADJUST','COLOR_ADJUST_MENU'), ('BACK','BACK'),
+    ),
+    'MATERIAL_ADJUST': (
         ('HUE -','COLOR_HUE_MINUS'), ('HUE +','COLOR_HUE_PLUS'),
         ('SAT -','COLOR_SAT_MINUS'), ('SAT +','COLOR_SAT_PLUS'),
         ('DARKER','COLOR_VALUE_MINUS'), ('BRIGHTER','COLOR_VALUE_PLUS'),
-        ('PICK','COLOR_PICK'), ('APPLY','COLOR_APPLY'),
         ('WHITE','COLOR_WHITE'), ('BLACK','COLOR_BLACK'),
-        ('BACK','BACK'),
+        ('PICK','COLOR_PICK'), ('APPLY','COLOR_APPLY'),
+        ('COLORS','COLOR_PALETTE'), ('BACK','BACK'),
     ),
     'PRIMITIVES': tuple((kind, 'ADD_' + kind) for kind in
                         ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
@@ -55,6 +63,7 @@ TITLES = {
     'EDIT': 'EDIT',
     'EDIT_MORE': 'MORE EDIT',
     'MATERIALS': 'COLORS',
+    'MATERIAL_ADJUST': 'COLOR ADJUST',
     'PRIMITIVES': 'SHAPES',
     'TRAVEL': 'TRAVEL',
 }
