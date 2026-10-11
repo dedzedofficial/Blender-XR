@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,3),
-    'blender': (4,2,0), 'location': '3D View > Sidebar > Blender XR',
+    'name': 'Blender XR', 'author': 'Ded Zed', 'version': (0,5,5),
+    'blender': (4,2,0), 'location': '3D View > Sidebar / View Menu > Blender XR',
     'description': 'Free VR mesh modeling with a hand-mounted OpenXR menu',
     'category': '3D View',
 }
@@ -287,8 +287,17 @@ class BXR_OT_link(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def draw_view_menu(self, context):
+    """Keep a native Blender desktop launch entry available outside the sidebar."""
+    active=runtime.CURRENT is not None
+    self.layout.separator()
+    self.layout.operator('blender_xr.stop' if active else 'blender_xr.session',
+                         text='Stop Blender XR' if active else 'Start Blender XR',
+                         icon='PAUSE' if active else 'PLAY')
+
+
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v0.5.3'
+    bl_label='Blender XR v0.5.5'
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
@@ -435,12 +444,17 @@ def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     bpy.types.Scene.blender_xr=PointerProperty(type=BXR_Settings)
+    bpy.types.VIEW3D_MT_view.append(draw_view_menu)
     bpy.app.handlers.xr_session_start_pre.append(runtime.session_pre)
     bpy.app.handlers.load_pre.append(load_pre)
 
 
 def unregister():
     load_pre()
+    try:
+        bpy.types.VIEW3D_MT_view.remove(draw_view_menu)
+    except (AttributeError, ValueError):
+        pass
     for handlers,callback in [(bpy.app.handlers.xr_session_start_pre,runtime.session_pre),
                               (bpy.app.handlers.load_pre,load_pre)]:
         if callback in handlers:
