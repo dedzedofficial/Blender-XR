@@ -1,56 +1,38 @@
-# Blender XR v0.5.6
+# XR Mesh v0.6.0
 
-v0.5.6 completes the headset-side edit/color workflow and closes several version/UI gaps found while auditing every previously shipped update.
+v0.6.0 is the Blender Extensions review/compliance release and also fixes one runtime wiring issue found during the audit.
 
-## Edit Mode fixes
+## Blender Extensions review changes
 
-- Renamed the VR edit transforms to **Move Sel** and **Scale Sel** so they clearly operate on the current vertex/edge/face selection rather than the whole object.
-- Keeps Object Mode **Scale** as a separate whole-object uniform scale tool.
-- Adds **Undo** directly to the main Edit page and **Redo** to More Edit so mesh edits can be corrected without leaving Edit Mode.
-- Keeps vertex, edge and face selection, additive grip+trigger selection, extrusion, bevel, inset, delete, merge, subdivide, duplicate and normal tools intact.
+- Public extension name changed from **Blender XR** to **XR Mesh**.
+- The manifest Support/Report Issues link now points directly to the public GitHub Issues tracker.
+- Removed the in-extension **Updates** box. Updates are handled by Blender Extensions rather than by the add-on.
+- Removed the in-extension Patreon/funding controls from the add-on UI.
+- The extension contains no Python `threading` or `queue` imports.
+- The build now parses every packaged Python file and fails if `threading` or `queue` is introduced later.
+- The existing SteamVR hand-helper command remains on the supported `subprocess` path and communicates with the add-on through the existing authenticated loopback-only socket bridge.
 
-## VR colors
+## Runtime fix
 
-- **Colors now opens directly to three full-width HSL sliders: Hue, Saturation and Lightness.**
-- Point anywhere on a slider and hold the trigger to drag it continuously.
-- The Hue bar shows the full spectrum; Saturation and Lightness bars update from the currently selected HSL color.
-- The headset shows the current H/S/L values alongside the live color swatch.
-- **Pick** reads the active object material or the selected Edit Mode face color back into the sliders.
-- **Apply** recolors the active object in Object Mode.
-- In Edit Mode, **Apply requires Face selection and changes only the selected faces**, allowing different faces on the same mesh to keep different colors.
-- Face-color changes remain in Blender XR's lightweight session-local Undo / Redo history without creating temporary topology snapshots.
-- Re-applying an unchanged face color does not waste an Undo history entry.
-- White and Black change Lightness while retaining the selected Hue/Saturation, so moving Lightness back restores the chosen color family.
-- Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink remain available on an optional **Presets** page.
-- VR material changes invalidate cached scene statistics so material counts stay current.
-- The existing desktop Blender hue-wheel picker, per-face material assignment, material-slot reuse and Shade Smooth / Flat controls remain available.
+- The v0.5.6 runtime patch is now applied during normal add-on startup after the base v0.5 runtime patch.
+- This makes the already-shipped **Hue / Saturation / Lightness sliders**, continuous trigger dragging, selected-geometry Move/Scale workflow and face-color history active in the normal installed extension rather than only when the v0.5.6 module is imported directly by tests.
 
-## Version and package consistency
+## Existing v0.5.6 features retained
 
-- Adds a shared Python version source for v0.5.6.
-- The Blender add-on metadata, sidebar title and in-headset footer all report v0.5.6 from that shared source.
-- Replaces the stale packaged README that still identified itself as v0.5.3.
-- The build fails if the manifest, Python version source, sidebar metadata, VR version source or packaged README drift apart again.
-
-## Previous-update audit
-
-The v0.5.6 audit confirmed that the following previously released systems remain present and covered:
-
-- Vertex / edge / face VR selection and additive selection.
-- Selected-geometry move, scale, extrude, bevel, inset, delete, merge, subdivide and duplicate.
+- Vertex / edge / face VR selection and additive grip+trigger selection.
+- Move/Scale Selected, extrude, bevel, inset, delete, merge, subdivide and duplicate.
 - Recalculate / flip normals.
 - Whole-object movement and uniform scaling.
 - Distance-aware X/Y/Z and Size gizmos.
 - Six VR primitives and creation Undo / Redo.
 - Fly/Walk movement, turbo, snap/smooth turning and grab-air navigation.
-- Save Blend with in-memory local history snapshots excluded from saved projects.
-- Desktop material color picker, shared-material copy protection, selected-face material assignment and shading controls.
+- Save Blend with in-memory session history excluded from saved projects.
+- HSL color controls, material Pick/Apply and per-face material assignment.
+- Desktop material color picker, shared-material copy protection and Shade Smooth / Flat.
 - Cached scene/object statistics.
 - Persistent controller, movement, modeling and UI preferences.
-- Native Blender launch paths from the Blender XR sidebar and the 3D Viewport View menu.
+- Native desktop launch paths from the **XR Mesh** sidebar and the 3D Viewport View menu.
 - Blender 5.2-safe deferred preference restore when Scene writes are forbidden during UI drawing.
-- Clean-profile installation/enablement testing of the actual built extension ZIP.
-- Patreon/website links and the experimental finger-input paths.
 
 ## Compatibility
 
