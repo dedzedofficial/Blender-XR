@@ -1,46 +1,40 @@
-# XR Mesh v0.6.0
+# XR Mesh v0.6.1
 
 XR Mesh is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed.
 
-## v0.6.0
+## v0.6.1
 
-- Renames the public extension from **Blender XR** to **XR Mesh** for Blender Extensions compliance.
-- Sends the manifest Support/Report Issues link directly to the public GitHub Issues tracker.
-- Removes the in-extension updater/funding UI. Updates are handled by Blender Extensions.
-- Keeps the extension free of Python `threading` and `queue`; the build now rejects either import if it is introduced later.
-- Keeps the optional external SteamVR hand helper on the existing `subprocess`/loopback-socket path.
-- Activates the v0.5.6 runtime patch during normal extension startup so the documented HSL controls and selected-geometry workflow are actually live.
+v0.6.1 completes the v0.6 Materials + UV milestone while retaining the Blender Extensions compliance work from v0.6.0.
+
+### Materials + textures
+
+- Create, duplicate, delete and auto-name materials in VR; custom-name them from the desktop panel.
+- Add, remove and cycle material slots.
+- Assign the active slot to selected faces and select faces using the active slot.
+- Control Base Color, Metallic, Roughness, Alpha and Emission.
+- Keep the existing HSL sliders, color presets and Pick/Apply workflow.
+- Load texture images from disk on desktop; cycle/apply/clear available images in VR.
+- Use built-in numbered checker, directional UV and color-grid diagnostic textures.
+- Toggle Material Preview.
+
+### UV mapping
+
+- Standard Unwrap, Smart Project, Cube Project and Planar Project.
+- Mark and Clear seams.
+- Move U/V, rotate and scale selected UVs.
+- Reset UVs and Pack Islands.
+- Compact in-headset UV wireframe preview.
+- Native Blender UV operators are preferred where available, with deterministic fallbacks for restricted contexts.
+
+### Desktop panels
+
+The XR Mesh sidebar includes collapsed **Advanced Materials + Textures** and **UV Mapping** panels for image-file browsing, custom material naming and the same practical UV operations.
 
 ## VR mesh editing
 
-Choose **Edit Mode** from the hand menu. XR Mesh supports:
+Choose **Edit Mode** from the hand menu. XR Mesh supports Vertex / Edge / Face selection, additive grip + trigger selection, Move Sel, Scale Sel, Extrude, Bevel, Inset, Delete, Merge, Subdivide, Duplicate, Recalculate/Flip Normals and session Undo/Redo.
 
-- Vertex / Edge / Face selection directly in VR.
-- Grip + trigger to add/remove individual mesh elements from the selection.
-- **Move Sel** and **Scale Sel** for the current vertex/edge/face selection.
-- Extrude, bevel and inset.
-- Delete, merge, subdivide and duplicate selected geometry.
-- Recalculate and flip normals.
-- Undo / Redo during the XR session.
-- Whole-object movement and uniform scaling in Object Mode.
-- Distance-aware X/Y/Z and Size gizmos.
-- Cube, sphere, cylinder, cone, torus and plane placement.
-- Flight, snap/smooth turning and grab-air movement.
-
-## Color workflow
-
-Choose **Colors** from Object Mode or Edit Mode.
-
-- Hue / Saturation / Lightness sliders can be pointed at and dragged continuously.
-- **Pick** reads the active material color back into the controls.
-- **Apply** recolors the active object in Object Mode.
-- In Edit Mode, switch to **Face** selection and Apply to color only the selected faces.
-- Different faces can keep different colors through material slots.
-- White and Black adjust Lightness without discarding the chosen Hue/Saturation.
-- Optional color presets remain available.
-- Face-color changes participate in the extension's session-local Undo / Redo history.
-
-The desktop sidebar also provides Blender's normal color picker and Shade Smooth / Flat controls.
+Whole-object movement/scaling, distance-aware gizmos, primitive placement, flight, snap/smooth turning, grab-air movement and Save Blend remain available.
 
 ## Launch
 
@@ -58,6 +52,8 @@ Blender's separate **VR Scene Inspection** extension supplies Blender's own Star
 5. Start XR Mesh from the 3D Viewport sidebar or View menu.
 
 Requires Blender **4.2+** with OpenXR support. Automated checks target Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Blender 5.0.1 remains blocked because of its known VR crash.
+
+The add-on contains no Python `threading` or `queue` imports. Updates are managed by Blender Extensions; there is no in-extension updater or funding UI.
 
 ## Support and source
 
