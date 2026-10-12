@@ -26,8 +26,16 @@ assert "'name': 'XR Mesh'" in init_text
 assert "bl_label='XR Mesh v'+VERSION_TEXT" in init_text
 assert "bl_category='XR Mesh'" in init_text
 assert "v056.patch(runtime.Runtime)" in init_text
+assert "v060.patch(runtime.Runtime)" in init_text
+assert 'material_uv.CLASSES' in init_text
 assert 'Patreon' not in init_text
 assert "updates=layout.box()" not in init_text
+
+for required in ('material_uv.py','uv_tools.py','v060.py'):
+    assert (SOURCE/required).is_file(), required+' is required for the v0.6 package'
+menus_text=(SOURCE/'menus.py').read_text()
+assert "('MATERIALS','MATERIAL_MENU')" in menus_text
+assert "'UV_TRANSFORM'" in menus_text and "'UV_PREVIEW'" in menus_text
 
 drawing_text=(SOURCE/'drawing.py').read_text()
 assert "text('XR MESH / '+menus.title(self.page)" in drawing_text
