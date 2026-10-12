@@ -78,6 +78,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v056.py
+      - name: v0.6 materials textures and UV mapping tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v060.py
       - uses: actions/upload-artifact@v4
         with:
           name: xr-mesh-${{ matrix.blender }}
