@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Single source of truth for Blender XR's Python/UI version string."""
+"""Single source of truth for XR Mesh's Python/UI version string."""
 
 VERSION = (0, 5, 6)
 VERSION_TEXT = '.'.join(str(part) for part in VERSION)
