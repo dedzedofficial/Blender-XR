@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Persistent Blender XR user preferences.
+"""Persistent XR Mesh user preferences.
 
 Scene properties remain the live session values for backwards compatibility;
 these preferences simply remember the user's usual setup between Blender files.
@@ -42,7 +42,7 @@ class BXR_Preferences(bpy.types.AddonPreferences):
 
     def draw(self, context):
         layout=self.layout
-        layout.label(text='Blender XR remembers controller, movement, modeling and UI settings automatically.')
+        layout.label(text='XR Mesh remembers controller, movement, modeling and UI settings automatically.')
 
 
 def get(context=None):
