@@ -11,9 +11,10 @@ import bpy
 import textwrap
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056
+from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
+v060.patch(runtime.Runtime)
 
 
 def _persist_setting(self, context):
@@ -57,6 +58,12 @@ class BXR_Settings(bpy.types.PropertyGroup):
     object_color: FloatVectorProperty(name='Material Color', subtype='COLOR_GAMMA', size=4,
         min=0.0, max=1.0, default=(0.18,0.55,0.95,1.0),
         description='Choose a color, then apply it to the active object or selected faces')
+    material_metallic: FloatProperty(name='Metallic', default=0.0, min=0.0, max=1.0)
+    material_roughness: FloatProperty(name='Roughness', default=0.5, min=0.0, max=1.0)
+    material_alpha: FloatProperty(name='Alpha', default=1.0, min=0.0, max=1.0)
+    material_emission: FloatProperty(name='Emission Strength', default=0.0, min=0.0, max=100.0)
+    texture_name: bpy.props.StringProperty(name='Texture Image', default='')
+    uv_step: FloatProperty(name='UV Move Step', default=0.05, min=0.001, max=1.0)
     status: bpy.props.StringProperty(default='Ready')
     save_path: bpy.props.StringProperty(name='Blend save path',subtype='FILE_PATH',default='',
         description='For an unsaved project; blank creates a timestamped file in Documents/BlenderXR')
@@ -351,6 +358,7 @@ class BXR_PT_panel(bpy.types.Panel):
         smooth.mode='SMOOTH'
         flat=shade.operator('blender_xr.shade',text='Shade Flat',icon='SHADING_SOLID')
         flat.mode='FLAT'
+        appearance.label(text='Advanced material, texture and UV tools are in the panels below.')
 
         statistics_box=layout.box()
         statistics_box.prop(settings,'show_statistics',text='Scene Statistics',toggle=True,icon='INFO')
@@ -412,7 +420,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel)
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES
 
 def register():
     for cls in CLASSES:
