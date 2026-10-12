@@ -1,96 +1,68 @@
-# Blender XR v0.5.6
+# XR Mesh v0.6.0
 
-Blender XR is a free OpenXR-based VR modeling add-on for Blender by Ded Zed.
+XR Mesh is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed.
 
-## Current workflow
+## v0.6.0
 
-- Vertex / Edge / Face selection directly in VR.
-- Grip + trigger adds/removes individual mesh elements from the selection.
-- **Move Selected** and **Scale Selected** edit only the current vertex/edge/face selection.
-- Extrude vertices, edges and faces.
-- Bevel selections and inset selected faces.
-- Delete, merge, subdivide and duplicate selected geometry.
-- Recalculate / flip normals.
-- Edit-mode Undo directly on the main Edit page, with Redo on More Edit.
-- Whole-object movement and uniform scaling in Object Mode.
-- Distance-aware X/Y/Z and Size gizmos.
-- Primitive placement for cube, sphere, cylinder, cone, torus and plane.
-- Full-scene flight, snap/smooth turning and grab-air movement.
-- Save Blend and session-local Undo / Redo.
-- VR **Hue / Saturation / Lightness sliders** with continuous trigger dragging, Pick, Apply and optional presets.
-- Different selected faces can keep different colors through Blender material slots.
-- Desktop Blender hue-wheel color picker with whole-object or selected-face assignment.
-- Shade Smooth / Flat.
-- Collapsible scene/object statistics.
-- Persistent controller, movement, modeling and UI preferences.
+- Renames the public extension from **Blender XR** to **XR Mesh** for Blender Extensions compliance.
+- Sends the manifest Support/Report Issues link directly to the public GitHub Issues tracker.
+- Removes the in-extension updater/funding UI. Updates are handled by Blender Extensions.
+- Keeps the extension free of Python `threading` and `queue`; the build now rejects either import if it is introduced later.
+- Keeps the optional external SteamVR hand helper on the existing `subprocess`/loopback-socket path.
+- Activates the v0.5.6 runtime patch during normal extension startup so the documented HSL controls and selected-geometry workflow are actually live.
 
 ## VR mesh editing
 
-Choose **Edit Mode** from the hand menu. Blender XR starts in Face selection mode, and you can switch between **Vert**, **Edge** and **Face** at any time.
+Choose **Edit Mode** from the hand menu. XR Mesh supports:
 
-1. Choose **Select**.
-2. Point at mesh geometry and press the dominant trigger.
-3. Hold grip while triggering to add/remove elements from the current selection.
-4. Choose **Move Sel** or **Scale Sel**.
-5. Drag the X/Y/Z or Size handle to transform only the selected geometry.
-6. Use **Undo** without leaving Edit Mode if you need to revert the last VR edit.
+- Vertex / Edge / Face selection directly in VR.
+- Grip + trigger to add/remove individual mesh elements from the selection.
+- **Move Sel** and **Scale Sel** for the current vertex/edge/face selection.
+- Extrude, bevel and inset.
+- Delete, merge, subdivide and duplicate selected geometry.
+- Recalculate and flip normals.
+- Undo / Redo during the XR session.
+- Whole-object movement and uniform scaling in Object Mode.
+- Distance-aware X/Y/Z and Size gizmos.
+- Cube, sphere, cylinder, cone, torus and plane placement.
+- Flight, snap/smooth turning and grab-air movement.
 
-Object-mode **Scale** remains a separate whole-object transform.
+## Color workflow
 
-## VR colors
+Choose **Colors** from Object Mode or Edit Mode.
 
-Choose **Colors** from either Object Mode or Edit Mode. The color page opens directly to full-width **Hue**, **Saturation** and **Lightness** sliders.
-
-- Point anywhere on a slider to set its value; hold the dominant trigger and drag for continuous adjustment.
-- Hue spans the full spectrum.
-- Saturation ranges from grey to fully saturated color.
-- Lightness ranges from black through the selected color to white.
-- The menu shows the current H/S/L values and a live color swatch.
-- **Pick** reads the active object's material color, or the selected face material color in Edit Mode.
+- Hue / Saturation / Lightness sliders can be pointed at and dragged continuously.
+- **Pick** reads the active material color back into the controls.
 - **Apply** recolors the active object in Object Mode.
-- In **Edit Mode**, switch to **Face** selection first. Apply assigns the chosen color only to the selected faces, so different faces on the same mesh can use different colors.
-- **White** and **Black** adjust Lightness to its extremes without discarding the chosen Hue/Saturation.
-- **Presets** provides Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink as optional shortcuts.
-- Edit-mode face color assignment participates in Blender XR's lightweight local Undo / Redo history without creating topology snapshots.
-- Re-applying the same color to an already matching face does not consume another Undo history entry.
+- In Edit Mode, switch to **Face** selection and Apply to color only the selected faces.
+- Different faces can keep different colors through material slots.
+- White and Black adjust Lightness without discarding the chosen Hue/Saturation.
+- Optional color presets remain available.
+- Face-color changes participate in the extension's session-local Undo / Redo history.
 
-The desktop Blender XR sidebar still provides Blender's normal hue-wheel color picker and Shade Smooth / Flat controls.
+The desktop sidebar also provides Blender's normal color picker and Shade Smooth / Flat controls.
 
 ## Launch
 
-Blender XR can be launched from either:
+- **3D Viewport > Sidebar (`N`) > XR Mesh > Start VR**
+- **3D Viewport > View > Start XR Mesh**
 
-- **3D Viewport > Sidebar (`N`) > Blender XR > Start VR**
-- **3D Viewport > View > Start Blender XR**
-
-Blender's separate **VR Scene Inspection** add-on supplies Blender's own VR sidebar / Start VR Session control; Blender XR does not replace it.
+Blender's separate **VR Scene Inspection** extension supplies Blender's own Start VR Session control; XR Mesh does not replace it.
 
 ## Install
 
-1. Download `blender-xr-v0.5.6.zip` from the current GitHub release.
+1. Download the current release ZIP.
 2. In Blender open **Edit > Preferences > Add-ons / Extensions**.
 3. Choose **Install from Disk** and select the ZIP.
-4. Enable **Blender XR**.
-5. Start Blender XR from the sidebar or the 3D Viewport View menu.
+4. Enable **XR Mesh**.
+5. Start XR Mesh from the 3D Viewport sidebar or View menu.
 
-Requires Blender **4.2+** with OpenXR support. Automated checks cover Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Blender 5.0.1 remains blocked because of its known VR crash.
+Requires Blender **4.2+** with OpenXR support. Automated checks target Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2. Blender 5.0.1 remains blocked because of its known VR crash.
 
-Blender 5.2's restricted UI draw context is handled by deferring persistent-setting restoration when Scene writes are temporarily forbidden.
+## Support and source
 
-## Development
+Public issue tracker: https://github.com/dedzedofficial/Blender-XR/issues
 
-Build the extension with:
+Source repository: https://github.com/dedzedofficial/Blender-XR
 
-```sh
-python scripts/build.py
-```
-
-The build verifies that the extension manifest, Python version source and packaged README all report the same release version.
-
-Repository documentation:
-
-- https://github.com/dedzedofficial/Blender-XR
-- https://github.com/dedzedofficial/Blender-XR/blob/main/ROADMAP.md
-- https://github.com/dedzedofficial/Blender-XR/blob/main/TESTING.md
-
-Blender XR is GPL-3.0-or-later and remains free/open source.
+XR Mesh is licensed under GPL-3.0-or-later.
