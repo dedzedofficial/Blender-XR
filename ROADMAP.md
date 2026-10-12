@@ -1,82 +1,18 @@
-# Blender XR roadmap
+# XR Mesh roadmap
 
-Free Blender VR tools by Ded Zed. Versions describe scoped goals, not promises of complete Blender parity. There is no paid feature tier planned.
+XR Mesh is a free controller-first OpenXR modeling extension for Blender by Ded Zed. This roadmap describes scoped goals, not promises of full Blender parity. Shipped release history is kept in [CHANGELOG.md](CHANGELOG.md); this file focuses on completed milestones and future direction.
 
-## v0.3.0: initial basic editing
+## Shipped foundation
 
-Implemented:
+### v0.3–v0.4
 
-- Installable Blender 5+ extension with GPL-3.0-or-later source.
-- Left/right dominant-hand choice before starting VR.
-- Tool menu attached to the non-dominant controller.
-- Dominant-controller pointing, object selection, and face selection.
-- Extrude, bevel, and inset with controller-driven distance previews.
-- Move and rotate an unparented object using the dominant grip.
-- Add/remove selected faces by gripping while selecting in face mode.
-- Cancel a live operation with the other trigger.
-- VR-local undo/redo for the latest 20 tool/move operations.
-- Viewer movement with the non-dominant thumbstick and reset view.
-- GitHub release check, checksum-verified download, installation rollback, and restart prompt.
-- Automated geometry, cancellation, history, packaging, and updater tests.
+Implemented the initial VR edit loop, controller menu, face selection, Extrude/Bevel/Inset, object grabbing, local Undo/Redo, navigation, controller profiles, experimental finger input, primitives, flight, mesh switching, Save Blend, Blender 4.2+ support, axis/size handles and selected-face transforms.
 
-## v0.4.0: Meta/Valve targets and optional fingers
-
-Implemented:
-
-- Automatic, Meta and Valve/SteamVR controller binding presets.
-- Documented Quest, Rift, Index and conditional Steam Frame compatibility targets.
-- Opt-in controller finger-touch hold for menu/cancel.
-- Experimental external SteamVR skeletal bridge: pinch selection/tool use and finger-curl object grab.
-- Loopback-only session-key protocol, bounded packet processing, input freshness and release-before-arming checks.
-- Tracking loss cancels unfinished work; estimated skeletal data cannot drive finger tools.
-
-## v0.4.1: fixing update
-
-- Fixed the missing Event.timer access that interrupted the VR modal loop.
-- Left thumbstick locomotion independent of dominant-hand choice.
-- Either-hand grab-air translation.
-- Hand-menu primitive picker and placement preview.
-- Primitive creation with VR-local undo/redo.
-
-## v0.4.2: flight and mesh switching
-
-- Unbounded scene flight.
-- Left-stick movement, right-stick turning/height and turbo flight.
-- Tools, Shapes and Travel menu pages.
-- Ray switching between meshes while editing.
-
-## v0.4.3: startup fix, saving and Blender 4.2+
-
-- Fixed unsupported BOOLEAN XR action types.
-- Save Blend from the hand menu and desktop sidebar.
-- Minimum Blender 4.2.0 with automated 4.2.0, 4.5.0, 5.0.0 and 5.2.2 coverage.
-
-## v0.4.4: easier building
-
-- Ray-picked XYZ movement and extrusion handles.
-- Bevel/inset thickness handles.
-- Delete selected faces with undo/redo.
-- Whole-object scaling.
-- Selected-face movement and scaling.
-- Distance-aware transform handles.
-- Cleaner VR menus with duplicate options removed.
-
-## v0.4.7: UI polish + early v0.5 preview
-
-- Reorganized the desktop sidebar.
-- Simplified the hand-menu labels.
-- Packaged whole-object scaling, face XYZ movement and face scaling as the first v0.5 preview.
-- Added Patreon and Website buttons to the Blender sidebar.
-- Preserved save, primitives, travel, editing and local history workflows.
-
-## v0.5.0: vertex, edge and face modeling
-
-Implemented for the v0.5.0 release:
+### v0.5 — vertex/edge/face modeling
 
 - [x] Vertex, Edge and Face selection modes directly in VR.
 - [x] Add/remove multi-selection using grip + trigger.
-- [x] Move selected vertices, edges and faces with XYZ gizmos.
-- [x] Scale selected vertices, edges and faces.
+- [x] Move and scale selected vertices, edges and faces.
 - [x] Extrude selected vertices, edges and faces.
 - [x] Bevel selected vertices/edges and face boundaries.
 - [x] Face inset.
@@ -84,47 +20,82 @@ Implemented for the v0.5.0 release:
 - [x] Merge selected vertices.
 - [x] Subdivide selected geometry.
 - [x] Duplicate selected geometry.
-- [x] Recalculate face normals.
-- [x] Flip face normals.
-- [x] Generalized distance-aware gizmos for edit-mode selections.
-- [x] Compact secondary edit page instead of overcrowding the main VR menu.
-- [x] Dedicated XR feedback for selected vertices, edges and faces.
-- [x] Automated regression coverage across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
+- [x] Recalculate and flip face normals.
+- [x] Distance-aware edit-mode gizmos and dedicated selection feedback.
+- [x] Native Blender color picker plus object/selected-face material colors.
+- [x] HSL controls, presets, Pick/Apply and lightweight face-color Undo/Redo.
+- [x] Shade Smooth / Flat and cached scene/object statistics.
+- [x] Persistent controller, movement, modeling and UI preferences.
+- [x] Purpose-based material, selection, transform, mode, status and menu modules.
+- [x] Automated Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 regression coverage.
 
-## v0.5.2: color + statistics quality-of-life update
+## v0.6.1 — Materials + UV mapping — complete
 
-Implemented:
+The original v0.6 Materials + UV target is implemented and covered by the automated Blender matrix.
 
-- [x] Native Blender color picker / hue wheel for the active mesh object.
-- [x] Apply the chosen color to the object's viewport color and active Principled material Base Color.
-- [x] Assign a chosen color/material only to selected faces in Edit Mode.
-- [x] Reuse matching material slots instead of creating unnecessary duplicate color materials.
-- [x] Avoid unexpectedly recoloring other objects by copying shared materials before whole-object changes.
-- [x] Scene Statistics area showing visible Objects, Selected Objects, Meshes, Materials, Vertices, Edges, Faces and Triangles.
-- [x] Active-object vertex/edge/face/triangle counts.
-- [x] Shade Smooth and Shade Flat controls.
-- [x] Keep the existing v0.5 mesh editing, axis gizmos, travel, save and local history workflows unchanged.
+### Materials
 
-## v0.5.3: cleanup + stronger foundations
+- [x] Create materials.
+- [x] Delete materials.
+- [x] Rename materials.
+- [x] Duplicate materials. *(Added during v0.6 implementation.)*
+- [x] Create and remove material slots.
+- [x] Cycle the active material slot in VR. *(Added during v0.6 implementation.)*
+- [x] Select and assign material slots to selected faces.
+- [x] Select faces that use the active material slot. *(Added during v0.6 implementation.)*
+- [x] Base Color control.
+- [x] Metallic control.
+- [x] Roughness control.
+- [x] Alpha control.
+- [x] Emission control.
+- [x] Material Preview toggle.
+- [x] Dedicated Materials hub in VR. *(Added during v0.6 implementation.)*
+- [x] Advanced Materials + Textures desktop panel. *(Added during v0.6 implementation.)*
 
-Implemented for the v0.5.3 release:
+### Textures
 
-- [x] Rename the sidebar appearance workflow to a clearer **Materials** section.
-- [x] Show active material name and material-slot position.
-- [x] Context-aware **Apply to Object** / **Assign to Selected Faces** wording.
-- [x] Cache scene statistics instead of fully recounting geometry on every panel redraw.
-- [x] Make Scene Statistics collapsible.
-- [x] Persist controller, movement, modeling and UI preferences between Blender files.
-- [x] Centralize material creation/reuse/face assignment in `materials.py`.
-- [x] Centralize vertex/edge/face selection handling in `selection.py` while keeping old APIs compatible.
-- [x] Centralize transform helper behavior in `transforms.py` while keeping existing runtime call sites stable.
-- [x] Centralize safe Object/Edit mode switching in `modes.py`.
-- [x] Centralize short status feedback in `status.py`.
-- [x] Move VR menu page definitions out of the GPU renderer into `menus.py`.
-- [x] Keep `v052.py` as a small compatibility layer instead of a growing version-specific feature file.
-- [x] Standardize gizmo sizing/picking constants without changing the existing controller interaction model.
+- [x] Select texture images.
+- [x] Cycle available Blender images from VR. *(Added during v0.6 implementation.)*
+- [x] Load a texture image from disk using Blender's desktop file picker. *(Added during v0.6 implementation.)*
+- [x] Apply the selected image to the active material Base Color.
+- [x] Clear the XR Mesh image texture without deleting the image datablock. *(Added during v0.6 implementation.)*
+- [x] Built-in numbered checker diagnostic texture.
+- [x] Built-in directional UV diagnostic texture.
+- [x] Built-in color-grid diagnostic texture.
+- [x] Pack generated diagnostic images into the `.blend`. *(Added during v0.6 implementation.)*
 
-Still suitable for later v0.5.x modeling polish rather than blocking v0.5.3:
+### UV mapping + editing
+
+- [x] Standard UV Unwrap.
+- [x] Smart UV Project.
+- [x] Cube projection.
+- [x] Planar projection.
+- [x] Mark seams.
+- [x] Clear seams.
+- [x] Move UV islands on U/V.
+- [x] Rotate UV islands.
+- [x] Scale UV islands.
+- [x] Reset UVs.
+- [x] Pack UV islands.
+- [x] Simple VR UV wireframe preview.
+- [x] Desktop UV Mapping panel. *(Added during v0.6 implementation.)*
+- [x] Configurable desktop UV movement step. *(Added during v0.6 implementation.)*
+- [x] Deterministic UV projection/packing fallbacks for restricted Blender contexts. *(Added during v0.6 implementation.)*
+
+### v0.6 engineering + release quality
+
+- [x] Separate `material_uv.py`, `uv_tools.py` and `v060.py` instead of growing the core runtime.
+- [x] Preserve the existing HSL color workflow inside the new Materials hub.
+- [x] Dedicated v0.6 material/texture/UV regression suite.
+- [x] Run v0.6 tests on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
+- [x] Block release publishing unless the v0.6 suite passes on Blender 5.2.2.
+- [x] Build guards for v0.6 runtime/module/menu wiring.
+- [x] Blender Extensions-compliant name/support/update behavior and no packaged `threading`/`queue` imports.
+- [x] File permission description covers texture loading and project saving.
+
+## Modeling polish backlog
+
+These were previously listed as later v0.5.x polish. They remain useful, but are not part of the completed v0.6 Materials + UV milestone and can be scheduled alongside later transform/modeling work.
 
 - [ ] Rotate selected mesh geometry with VR gizmos.
 - [ ] Loop Cut.
@@ -138,41 +109,10 @@ Still suitable for later v0.5.x modeling polish rather than blocking v0.5.3:
 
 | Version | Main goal | Ideal direction |
 | --- | --- | --- |
-| **v0.6** | **Materials + UV mapping** | Full material management, textures, UV unwrapping, UV editing and diagnostic texture tools. |
 | **v0.7** | **Object transforms + modifiers** | Numeric transforms, origins, snapping, duplication and a focused set of common modifiers. |
 | **v0.8** | **Rigging + Weight Painting** | Armatures, bones, posing, vertex groups, weighting, deformation testing and basic rig constraints in one complete rigging workflow. |
 | **v0.9** | **Deformation + Animation** | Shape keys/blendshapes, corrective deformation, pose presets, basic drivers and practical keyframe animation tools in VR. |
 | **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems and make the complete workflow stable, performant and VR-native, including direct-hand manipulation and Extrude-to-Hand. |
-
-## v0.6 materials + UV mapping target
-
-- [ ] Create materials.
-- [ ] Delete materials.
-- [ ] Rename materials.
-- [ ] Create and remove material slots.
-- [ ] Select and assign material slots to selected faces.
-- [ ] Base Color control.
-- [ ] Metallic control.
-- [ ] Roughness control.
-- [ ] Alpha control.
-- [ ] Emission control.
-- [ ] Select texture images.
-- [ ] Standard UV unwrap.
-- [ ] Smart UV Project.
-- [ ] Cube projection.
-- [ ] Planar projection.
-- [ ] Mark seams.
-- [ ] Clear seams.
-- [ ] Move UV islands.
-- [ ] Rotate UV islands.
-- [ ] Scale UV islands.
-- [ ] Reset UVs.
-- [ ] Pack UV islands.
-- [ ] Built-in numbered checker diagnostic texture.
-- [ ] Built-in directional UV diagnostic texture.
-- [ ] Built-in color-grid diagnostic texture.
-- [ ] Simple VR UV preview.
-- [ ] Material preview mode.
 
 ## v0.7 object transforms + modifiers target
 
