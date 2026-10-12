@@ -46,6 +46,7 @@ jobs:
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_mesh_v05.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v052.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v056.py
+          /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v060.py
       - name: Publish or refresh current version
         id: github_release
         env:
