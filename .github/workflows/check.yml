@@ -1,4 +1,4 @@
-name: Validate Blender XR
+name: Validate XR Mesh
 on:
   push:
     branches: [main]
@@ -35,11 +35,11 @@ jobs:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: |
           BLENDER="/tmp/blender-${BLENDER_VERSION}-linux-x64/blender"
-          TEST_HOME="/tmp/blender-xr-extension-home-${BLENDER_VERSION}"
+          TEST_HOME="/tmp/xr-mesh-extension-home-${BLENDER_VERSION}"
           rm -rf "$TEST_HOME"
           mkdir -p "$TEST_HOME"
           PACKAGE=$(ls dist/blender-xr-v*.zip)
-          HOME="$TEST_HOME" "$BLENDER" --command extension repo-add bxr_test --name "Blender XR Test" --directory "$TEST_HOME/extensions" --clear-all
+          HOME="$TEST_HOME" "$BLENDER" --command extension repo-add bxr_test --name "XR Mesh Test" --directory "$TEST_HOME/extensions" --clear-all
           HOME="$TEST_HOME" "$BLENDER" --command extension install-file -r bxr_test -e "$PACKAGE"
           HOME="$TEST_HOME" "$BLENDER" --background --python-exit-code 1 --python-expr "import bpy; m='bl_ext.bxr_test.blender_xr'; assert m in bpy.context.preferences.addons, [a.module for a in bpy.context.preferences.addons]; assert hasattr(bpy.ops.blender_xr,'session'); assert hasattr(bpy.types,'BXR_PT_panel'); print('PASS installed extension package',m)"
       - name: Mesh and registration tests
@@ -80,5 +80,5 @@ jobs:
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v056.py
       - uses: actions/upload-artifact@v4
         with:
-          name: blender-xr-${{ matrix.blender }}
+          name: xr-mesh-${{ matrix.blender }}
           path: dist/*
