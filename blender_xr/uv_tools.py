@@ -167,7 +167,9 @@ def transform(obj, move=(0.0, 0.0), rotate=0.0, scale=1.0):
     bm, uv, faces, loops = _selected_loops(obj)
     if not loops:
         raise ValueError('Select one or more faces first')
-    center = sum((Vector(loop[uv].uv) for loop in loops), Vector()) / len(loops)
+    # UV coordinates are 2D vectors. An explicit 2D accumulator avoids
+    # Blender-version-dependent Vector() defaults (which are 3D in 4.x/5.x).
+    center = sum((Vector(loop[uv].uv) for loop in loops), Vector((0.0, 0.0))) / len(loops)
     angle = math.radians(float(rotate))
     cosine, sine = math.cos(angle), math.sin(angle)
     offset = Vector((float(move[0]), float(move[1])))
