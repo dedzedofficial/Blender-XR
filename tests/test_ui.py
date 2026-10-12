@@ -22,17 +22,20 @@ class FakeLayout:
 
 
 def run():
-    assert version.VERSION==(0,6,0)
+    assert version.VERSION >= (0,6,1)
     assert blender_xr.bl_info['name']=='XR Mesh'
     assert blender_xr.bl_info['version']==version.VERSION
     assert blender_xr.BXR_PT_panel.bl_label=='XR Mesh v'+version.VERSION_TEXT
     assert blender_xr.BXR_PT_panel.bl_category=='XR Mesh'
     assert getattr(runtime.Runtime,'_v056_patched',False), 'v0.5.6 runtime layer was not activated'
+    assert getattr(runtime.Runtime,'_v060_patched',False), 'v0.6 material/UV runtime layer was not activated'
     assert hasattr(bpy.types,'VIEW3D_MT_view')
 
     blender_xr.register()
     assert hasattr(bpy.types.Scene,'blender_xr')
     assert hasattr(bpy.ops.blender_xr,'session')
+    assert hasattr(bpy.ops.blender_xr,'material_action')
+    assert hasattr(bpy.ops.blender_xr,'uv_action')
 
     layout=FakeLayout()
     blender_xr.draw_view_menu(NS(layout=layout),bpy.context)
@@ -81,7 +84,7 @@ def run():
 
     blender_xr.unregister()
     assert not hasattr(bpy.types.Scene,'blender_xr')
-    print('PASS XR Mesh v0.6.0 native launch UI, runtime patch and deferred preference restore')
+    print('PASS XR Mesh '+version.DISPLAY_VERSION+' native launch UI, v0.6 runtime and deferred preference restore')
 
 
 run()
