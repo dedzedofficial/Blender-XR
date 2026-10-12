@@ -61,3 +61,5 @@ Vertex/edge/face selection, Move/Scale Selected, extrude, bevel, inset, delete, 
 ## Compatibility
 
 Automated validation targets Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 remains blocked because of its known VR crash. Physical headset/runtime validation is still separate from background Blender automation.
+
+See `CHANGELOG.md` for shipped history, `ROADMAP.md` for the completed v0.6 checklist and future targets, and `TESTING.md` for automated/manual validation coverage.
