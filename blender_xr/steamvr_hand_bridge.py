@@ -17,7 +17,7 @@ def manifests(folder):
     for controller in ('knuckles', 'oculus_touch'):
         filename = controller + '.json'
         defaults.append({'controller_type': controller, 'binding_url': filename})
-        binding = {'controller_type': controller, 'name': 'Blender XR finger input',
+        binding = {'controller_type': controller, 'name': 'XR Mesh finger input',
                    'description': 'Experimental skeletal input bridge',
                    'bindings': {'/actions/bxr': {'skeleton': [
                        {'output': '/actions/bxr/in/' + side,
@@ -53,7 +53,7 @@ def sample(vr, inputs, handle):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--key', required=True, help='Session key shown in Blender XR')
+    parser.add_argument('--key', required=True, help='Session key shown in XR Mesh')
     parser.add_argument('--port', type=int, default=39540)
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
@@ -62,14 +62,14 @@ def main():
         import openvr
     except ImportError:
         parser.exit(1, 'Install the optional helper dependency: python -m pip install openvr==2.12.1401\n')
-    print('Starting experimental hand bridge. Use SteamVR OpenXR, release both hands to arm.')
+    print('Starting XR Mesh experimental hand bridge. Use SteamVR OpenXR, release both hands to arm.')
     initialized = False
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         openvr.init(openvr.VRApplication_Background)
         initialized = True
         inputs = openvr.VRInput()
-        with tempfile.TemporaryDirectory(prefix='blender-xr-hands-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='xr-mesh-hands-') as temporary:
             inputs.setActionManifestPath(str(manifests(Path(temporary)).resolve()))
             active = (openvr.VRActiveActionSet_t * 1)()
             active[0].ulActionSet = inputs.getActionSetHandle('/actions/bxr')
