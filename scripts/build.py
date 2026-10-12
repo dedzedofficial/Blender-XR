@@ -30,6 +30,7 @@ assert 'Patreon' not in init_text
 assert "updates=layout.box()" not in init_text
 
 drawing_text=(SOURCE/'drawing.py').read_text()
+assert "text('XR MESH / '+menus.title(self.page)" in drawing_text
 assert 'version.DISPLAY_VERSION' in drawing_text
 assert "V0.5.3" not in drawing_text
 
