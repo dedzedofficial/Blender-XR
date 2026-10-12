@@ -1,4 +1,4 @@
-"""v0.5.6 selected-scale, edit undo, HSL VR colors and version regression checks."""
+"""v0.5.6 selected-scale, edit undo and HSL VR color regression checks."""
 import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
@@ -22,10 +22,10 @@ session=None
 bm=None
 tx=None
 try:
-    assert blender_xr.bl_info['version'] == (0, 5, 6)
-    assert version.VERSION == (0, 5, 6)
-    assert version.DISPLAY_VERSION == 'V0.5.6'
-    assert drawing.version.DISPLAY_VERSION == 'V0.5.6'
+    assert blender_xr.bl_info['version'] == (0, 6, 0)
+    assert version.VERSION == (0, 6, 0)
+    assert version.DISPLAY_VERSION == 'V0.6.0'
+    assert drawing.version.DISPLAY_VERSION == 'V0.6.0'
     assert 'COLOR_MENU' in {action for _label, action in drawing.BUTTONS}
     assert {'MOVE_EDIT', 'SCALE_EDIT', 'COLOR_MENU', 'UNDO'} <= {action for _label, action in drawing.EDIT_BUTTONS}
     assert 'REDO' in {action for _label, action in drawing.EDIT_MORE_BUTTONS}
@@ -159,7 +159,7 @@ try:
 
     session.history.clear()
     assert {m.name for m in bpy.data.meshes if m.name.startswith('.BlenderXR_Snapshot')}==snapshots_before
-    print('PASS v0.5.6 HSL sliders, selected scale, multi-face colors and lightweight undo/redo')
+    print('PASS v0.5.6 feature suite under XR Mesh v0.6.0')
 finally:
     # Release Python references to edit BMesh/RNA data before unregister removes
     # Scene.blender_xr. Blender 4.2 can crash at process shutdown if a test keeps
