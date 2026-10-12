@@ -22,9 +22,11 @@ class FakeLayout:
 
 
 def run():
-    assert version.VERSION==(0,5,6)
+    assert version.VERSION==(0,6,0)
     assert blender_xr.bl_info['version']==version.VERSION
-    assert blender_xr.BXR_PT_panel.bl_label=='Blender XR v'+version.VERSION_TEXT
+    assert blender_xr.bl_info['name']=='XR Mesh'
+    assert blender_xr.BXR_PT_panel.bl_label=='XR Mesh v'+version.VERSION_TEXT
+    assert blender_xr.BXR_PT_panel.bl_category=='XR Mesh'
     assert hasattr(bpy.types,'VIEW3D_MT_view')
 
     blender_xr.register()
@@ -33,14 +35,14 @@ def run():
 
     layout=FakeLayout()
     blender_xr.draw_view_menu(NS(layout=layout),bpy.context)
-    assert ('operator','blender_xr.session','Start Blender XR','PLAY') in layout.calls
+    assert ('operator','blender_xr.session','Start XR Mesh','PLAY') in layout.calls
 
     previous=runtime.CURRENT
     try:
         runtime.CURRENT=NS()
         layout=FakeLayout()
         blender_xr.draw_view_menu(NS(layout=layout),bpy.context)
-        assert ('operator','blender_xr.stop','Stop Blender XR','PAUSE') in layout.calls
+        assert ('operator','blender_xr.stop','Stop XR Mesh','PAUSE') in layout.calls
     finally:
         runtime.CURRENT=previous
 
@@ -78,7 +80,7 @@ def run():
 
     blender_xr.unregister()
     assert not hasattr(bpy.types.Scene,'blender_xr')
-    print('PASS v0.5.6 native Blender launch UI, shared version and deferred preference restore')
+    print('PASS v0.6.0 XR Mesh native launch UI, shared version and deferred preference restore')
 
 
 run()
