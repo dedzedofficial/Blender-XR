@@ -2,8 +2,8 @@
 from .version import VERSION, VERSION_TEXT
 
 bl_info = {
-    'name': 'Blender XR', 'author': 'Ded Zed', 'version': VERSION,
-    'blender': (4,2,0), 'location': '3D View > Sidebar / View Menu > Blender XR',
+    'name': 'XR Mesh', 'author': 'Ded Zed', 'version': VERSION,
+    'blender': (4,2,0), 'location': '3D View > Sidebar / View Menu > XR Mesh',
     'description': 'Free VR mesh modeling with a hand-mounted OpenXR menu',
     'category': '3D View',
 }
@@ -65,7 +65,7 @@ class BXR_Settings(bpy.types.PropertyGroup):
 class BXR_OT_session(bpy.types.Operator):
     bl_idname = 'blender_xr.session'
     bl_label = 'Start VR'
-    bl_description = 'Start Blender XR using the active OpenXR runtime'
+    bl_description = 'Start XR Mesh using the active OpenXR runtime'
 
     @classmethod
     def poll(cls,context):
@@ -84,13 +84,13 @@ class BXR_OT_session(bpy.types.Operator):
             self.report({'ERROR'},'Blender 5.0.1 has a known VR crash. Use another Blender version.')
             return {'CANCELLED'}
         if bpy.types.XrSessionState.is_running(context):
-            self.report({'ERROR'},'Stop the existing VR session before starting Blender XR')
+            self.report({'ERROR'},'Stop the existing VR session before starting XR Mesh')
             return {'CANCELLED'}
         if context.mode not in {'OBJECT','EDIT_MESH'}:
             self.report({'ERROR'},'Use object mode or mesh edit mode')
             return {'CANCELLED'}
         if len(context.objects_in_mode)>1:
-            self.report({'ERROR'},'Blender XR currently edits one mesh at a time')
+            self.report({'ERROR'},'XR Mesh currently edits one mesh at a time')
             return {'CANCELLED'}
         runtime.START_ERROR = ''
         session = runtime.Runtime(context)
@@ -192,7 +192,7 @@ class BXR_OT_save(bpy.types.Operator):
 
 class BXR_OT_tool(bpy.types.Operator):
     bl_idname='blender_xr.tool'
-    bl_label='Apply Blender XR Tool'
+    bl_label='Apply XR Mesh Tool'
     bl_options={'REGISTER','UNDO'}
     tool: EnumProperty(items=[(t,t.title(),'') for t in ('EXTRUDE','BEVEL','INSET')])
     amount: FloatProperty(default=0.03)
@@ -236,7 +236,7 @@ class BXR_OT_apply_color(bpy.types.Operator):
 
 class BXR_OT_shade(bpy.types.Operator):
     bl_idname='blender_xr.shade'
-    bl_label='Shade Blender XR Object'
+    bl_label='Shade XR Mesh Object'
     bl_description='Set all faces on the active mesh to smooth or flat shading'
     bl_options={'REGISTER','UNDO'}
     mode: EnumProperty(items=[('SMOOTH','Smooth','Shade faces smooth'),
@@ -275,7 +275,7 @@ class BXR_OT_bridge_command(bpy.types.Operator):
 
 class BXR_OT_link(bpy.types.Operator):
     bl_idname='blender_xr.open_link'
-    bl_label='Open Blender XR Link'
+    bl_label='Open XR Mesh Link'
     destination: EnumProperty(items=[
         ('PATREON','Patreon','Support Ded Zed on Patreon'),
         ('WEBSITE','Website','Open the FISHHWB website')])
@@ -294,16 +294,16 @@ def draw_view_menu(self, context):
     active=runtime.CURRENT is not None
     self.layout.separator()
     self.layout.operator('blender_xr.stop' if active else 'blender_xr.session',
-                         text='Stop Blender XR' if active else 'Start Blender XR',
+                         text='Stop XR Mesh' if active else 'Start XR Mesh',
                          icon='PAUSE' if active else 'PLAY')
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Blender XR v'+VERSION_TEXT
+    bl_label='XR Mesh v'+VERSION_TEXT
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
-    bl_category='Blender XR'
+    bl_category='XR Mesh'
 
     def draw(self,context):
         layout=self.layout
