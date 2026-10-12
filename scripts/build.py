@@ -10,6 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'blender_xr'
 manifest=tomllib.loads((SOURCE/'blender_manifest.toml').read_text())
 assert manifest['id']=='blender_xr'
+assert manifest['name']=='XR Mesh'
 version=manifest['version']
 
 # Keep every user-visible version source synchronized. This specifically guards
@@ -20,12 +21,13 @@ match=re.search(r'^VERSION\s*=\s*(.+)$',version_source,re.MULTILINE)
 assert match, 'version.py must define VERSION'
 python_version='.'.join(str(part) for part in ast.literal_eval(match.group(1)))
 assert python_version==version, f'manifest {version} != Python {python_version}'
-assert (SOURCE/'README.md').read_text().startswith('# Blender XR v'+version+'\n')
+assert (SOURCE/'README.md').read_text().startswith('# XR Mesh v'+version+'\n')
 init_text=(SOURCE/'__init__.py').read_text()
 assert "'version': VERSION" in init_text
-assert "bl_label='Blender XR v'+VERSION_TEXT" in init_text
+assert "bl_label='XR Mesh v'+VERSION_TEXT" in init_text
 drawing_text=(SOURCE/'drawing.py').read_text()
 assert 'version.DISPLAY_VERSION' in drawing_text
+assert "text('XR MESH / '+menus.title(self.page)" in drawing_text
 assert "V0.5.3" not in drawing_text
 
 output=ROOT/'dist'/('blender-xr-v'+version+'.zip')
