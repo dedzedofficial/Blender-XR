@@ -2,9 +2,12 @@
 """v0.5.2 compatibility wrappers kept for older tests/imports.
 
 The implementation now lives in purpose-based modules used by v0.5.3+.
+Importing this compatibility layer also activates the v0.5.6 controller/UI
+patches so the documented HSL and selected-geometry workflow is live.
 """
-from . import materials, mesh, runtime, statistics, v053
+from . import materials, mesh, runtime, statistics, v053, v056
 v053.patch(runtime, mesh)
+v056.patch(runtime.Runtime)
 
 
 def apply_object_color(obj, color):
