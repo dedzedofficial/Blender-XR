@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 id = "blender_xr"
-version = "0.6.0"
+version = "0.6.1"
 name = "XR Mesh"
-tagline = "VR mesh editing, selected scaling and in-headset color controls"
+tagline = "VR mesh editing, materials, textures and UV mapping"
 maintainer = "Ded Zed"
 type = "add-on"
 website = "https://github.com/dedzedofficial/Blender-XR"
@@ -14,7 +14,7 @@ platforms = ["windows-x64", "linux-x64"]
 
 [permissions]
 network = "Receive optional local SteamVR hand input"
-files = "Save Blender projects"
+files = "Load texture images and save Blender projects"
 
 [build]
 paths_exclude_pattern = ["__pycache__/", "*.pyc"]
