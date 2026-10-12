@@ -1,4 +1,4 @@
-# Blender XR v0.5.6
+# XR Mesh v0.5.6
 
 v0.5.6 completes the headset-side edit/color workflow and closes several version/UI gaps found while auditing every previously shipped update.
 
@@ -18,7 +18,7 @@ v0.5.6 completes the headset-side edit/color workflow and closes several version
 - **Pick** reads the active object material or the selected Edit Mode face color back into the sliders.
 - **Apply** recolors the active object in Object Mode.
 - In Edit Mode, **Apply requires Face selection and changes only the selected faces**, allowing different faces on the same mesh to keep different colors.
-- Face-color changes remain in Blender XR's lightweight session-local Undo / Redo history without creating temporary topology snapshots.
+- Face-color changes remain in XR Mesh's lightweight session-local Undo / Redo history without creating temporary topology snapshots.
 - Re-applying an unchanged face color does not waste an Undo history entry.
 - White and Black change Lightness while retaining the selected Hue/Saturation, so moving Lightness back restores the chosen color family.
 - Red, Orange, Yellow, Green, Cyan, Blue, Purple and Pink remain available on an optional **Presets** page.
@@ -28,7 +28,7 @@ v0.5.6 completes the headset-side edit/color workflow and closes several version
 ## Version and package consistency
 
 - Adds a shared Python version source for v0.5.6.
-- The Blender add-on metadata, sidebar title and in-headset footer all report v0.5.6 from that shared source.
+- The Blender add-on metadata, XR Mesh sidebar title and in-headset footer all report v0.5.6 from that shared source.
 - Replaces the stale packaged README that still identified itself as v0.5.3.
 - The build fails if the manifest, Python version source, sidebar metadata, VR version source or packaged README drift apart again.
 
@@ -47,10 +47,15 @@ The v0.5.6 audit confirmed that the following previously released systems remain
 - Desktop material color picker, shared-material copy protection, selected-face material assignment and shading controls.
 - Cached scene/object statistics.
 - Persistent controller, movement, modeling and UI preferences.
-- Native Blender launch paths from the Blender XR sidebar and the 3D Viewport View menu.
+- Native Blender launch paths from the XR Mesh sidebar and the 3D Viewport View menu.
 - Blender 5.2-safe deferred preference restore when Scene writes are forbidden during UI drawing.
 - Clean-profile installation/enablement testing of the actual built extension ZIP.
 - Patreon/website links and the experimental finger-input paths.
+
+## Branding
+
+- The user-facing software name is now **XR Mesh**.
+- The existing `Blender-XR` repository, `blender_xr` extension ID and package filename are retained for update and install compatibility.
 
 ## Compatibility
 
