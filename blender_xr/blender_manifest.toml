@@ -1,10 +1,12 @@
 schema_version = "1.0.0"
 id = "blender_xr"
 version = "0.5.6"
-name = "Blender XR"
+name = "XR Mesh"
 tagline = "VR mesh editing, selected scaling and in-headset color controls"
 maintainer = "Ded Zed"
 type = "add-on"
+website = "https://github.com/dedzedofficial/Blender-XR"
+support = "https://github.com/dedzedofficial/Blender-XR/issues"
 tags = ["3D View", "Mesh", "User Interface"]
 blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
