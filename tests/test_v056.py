@@ -22,12 +22,11 @@ session=None
 bm=None
 tx=None
 try:
-    assert blender_xr.bl_info['version'] == (0, 6, 0)
-    assert version.VERSION == (0, 6, 0)
-    assert version.DISPLAY_VERSION == 'V0.6.0'
-    assert drawing.version.DISPLAY_VERSION == 'V0.6.0'
-    assert 'COLOR_MENU' in {action for _label, action in drawing.BUTTONS}
-    assert {'MOVE_EDIT', 'SCALE_EDIT', 'COLOR_MENU', 'UNDO'} <= {action for _label, action in drawing.EDIT_BUTTONS}
+    assert blender_xr.bl_info['version'] == version.VERSION
+    assert version.VERSION >= (0, 5, 6)
+    assert drawing.version.DISPLAY_VERSION == version.DISPLAY_VERSION
+    assert 'MATERIAL_MENU' in {action for _label, action in drawing.BUTTONS}
+    assert {'MOVE_EDIT', 'SCALE_EDIT', 'MATERIAL_MENU', 'UNDO'} <= {action for _label, action in drawing.EDIT_BUTTONS}
     assert 'REDO' in {action for _label, action in drawing.EDIT_MORE_BUTTONS}
     assert hasattr(drawing, 'MATERIAL_BUTTONS')
     assert hasattr(drawing, 'MATERIAL_ADJUST_BUTTONS')
@@ -62,7 +61,8 @@ try:
     assert action=='COLOR_HUE_SLIDER'
     assert abs(session.menu.slider_value-0.25)<0.01
 
-    # Object-mode color workflow opens HSL first and each slider directly sets a component.
+    # Legacy direct COLOR_MENU command remains valid for compatibility even
+    # though the visible v0.6 top-level button now opens the Materials hub.
     session.menu.page='TOOLS'
     session.command(bpy.context,'COLOR_MENU')
     assert session.menu.page=='MATERIAL_ADJUST' and session.color_return_page=='TOOLS'
@@ -159,7 +159,7 @@ try:
 
     session.history.clear()
     assert {m.name for m in bpy.data.meshes if m.name.startswith('.BlenderXR_Snapshot')}==snapshots_before
-    print('PASS v0.5.6 feature suite under XR Mesh v0.6.0')
+    print('PASS v0.5.6 feature suite under XR Mesh '+version.DISPLAY_VERSION)
 finally:
     # Release Python references to edit BMesh/RNA data before unregister removes
     # Scene.blender_xr. Blender 4.2 can crash at process shutdown if a test keeps
