@@ -6,3 +6,4 @@ __pycache__/
 build/
 dist/*.zip
 dist/*.sha256
+blender_xr/wheels/*.whl
