@@ -15,7 +15,7 @@ This file records shipped user-facing changes. Planned work belongs in [ROADMAP.
 
 - Current extension/add-on branding changed from **XR Mesh** to **Mesh XR**.
 - Kept the stable `blender_xr` extension ID and operator namespace for compatibility with the existing Blender Extensions entry and saved workflows.
-- SteamVR hand-helper startup now adds the extension's installed `site-packages` to `sys.path`, allowing the helper to use the bundled wheel from system Python.
+- SteamVR hand-helper startup now relaunches the external helper with the extension's installed `site-packages` supplied through `PYTHONPATH`, without modifying Blender's module search path.
 - Release archives and GitHub workflow/artifact naming now use `mesh-xr-v<version>.zip` / Mesh XR branding.
 
 ### Fixed
