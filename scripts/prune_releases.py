@@ -20,7 +20,7 @@ def version(tag):
 def main():
     manifest=tomllib.loads((ROOT/'blender_xr/blender_manifest.toml').read_text())
     current='v'+manifest['version']
-    installer='blender-xr-'+current+'.zip'
+    installer='mesh-xr-'+current+'.zip'
     repository=os.environ['GITHUB_REPOSITORY']
     sha=os.environ['GITHUB_SHA']
     # Verify published bytes before deleting any prior downloadable version.
@@ -42,11 +42,11 @@ def main():
     pages=json.loads(gh('api','--paginate','--slurp','repos/'+repository+'/actions/artifacts'))
     for page in pages:
         for artifact in page.get('artifacts',[]):
-            if (artifact['name'].startswith('blender-xr-') and
+            if (artifact['name'].startswith('mesh-xr-') and
                     artifact.get('workflow_run',{}).get('head_sha') != sha):
                 print('Remove older installer artifact',artifact['id'],flush=True)
                 gh('api','--method','DELETE','repos/'+repository+'/actions/artifacts/'+str(artifact['id']))
-    print('Only current Blender XR release downloads retained:',current)
+    print('Only current Mesh XR release downloads retained:',current)
 
 if __name__=='__main__':
     main()
