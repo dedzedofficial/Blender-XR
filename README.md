@@ -8,18 +8,17 @@ Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand ca
 
 ## v0.6.4 highlights
 
-v0.6.4 is a focused Blender Extensions packaging and compatibility update.
+v0.6.4 is a focused Blender Extensions packaging and compatibility update. The complete v0.6 modeling, materials, texture and UV workflow remains available.
 
 - Current extension/add-on branding is **Mesh XR**.
 - Bundles the official `openvr==2.12.1401` `py3-none-any` wheel for the optional SteamVR skeletal hand bridge.
 - Declares the dependency through Blender's extension `wheels` manifest field.
 - Build tooling downloads the unchanged PyPI wheel when needed and verifies its published SHA-256 before packaging.
-- The hand bridge loads the extension's installed `site-packages`, removing the previous manual `pip install openvr` requirement.
+- The external hand helper uses the extension's installed `site-packages`, removing the previous manual `pip install openvr` requirement.
 - CI confirms the wheel is present in the generated ZIP and imports it after a clean Blender extension install.
 - Release packages now use `mesh-xr-v<version>.zip` naming.
-- The stable `blender_xr` extension ID and operator namespace are retained for compatibility.
-
-The complete v0.6 materials, textures and UV workflow remains unchanged.
+- The stable `blender_xr` extension ID and operator namespace are retained for compatibility with the existing extension entry and saved workflows.
+- The in-headset header, Blender sidebar, View menu and current add-on UI now use **Mesh XR** branding.
 
 ## Launch
 
@@ -50,7 +49,7 @@ Blender's separate **VR Scene Inspection** extension provides Blender's own Star
 
 Open **Materials** from Object Mode or Edit Mode. The headset hub provides Base Color/HSL, material properties, material slots, textures, UV tools and Material Preview.
 
-The color page keeps full-width **Hue**, **Saturation** and **Lightness** sliders, Pick/Apply controls, White/Black lightness shortcuts and optional color presets. In Edit Mode, Face selection allows different faces on one mesh to retain different materials/colors.
+The color page keeps the full-width **Hue**, **Saturation** and **Lightness** sliders, Pick/Apply controls, White/Black lightness shortcuts and optional color presets. In Edit Mode, Face selection allows different faces on one mesh to retain different materials/colors.
 
 Material tools include:
 
@@ -60,7 +59,7 @@ Material tools include:
 - Assign the active slot to selected faces or select faces that use the active slot.
 - Base Color, Metallic, Roughness, Alpha and Emission controls.
 - Load an image from disk on desktop, then cycle/apply available Blender images in VR.
-- Clear the Mesh XR image texture without deleting the Blender image datablock.
+- Clear the managed image texture without deleting the Blender image datablock.
 - Built-in numbered checker, directional and color-grid diagnostics.
 
 Generated diagnostic images are packed into the `.blend` so they are self-contained.
@@ -77,9 +76,26 @@ UV tools operate on selected mesh faces in Edit Mode:
 
 Mesh XR uses Blender's native UV operators where their context is available and falls back to deterministic projection/packing behavior where needed, including restricted/background contexts.
 
-## Experimental finger input
+The desktop **UV Mapping** panel exposes the same practical operations with buttons and an adjustable UV move step.
 
-Finger-touch shortcuts and the optional SteamVR skeletal bridge remain experimental and are not required for standard controller use. The bridge still runs as an external helper process, but v0.6.4 ships its required OpenVR Python library inside the Blender Extension package. The helper locates that bundled `site-packages` directory automatically.
+## Mesh editing
+
+Enter **Edit Mode** from the VR menu and choose **VERT**, **EDGE** or **FACE**. The main edit page includes Select, Move Sel, Scale Sel, Extrude, Bevel, Materials, Undo and More. More Edit contains Inset, Delete, Merge, Subdivide, Duplicate, Recalculate Normals, Flip Normals and Redo.
+
+## Scene building and movement
+
+Use **Shapes** to add cube, sphere, cylinder, cone, torus or plane meshes directly in VR. A placement preview appears before creation.
+
+Use **Travel** for Fly/Walk, Turbo, Faster/Slower, Snap/Smooth turning and Reset View. The left stick controls movement and the right stick handles turning and vertical travel.
+
+## Saving
+
+Use **Save Blend** from the VR menu or desktop sidebar.
+
+- Existing projects save to their current file.
+- Unsaved projects default to a timestamped file in `Documents/BlenderXR` for backwards-compatible storage paths.
+- A custom first-save path can be chosen before starting VR.
+- Private Mesh XR session-history snapshots are not stored in the `.blend` file.
 
 ## Install
 
@@ -102,6 +118,12 @@ The extension is free, open source and licensed under **GPL-3.0-or-later**.
 
 Automated validation covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash.
 
+## Experimental finger input
+
+Finger-touch shortcuts and the optional SteamVR skeletal bridge remain experimental and are not required for standard controller use. Standard controller operation does not depend on OpenVR.
+
+For the SteamVR skeletal path, v0.6.4 ships the required OpenVR Python wheel inside the Blender Extension package. The helper still runs as a separate system-Python process so SteamVR polling remains outside Blender's Python process, but it reuses the dependency installed with Mesh XR instead of asking the user to install a package manually. The add-on itself remains free of `threading` and `queue`.
+
 ## Current limits
 
 - One local editable mesh at a time for topology work.
@@ -122,9 +144,9 @@ Build the extension with:
 python scripts/build.py
 ```
 
-The build verifies manifest/version/package metadata, Mesh XR branding, the v0.5.6 and v0.6 runtime layers, material/UV modules, menu routing, the pinned OpenVR wheel checksum, and rejects packaged imports of `threading` or `queue`.
+The build verifies manifest/version/package metadata, Mesh XR branding, the v0.5.6 and v0.6 runtime layers, material/UV modules and menu routing, checks the pinned OpenVR wheel against its published SHA-256, verifies the wheel is present in the final ZIP, and rejects packaged imports of `threading` or `queue`.
 
-The GitHub test matrix validates Mesh XR against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, including a clean-profile install of the generated extension ZIP and bundled OpenVR import.
+The GitHub test matrix validates Mesh XR against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, including a clean-profile install of the generated extension ZIP, bundled OpenVR import and the complete v0.6 material/UV regression suite.
 
 See [TESTING.md](TESTING.md), [ROADMAP.md](ROADMAP.md) and [CHANGELOG.md](CHANGELOG.md).
 
