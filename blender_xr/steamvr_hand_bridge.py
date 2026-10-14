@@ -5,18 +5,8 @@ import json
 import math
 from pathlib import Path
 import socket
-import sys
 import tempfile
 import time
-
-
-def _add_bundled_site_packages():
-    """Make Blender Extension wheels available to the external helper process."""
-    site_packages = Path(__file__).resolve().with_name('site-packages')
-    if site_packages.is_dir():
-        path = str(site_packages)
-        if path not in sys.path:
-            sys.path.insert(0, path)
 
 
 def manifests(folder):
@@ -69,7 +59,6 @@ def main():
     if not 1 <= args.port <= 65535:
         parser.error('Port must be between 1 and 65535')
 
-    _add_bundled_site_packages()
     try:
         import openvr
     except ImportError:
