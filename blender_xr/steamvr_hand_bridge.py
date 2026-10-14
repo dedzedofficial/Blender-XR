@@ -1,12 +1,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Optional external helper. Run with system Python, not Blender's bundled Python."""
+"""Optional Mesh XR SteamVR helper. Run with system Python using the bundled wheel."""
 import argparse
 import json
 import math
 from pathlib import Path
 import socket
+import sys
 import tempfile
 import time
+
+
+def _add_bundled_site_packages():
+    """Make Blender Extension wheels available to the external helper process."""
+    site_packages = Path(__file__).resolve().with_name('site-packages')
+    if site_packages.is_dir():
+        path = str(site_packages)
+        if path not in sys.path:
+            sys.path.insert(0, path)
 
 
 def manifests(folder):
@@ -17,7 +27,7 @@ def manifests(folder):
     for controller in ('knuckles', 'oculus_touch'):
         filename = controller + '.json'
         defaults.append({'controller_type': controller, 'binding_url': filename})
-        binding = {'controller_type': controller, 'name': 'XR Mesh finger input',
+        binding = {'controller_type': controller, 'name': 'Mesh XR finger input',
                    'description': 'Experimental skeletal input bridge',
                    'bindings': {'/actions/bxr': {'skeleton': [
                        {'output': '/actions/bxr/in/' + side,
@@ -53,23 +63,26 @@ def sample(vr, inputs, handle):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--key', required=True, help='Session key shown in XR Mesh')
+    parser.add_argument('--key', required=True, help='Session key shown in Mesh XR')
     parser.add_argument('--port', type=int, default=39540)
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error('Port must be between 1 and 65535')
+
+    _add_bundled_site_packages()
     try:
         import openvr
     except ImportError:
-        parser.exit(1, 'Install the optional helper dependency: python -m pip install openvr==2.12.1401\n')
-    print('Starting XR Mesh experimental hand bridge. Use SteamVR OpenXR, release both hands to arm.')
+        parser.exit(1, 'Mesh XR bundled OpenVR dependency is unavailable; reinstall the extension.\n')
+
+    print('Starting Mesh XR experimental hand bridge. Use SteamVR OpenXR, release both hands to arm.')
     initialized = False
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         openvr.init(openvr.VRApplication_Background)
         initialized = True
         inputs = openvr.VRInput()
-        with tempfile.TemporaryDirectory(prefix='xr-mesh-hands-') as temporary:
+        with tempfile.TemporaryDirectory(prefix='mesh-xr-hands-') as temporary:
             inputs.setActionManifestPath(str(manifests(Path(temporary)).resolve()))
             active = (openvr.VRActiveActionSet_t * 1)()
             active[0].ulActionSet = inputs.getActionSetHandle('/actions/bxr')
