@@ -6,7 +6,7 @@ from types import SimpleNamespace as NS
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import bpy
 import blender_xr
-from blender_xr import preferences, runtime, version
+from blender_xr import material_uv, preferences, runtime, version
 
 
 class FakeLayout:
@@ -27,6 +27,10 @@ def run():
     assert blender_xr.bl_info['version']==version.VERSION
     assert blender_xr.BXR_PT_panel.bl_label=='Mesh XR v'+version.VERSION_TEXT
     assert blender_xr.BXR_PT_panel.bl_category=='Mesh XR'
+    assert material_uv.BXR_PT_materials_v060.bl_category=='Mesh XR'
+    assert material_uv.BXR_PT_uv_v060.bl_category=='Mesh XR'
+    assert material_uv.BXR_OT_material_action.bl_label=='Mesh XR Material Action'
+    assert material_uv.BXR_OT_uv_action.bl_label=='Mesh XR UV Action'
     assert getattr(runtime.Runtime,'_v056_patched',False), 'v0.5.6 runtime layer was not activated'
     assert getattr(runtime.Runtime,'_v060_patched',False), 'v0.6 material/UV runtime layer was not activated'
     assert hasattr(bpy.types,'VIEW3D_MT_view')
