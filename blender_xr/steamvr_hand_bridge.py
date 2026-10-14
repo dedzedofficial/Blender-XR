@@ -3,10 +3,27 @@
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 import socket
+import sys
 import tempfile
 import time
+
+
+def _reexec_with_bundled_site_packages():
+    """Restart this external helper with the extension wheel directory on PYTHONPATH."""
+    site_packages = Path(__file__).resolve().with_name('site-packages')
+    if not site_packages.is_dir():
+        return
+    path = str(site_packages)
+    current = os.environ.get('PYTHONPATH', '')
+    entries = [entry for entry in current.split(os.pathsep) if entry]
+    if path in entries:
+        return
+    env = os.environ.copy()
+    env['PYTHONPATH'] = os.pathsep.join([path, *entries])
+    os.execve(sys.executable, [sys.executable, *sys.argv], env)
 
 
 def manifests(folder):
@@ -59,6 +76,7 @@ def main():
     if not 1 <= args.port <= 65535:
         parser.error('Port must be between 1 and 65535')
 
+    _reexec_with_bundled_site_packages()
     try:
         import openvr
     except ImportError:
