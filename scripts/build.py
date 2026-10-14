@@ -48,6 +48,8 @@ init_text=(SOURCE/'__init__.py').read_text()
 assert "'name': 'Mesh XR'" in init_text
 assert "bl_label='Mesh XR v'+VERSION_TEXT" in init_text
 assert "bl_category='Mesh XR'" in init_text
+assert "material_uv.BXR_PT_materials_v060.bl_category='Mesh XR'" in init_text
+assert "material_uv.BXR_PT_uv_v060.bl_category='Mesh XR'" in init_text
 assert "v056.patch(runtime.Runtime)" in init_text
 assert "v060.patch(runtime.Runtime)" in init_text
 assert 'material_uv.CLASSES' in init_text
@@ -61,7 +63,7 @@ assert "('MATERIALS','MATERIAL_MENU')" in menus_text
 assert "'UV_TRANSFORM'" in menus_text and "'UV_PREVIEW'" in menus_text
 
 drawing_text=(SOURCE/'drawing.py').read_text()
-assert "text('XR MESH / '+menus.title(self.page)" in drawing_text
+assert "text('MESH XR / '+menus.title(self.page)" in drawing_text
 assert 'version.DISPLAY_VERSION' in drawing_text
 assert "V0.5.3" not in drawing_text
 
