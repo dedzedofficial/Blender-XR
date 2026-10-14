@@ -1,65 +1,36 @@
-# XR Mesh v0.6.1
+# Mesh XR v0.6.4
 
-v0.6.1 completes the planned **Materials + UV mapping** scope for v0.6 and keeps the Blender Extensions compliance work introduced in v0.6.0.
+v0.6.4 is a focused Blender Extensions compatibility and packaging update. It keeps the existing v0.6 modeling, materials, texture and UV feature set while making the optional SteamVR hand bridge self-contained for extension installs.
 
-## Materials
+## Blender Extensions dependency fix
 
-- Added a dedicated headset **Materials** hub available from Object and Edit modes.
-- Create, duplicate, delete and auto-rename materials from VR; custom-name materials from the desktop panel.
-- Add, remove and cycle material slots.
-- Assign the active material slot to selected faces and select faces that use the active slot.
-- Edit Principled **Base Color, Metallic, Roughness, Alpha and Emission**.
-- Toggle Material Preview from XR Mesh.
-- Existing HSL color sliders, presets, Pick/Apply and lightweight per-face color history remain available from the Materials hub.
+- Bundles **openvr 2.12.1401** as the official `openvr-2.12.1401-py3-none-any.whl` Python wheel required by the SteamVR skeletal hand helper.
+- Declares that wheel in `blender_manifest.toml` using Blender's supported extension-wheel mechanism.
+- The build downloads the unchanged upstream PyPI wheel when needed and verifies its published SHA-256 before packaging.
+- The generated extension ZIP is rejected by the build if the wheel is missing or its checksum does not match.
+- The external hand helper now loads the extension's installed `site-packages`, so users no longer need to run `pip install openvr` themselves.
 
-## Textures
+## Naming and packaging
 
-- Load image textures from disk in the desktop panel.
-- Cycle Blender images, apply the selected image to the active material and clear the XR Mesh image texture from VR.
-- Added built-in **numbered checker**, **directional UV** and **color-grid** diagnostic textures.
-- Generated diagnostic images are packed into the Blender project so they do not depend on external files.
+- Current extension/add-on branding is now **Mesh XR**.
+- The stable extension ID and Blender operator namespace remain `blender_xr` for install/update compatibility with the existing extension entry and project code.
+- Release archives are now named `mesh-xr-v0.6.4.zip` with a matching SHA-256 file.
+- GitHub Actions and release titles now use Mesh XR branding.
 
-## UV mapping
+## Validation improvements
 
-- Standard UV Unwrap.
-- Smart UV Project.
-- Cube projection.
-- Planar projection.
-- Mark and Clear seams.
-- Move UVs on U/V, rotate and scale selected UV islands.
-- Reset UVs and pack seam-delimited islands.
-- Added a compact in-headset UV wireframe preview.
-- Native Blender UV operators are used where their context is available; deterministic fallbacks keep the core workflow usable in restricted/background contexts.
+- CI verifies the OpenVR wheel is physically present in every generated extension package.
+- Clean-profile extension smoke tests import the bundled `openvr` module after installing the generated ZIP.
+- Automated validation continues across Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**.
+- The add-on still contains no Python `threading` or `queue` imports.
+- The in-extension updater remains removed; updates continue to be managed through Blender Extensions.
 
-## Desktop workflow
+## Existing v0.6 features retained
 
-- Added collapsed **Advanced Materials + Textures** and **UV Mapping** panels under the XR Mesh sidebar.
-- Desktop image loading and custom material naming complement the controller-first headset workflow where text/file dialogs are impractical.
-
-## Quality and compatibility
-
-- Split v0.6 logic into focused `material_uv.py`, `uv_tools.py` and `v060.py` modules rather than expanding the core runtime further.
-- Added a dedicated v0.6 regression suite covering materials, slots, shader properties, textures, diagnostics, UV projection/editing and VR page routing.
-- The normal CI matrix runs that suite on Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**.
-- Release publishing is blocked unless the v0.6 suite passes on Blender 5.2.2.
-- Build validation now checks that the v0.6 runtime layer and material/UV modules are packaged and still rejects `threading` or `queue` imports.
-- Fixed a cross-version UV transform bug caused by mixing Blender's 2D UV vectors with a default 3D vector accumulator.
-- Updated the file permission description to cover loading texture images as well as saving `.blend` projects.
-
-## Blender Extensions compliance retained from v0.6.0
-
-- Public extension name is **XR Mesh**.
-- Support/Report Issues points directly to the public GitHub Issues tracker.
-- No in-extension updater or funding controls.
-- The add-on itself contains no Python `threading` or `queue` imports.
-- The optional SteamVR hand helper stays external and uses the existing `subprocess`/authenticated loopback-socket path.
-
-## Existing modeling workflow retained
-
-Vertex/edge/face selection, Move/Scale Selected, extrude, bevel, inset, delete, merge, subdivide, duplicate, normals, whole-object movement/scaling, primitives, flight/navigation, save, session Undo/Redo, HSL colors, per-face colors, shading and scene statistics remain available.
+Mesh XR still includes vertex/edge/face selection and editing, Move/Scale Selected, extrude, bevel, inset, delete, merge, subdivide, duplicate, normals tools, object movement/scaling, primitives, flight/navigation, save, session Undo/Redo, HSL and per-face colors, materials, texture images, diagnostic textures, UV unwrap/projection/editing, UV preview, shading and scene statistics.
 
 ## Compatibility
 
-Automated validation targets Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 remains blocked because of its known VR crash. Physical headset/runtime validation is still separate from background Blender automation.
+Requires Blender **4.2+** with OpenXR support. Blender 5.0.1 remains blocked because of its known VR crash. Standard controller operation does not depend on OpenVR; the bundled OpenVR wheel is used by the optional experimental SteamVR skeletal hand bridge.
 
-See `CHANGELOG.md` for shipped history, `ROADMAP.md` for the completed v0.6 checklist and future targets, and `TESTING.md` for automated/manual validation coverage.
+See `CHANGELOG.md` for shipped history, `ROADMAP.md` for future work and `TESTING.md` for validation coverage.
