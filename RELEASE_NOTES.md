@@ -8,11 +8,12 @@ v0.6.4 is a focused Blender Extensions compatibility and packaging update. It ke
 - Declares that wheel in `blender_manifest.toml` using Blender's supported extension-wheel mechanism.
 - The build downloads the unchanged upstream PyPI wheel when needed and verifies its published SHA-256 before packaging.
 - The generated extension ZIP is rejected by the build if the wheel is missing or its checksum does not match.
-- The external hand helper now loads the extension's installed `site-packages`, so users no longer need to run `pip install openvr` themselves.
+- The external hand helper reuses the extension's installed `site-packages` through its own process environment, so users no longer need to run `pip install openvr` themselves and Blender's module search path is not modified.
 
 ## Naming and packaging
 
 - Current extension/add-on branding is now **Mesh XR**.
+- Blender's sidebar, View menu, preferences text and in-headset menu header use Mesh XR branding.
 - The stable extension ID and Blender operator namespace remain `blender_xr` for install/update compatibility with the existing extension entry and project code.
 - Release archives are now named `mesh-xr-v0.6.4.zip` with a matching SHA-256 file.
 - GitHub Actions and release titles now use Mesh XR branding.
