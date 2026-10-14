@@ -67,6 +67,8 @@ assert "V0.5.3" not in drawing_text
 
 bridge_text=(SOURCE/'steamvr_hand_bridge.py').read_text()
 assert "with_name('site-packages')" in bridge_text
+assert "'PYTHONPATH'" in bridge_text
+assert 'sys.path' not in bridge_text
 assert 'pip install openvr' not in bridge_text
 
 # Blender Extensions review explicitly disallows threading/queue in add-ons.
