@@ -1,4 +1,4 @@
-name: Validate XR Mesh
+name: Validate Mesh XR
 on:
   push:
     branches: [main]
@@ -23,6 +23,10 @@ jobs:
           python tests/test_prune.py
       - name: Build installer
         run: python scripts/build.py
+      - name: Verify bundled OpenVR wheel
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('blender_xr/blender_manifest.toml','rb'))['version'])")
+          unzip -l "dist/mesh-xr-v${version}.zip" | grep -F "wheels/openvr-2.12.1401-py3-none-any.whl"
       - name: Download Blender
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -35,13 +39,13 @@ jobs:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: |
           BLENDER="/tmp/blender-${BLENDER_VERSION}-linux-x64/blender"
-          TEST_HOME="/tmp/xr-mesh-extension-home-${BLENDER_VERSION}"
+          TEST_HOME="/tmp/mesh-xr-extension-home-${BLENDER_VERSION}"
           rm -rf "$TEST_HOME"
           mkdir -p "$TEST_HOME"
-          PACKAGE=$(ls dist/blender-xr-v*.zip)
-          HOME="$TEST_HOME" "$BLENDER" --command extension repo-add bxr_test --name "XR Mesh Test" --directory "$TEST_HOME/extensions" --clear-all
+          PACKAGE=$(ls dist/mesh-xr-v*.zip)
+          HOME="$TEST_HOME" "$BLENDER" --command extension repo-add bxr_test --name "Mesh XR Test" --directory "$TEST_HOME/extensions" --clear-all
           HOME="$TEST_HOME" "$BLENDER" --command extension install-file -r bxr_test -e "$PACKAGE"
-          HOME="$TEST_HOME" "$BLENDER" --background --python-exit-code 1 --python-expr "import bpy; m='bl_ext.bxr_test.blender_xr'; assert m in bpy.context.preferences.addons, [a.module for a in bpy.context.preferences.addons]; assert hasattr(bpy.ops.blender_xr,'session'); assert hasattr(bpy.types,'BXR_PT_panel'); print('PASS installed extension package',m)"
+          HOME="$TEST_HOME" "$BLENDER" --background --python-exit-code 1 --python-expr "import bpy, openvr; m='bl_ext.bxr_test.blender_xr'; assert m in bpy.context.preferences.addons, [a.module for a in bpy.context.preferences.addons]; assert hasattr(bpy.ops.blender_xr,'session'); assert hasattr(bpy.types,'BXR_PT_panel'); print('PASS installed extension package with OpenVR wheel',m,openvr.__file__)"
       - name: Mesh and registration tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -84,5 +88,5 @@ jobs:
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v060.py
       - uses: actions/upload-artifact@v4
         with:
-          name: xr-mesh-${{ matrix.blender }}
+          name: mesh-xr-${{ matrix.blender }}
           path: dist/*
