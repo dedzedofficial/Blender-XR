@@ -52,20 +52,24 @@ class BXR_Settings(bpy.types.PropertyGroup):
         description='Multiply flight speed by four; also available by holding the left stick click',update=_persist_setting)
     turn_mode: EnumProperty(name='Turning', items=[('SNAP','Snap','One turn per stick deflection'),
         ('SMOOTH','Smooth','Continuous turning')], default='SNAP',update=_persist_setting)
-    turn_angle: FloatProperty(name='Snap angle',default=30,min=15,max=90,update=_persist_setting)
-    turn_speed: FloatProperty(name='Turn speed',default=90,min=15,max=180,update=_persist_setting)
+    turn_angle: FloatProperty(name='Snap angle', default=30, min=15, max=90,update=_persist_setting)
+    turn_speed: FloatProperty(name='Turn speed', default=90, min=15, max=180,update=_persist_setting)
     grab_air: BoolProperty(name='Grab empty space to move', default=True,
-        description='Point into empty space to pull yourself through the scene',update=_persist_setting)
-    primitive_size: FloatProperty(name='Primitive size',default=0.5,min=0.01,max=20,update=_persist_setting)
-    placement_distance: FloatProperty(name='Placement distance',default=1.5,min=0.1,max=100,update=_persist_setting)
+        description='Point into empty space and hold either grip; pull your hand to move the viewer',update=_persist_setting)
+    primitive_size: FloatProperty(name='Shape size', default=0.5, min=0.01, max=10,
+        description='Primitive size in physical VR metres, scaled to the scene',update=_persist_setting)
+    placement_distance: FloatProperty(name='Placement distance', default=1.5, min=0.1, max=10,
+        description='Distance in physical VR metres when pointing into empty space',update=_persist_setting)
     show_statistics: BoolProperty(name='Scene Statistics',default=True,update=_persist_setting)
-    object_color: FloatVectorProperty(name='Material Color',subtype='COLOR_GAMMA',size=4,min=0,max=1,default=(0.18,0.55,0.95,1))
-    material_metallic: FloatProperty(name='Metallic',default=0.0,min=0,max=1)
-    material_roughness: FloatProperty(name='Roughness',default=0.5,min=0,max=1)
-    material_alpha: FloatProperty(name='Alpha',default=1.0,min=0,max=1)
-    material_emission: FloatProperty(name='Emission Strength',default=0.0,min=0,max=100)
-    texture_name: bpy.props.StringProperty(name='Texture Image',default='')
-    uv_step: FloatProperty(name='UV Move Step',default=0.05,min=0.001,max=1)
+    object_color: FloatVectorProperty(name='Material Color', subtype='COLOR_GAMMA', size=4,
+        min=0.0, max=1.0, default=(0.18,0.55,0.95,1.0),
+        description='Choose a color, then apply it to the active object or selected faces')
+    material_metallic: FloatProperty(name='Metallic', default=0.0, min=0.0, max=1.0)
+    material_roughness: FloatProperty(name='Roughness', default=0.5, min=0.0, max=1.0)
+    material_alpha: FloatProperty(name='Alpha', default=1.0, min=0.0, max=1.0)
+    material_emission: FloatProperty(name='Emission Strength', default=0.0, min=0.0, max=100.0)
+    texture_name: bpy.props.StringProperty(name='Texture Image', default='')
+    uv_step: FloatProperty(name='UV Move Step', default=0.05, min=0.001, max=1.0)
     status: bpy.props.StringProperty(default='Ready')
     save_path: bpy.props.StringProperty(name='Blend save path',subtype='FILE_PATH',default='',
         description='For an unsaved project; blank creates a timestamped file in Documents/BlenderXR')
