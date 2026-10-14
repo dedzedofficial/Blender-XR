@@ -132,7 +132,7 @@ class Menu:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
         rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
         rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        text('XR MESH / '+menus.title(self.page),-0.177,0.208,0.00275)
+        text('MESH XR / '+menus.title(self.page),-0.177,0.208,0.00275)
         if settings and self.page=='TRAVEL':
             summary=('FLY ' if settings.fly_mode else 'WALK ')+format(settings.move_speed,'.1f')+' / '+settings.turn_mode
         elif settings and self.page in {'MATERIALS','MATERIAL_ADJUST'}:

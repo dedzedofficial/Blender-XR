@@ -1,4 +1,4 @@
-name: Package and release XR Mesh
+name: Package and release Mesh XR
 on:
   push:
     branches: [main]
@@ -15,7 +15,7 @@ permissions:
   contents: write
   actions: write
 concurrency:
-  group: xr-mesh-release
+  group: mesh-xr-release
   cancel-in-progress: false
 jobs:
   release:
@@ -31,6 +31,10 @@ jobs:
           python tests/test_prune.py
       - name: Build extension
         run: python scripts/build.py
+      - name: Verify bundled OpenVR wheel
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('blender_xr/blender_manifest.toml','rb'))['version'])")
+          unzip -l "dist/mesh-xr-v${version}.zip" | grep -F "wheels/openvr-2.12.1401-py3-none-any.whl"
       - name: Download test Blender
         run: |
           curl -fsSL https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz -o /tmp/blender.tar.xz
@@ -61,15 +65,15 @@ jobs:
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Refreshing existing ${tag} with the newly verified package."
-            gh release upload "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --clobber
-            gh release edit "$tag" --title "XR Mesh v${version}" --notes-file RELEASE_NOTES.md --latest
+            gh release upload "$tag" "dist/mesh-xr-v${version}.zip" "dist/mesh-xr-v${version}.zip.sha256" --clobber
+            gh release edit "$tag" --title "Mesh XR v${version}" --notes-file RELEASE_NOTES.md --latest
             if [[ "$GITHUB_REF_TYPE" != tag ]]; then
               git tag -f "$tag" "$GITHUB_SHA"
               git push origin "refs/tags/${tag}" --force
             fi
             echo "created=true" >> "$GITHUB_OUTPUT"
           else
-            gh release create "$tag" "dist/blender-xr-v${version}.zip" "dist/blender-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "XR Mesh v${version}" --notes-file RELEASE_NOTES.md --latest
+            gh release create "$tag" "dist/mesh-xr-v${version}.zip" "dist/mesh-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "Mesh XR v${version}" --notes-file RELEASE_NOTES.md --latest
             echo "created=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Publish to Blender Extensions
@@ -82,14 +86,14 @@ jobs:
             echo "::warning::BLENDER_EXTENSIONS_TOKEN is not configured; skipping Blender Extensions submission."
             exit 0
           fi
-          package="dist/blender-xr-v${VERSION}.zip"
+          package="dist/mesh-xr-v${VERSION}.zip"
           test -f "$package"
           curl --fail-with-body --show-error --silent \
             -X POST "https://extensions.blender.org/api/v1/extensions/blender_xr/versions/upload/" \
             -H "Authorization:bearer ${BLENDER_EXTENSIONS_TOKEN}" \
             -F "version_file=@${package}" \
             -F "release_notes=<RELEASE_NOTES.md"
-          echo "Submitted XR Mesh v${VERSION} to Blender Extensions"
+          echo "Submitted Mesh XR v${VERSION} to Blender Extensions"
       - name: Keep only verified current downloads
         env:
           GH_TOKEN: ${{ github.token }}

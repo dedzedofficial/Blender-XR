@@ -1,6 +1,27 @@
-# XR Mesh changelog
+# Mesh XR changelog
 
 This file records shipped user-facing changes. Planned work belongs in [ROADMAP.md](ROADMAP.md).
+
+## v0.6.4 — Blender Extensions packaging + Mesh XR naming
+
+### Added
+
+- Bundled `openvr==2.12.1401` as Blender Extension wheel metadata for the optional SteamVR skeletal hand bridge.
+- Build-time download of the unchanged upstream PyPI wheel with the published SHA-256 pinned and verified before packaging.
+- Package validation that fails if the declared OpenVR wheel is absent from the final extension ZIP.
+- Clean-profile CI coverage that imports the bundled `openvr` module after installing the generated extension package.
+
+### Changed
+
+- Current extension/add-on branding changed from **XR Mesh** to **Mesh XR**.
+- Kept the stable `blender_xr` extension ID and operator namespace for compatibility with the existing Blender Extensions entry and saved workflows.
+- SteamVR hand-helper startup now relaunches the external helper with the extension's installed `site-packages` supplied through `PYTHONPATH`, without modifying Blender's module search path.
+- Release archives and GitHub workflow/artifact naming now use `mesh-xr-v<version>.zip` / Mesh XR branding.
+
+### Fixed
+
+- Removed the hand helper's manual `pip install openvr` requirement.
+- Fixed Blender Extensions review failure caused by importing a Python library that was not shipped with the extension.
 
 ## v0.6.1 — Materials + UV mapping
 

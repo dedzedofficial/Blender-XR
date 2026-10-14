@@ -7,7 +7,7 @@ with tempfile.TemporaryDirectory() as folder:
     prune.ROOT=Path(folder)
     (prune.ROOT/'blender_xr').mkdir();(prune.ROOT/'dist').mkdir()
     (prune.ROOT/'blender_xr/blender_manifest.toml').write_text('version="0.4.4"')
-    installer='blender-xr-v0.4.4.zip';payload=b'verified test installer'
+    installer='mesh-xr-v0.4.4.zip';payload=b'verified test installer'
     (prune.ROOT/'dist'/installer).write_bytes(payload)
     os.environ['GITHUB_REPOSITORY']='example/test';os.environ['GITHUB_SHA']='current'
     calls=[];corrupt=[False]
@@ -20,7 +20,7 @@ with tempfile.TemporaryDirectory() as folder:
         elif args[:2]==('release','list'):
             return json.dumps([{'tagName':v} for v in ['v0.4.3','v0.4.4','v0.4.5','other']])
         elif args[:3]==('api','--paginate','--slurp'):
-            return json.dumps([{'artifacts':[{'id':1,'name':'blender-xr-old','workflow_run':{'head_sha':'old'}},{'id':2,'name':'blender-xr-current','workflow_run':{'head_sha':'current'}},{'id':3,'name':'other','workflow_run':{'head_sha':'old'}}]}])
+            return json.dumps([{'artifacts':[{'id':1,'name':'mesh-xr-old','workflow_run':{'head_sha':'old'}},{'id':2,'name':'mesh-xr-current','workflow_run':{'head_sha':'current'}},{'id':3,'name':'other','workflow_run':{'head_sha':'old'}}]}])
         return ''
     prune.gh=gh
     prune.main()
