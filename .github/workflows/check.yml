@@ -86,6 +86,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v060.py
+      - name: v0.6.5 modeling and icon UI tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v065.py
       - uses: actions/upload-artifact@v4
         with:
           name: mesh-xr-${{ matrix.blender }}
