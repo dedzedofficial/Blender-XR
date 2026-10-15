@@ -2,7 +2,7 @@
 """v0.6 headset workflow for materials, textures and UV mapping."""
 import bpy
 from mathutils import Vector
-from . import drawing, material_uv, materials, statistics, uv_tools, v056
+from . import drawing, material_uv, materials, statistics, uv_tools, v056, v065
 
 
 _MATERIAL_PAGES = {'MATERIAL_HOME','MATERIAL_PROPS','MATERIAL_SLOTS','MATERIAL_TEXTURES'}
@@ -247,3 +247,4 @@ def patch(Runtime):
 
     Runtime.command = command
     Runtime._v060_patched = True
+    v065.patch(Runtime)
