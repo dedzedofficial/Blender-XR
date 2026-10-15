@@ -1,10 +1,37 @@
-# Mesh XR v0.6.4
+# Mesh XR v0.6.5
 
 Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed.
 
-## v0.6.4
+## v0.6.5
 
-v0.6.4 is a focused Blender Extensions packaging update. It keeps the full v0.6 Materials + UV feature set while making the optional SteamVR skeletal hand bridge self-contained.
+v0.6.5 is a modeling and usability update built on the v0.6 Materials + UV workflow and the v0.6.4 Blender Extensions packaging fixes.
+
+### Icon-first VR modeling UI
+
+- The main Object and Edit toolbars now use simple pictogram icons instead of long text labels.
+- Raycast over an icon to highlight it immediately; hold the ray there for about 0.5 seconds to show the tool name and a short explanation.
+- The first toolbar control is a Blender-style Mode selector with explicit Object Mode and Edit Mode choices.
+- Edit Mode keeps dedicated Vertex, Edge and Face selection icons.
+- Inset Faces is directly available on the main Edit toolbar again.
+- Secondary modeling commands remain grouped under More Edit to keep the main toolbar compact.
+
+The repository includes `ICON_GUIDE.md` with an icon-by-icon explanation and short usage instructions.
+
+### Loop Cut
+
+- Select an edge in Edit Mode and open Loop Cut to detect its continuous quad edge ring.
+- The detected ring is previewed in orange before applying the cut.
+- Choose between 1 and 16 cuts.
+- A single cut can be positioned from 5% to 95% in 5% steps.
+- Multiple cuts are spaced evenly.
+- Invalid/non-quad rings are rejected with a clear message rather than producing an unpredictable cut.
+- Loop Cut participates in Mesh XR local Undo/Redo.
+
+### Delete Object
+
+- Object Mode now has a dedicated Delete Object command.
+- Edit Mode keeps Delete Geometry as a separate operation, so deleting selected vertices/edges/faces cannot accidentally remove the whole object.
+- Deleted mesh objects can be restored with Mesh XR Undo and removed again with Redo.
 
 ### Blender Extensions compatibility
 
@@ -12,7 +39,7 @@ v0.6.4 is a focused Blender Extensions packaging update. It keeps the full v0.6 
 - Build tooling verifies the upstream PyPI SHA-256 before packaging the wheel.
 - The hand bridge uses the extension's installed `site-packages`; users do not need to install `openvr` manually.
 - The stable extension ID and operator namespace remain `blender_xr` for compatibility.
-- The add-on still contains no Python `threading` or `queue` imports and has no in-extension updater.
+- The add-on contains no Python `threading` or `queue` imports and has no in-extension updater.
 
 ### Materials + textures
 
@@ -35,9 +62,9 @@ v0.6.4 is a focused Blender Extensions packaging update. It keeps the full v0.6 
 
 ## VR mesh editing
 
-Choose **Edit Mode** from the hand menu. Mesh XR supports Vertex / Edge / Face selection, additive grip + trigger selection, Move Sel, Scale Sel, Extrude, Bevel, Inset, Delete, Merge, Subdivide, Duplicate, Recalculate/Flip Normals and session Undo/Redo.
+Choose **Edit Mode** from the mode icon. Mesh XR supports Vertex / Edge / Face selection, additive grip + trigger selection, Move Selection, Scale Selection, Extrude, Bevel, Inset Faces, Loop Cut, Delete Geometry, Merge, Subdivide, Duplicate, Recalculate/Flip Normals and session Undo/Redo.
 
-Whole-object movement/scaling, distance-aware gizmos, primitive placement, flight, snap/smooth turning, grab-air movement and Save Blend remain available.
+Whole-object movement/scaling, Delete Object, distance-aware gizmos, primitive placement, flight, snap/smooth turning, grab-air movement and Save Blend remain available.
 
 ## Launch
 
