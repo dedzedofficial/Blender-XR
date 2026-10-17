@@ -1,4 +1,5 @@
 name: Package and release Mesh XR
+# v0.6.5 release validation includes current icon UI and legacy compatibility checks.
 on:
   push:
     branches: [main]
