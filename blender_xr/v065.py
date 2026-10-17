@@ -261,10 +261,10 @@ def loop_cut(obj,cuts=1,position=0.5):
     bm=mesh.editable(obj)
     edges=_ring_edges(obj)
     def operation():
-        kwargs=dict(bm=bm,edges=edges,cuts=cuts,use_grid_fill=False)
+        kwargs=dict(edges=edges,cuts=cuts,use_grid_fill=False)
         if cuts==1:
             kwargs['edge_percents']={edge:position for edge in edges if edge.is_valid}
-        result=bmesh.ops.subdivide_edges(**kwargs)
+        result=bmesh.ops.subdivide_edges(bm,**kwargs)
         for edge in bm.edges:
             if edge.is_valid: edge.select_set(False)
         for item in result.get('geom_inner',[]):
