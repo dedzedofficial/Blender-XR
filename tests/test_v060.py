@@ -23,10 +23,12 @@ try:
     assert version.VERSION >= (0, 6, 0)
     assert blender_xr.bl_info['version'] == version.VERSION
     assert getattr(runtime.Runtime, '_v060_patched', False)
-    # v0.6.5 intentionally removes primary toolbar text labels, so verify the
-    # Materials action remains reachable rather than depending on its old label.
+    # v0.6.5 intentionally removes primary toolbar text labels and moves
+    # secondary Edit actions under More Edit. Validate current routing rather
+    # than depending on the old direct text-labelled button placement.
     assert 'MATERIAL_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
-    assert 'MATERIAL_MENU' in {action for _label, action in menus.PAGES['EDIT']}
+    assert 'EDIT_MORE' in {action for _label, action in menus.PAGES['EDIT']}
+    assert 'MATERIAL_MENU' in {action for _label, action in menus.PAGES['EDIT_MORE']}
     assert {'MATERIAL_HOME','MATERIAL_PROPS','MATERIAL_SLOTS','MATERIAL_TEXTURES',
             'UV','UV_TRANSFORM','UV_PREVIEW'} <= set(menus.PAGES)
 
