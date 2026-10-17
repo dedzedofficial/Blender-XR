@@ -1,6 +1,6 @@
-# XR Mesh validation
+# Mesh XR validation
 
-XR Mesh uses automated Blender regression tests plus manual headset/runtime checks. Background Blender can validate geometry, data, UI registration and package behavior, but it cannot prove stereo readability, physical controller feel or runtime-specific tracking behavior.
+Mesh XR uses automated Blender regression tests plus manual headset/runtime checks. Background Blender can validate geometry, data, UI registration and package behavior, but it cannot prove stereo readability, physical controller feel or runtime-specific tracking behavior.
 
 ## Automated matrix
 
@@ -36,7 +36,7 @@ Automated checks cover:
 
 ## v0.6.1 materials + UV regression suite
 
-`tests/test_v060.py` specifically validates the completed v0.6 milestone:
+`tests/test_v060.py` validates the completed v0.6 Materials + UV milestone:
 
 - v0.6 runtime patch and Materials/UV menu routing.
 - Material creation, duplication, deletion and rename behavior.
@@ -55,21 +55,53 @@ Automated checks cover:
 
 The v0.6 suite runs on all four supported CI Blender versions. Release publishing separately runs it on Blender 5.2.2 before GitHub/Blender Extensions upload.
 
+## v0.6.5 modeling + icon UI regression suite
+
+The v0.6.5 coverage verifies the new modeling and interface layer in addition to the existing v0.6 tests:
+
+- Object/Edit mode selector routing.
+- Icon-first primary Object and Edit menus.
+- Vertex / Edge / Face selector routing from the icon UI.
+- Raycast hover state and delayed tooltip behavior.
+- Inset Faces remaining directly reachable from the primary Edit toolbar.
+- Loop Cut ring detection on valid continuous quad topology.
+- Loop Cut rejection on invalid/non-quad topology.
+- Loop Cut preview state, cut count and single-cut positioning.
+- Loop Cut Undo/Redo integration.
+- Object Mode Delete Object behavior.
+- Separation of Delete Object from Edit Mode Delete Geometry.
+- Delete Object Undo/Redo restoration behavior.
+
+Release publishing runs the v0.6.5 regression coverage before creating or refreshing the GitHub release and before submitting the package to Blender Extensions.
+
 ## Manual headset checklist — core workflow
 
 Repeat on each runtime/controller combination you want to claim as physically verified.
 
-1. Confirm Blender version, XR Mesh version, active OpenXR runtime and controller tracking.
+1. Confirm Blender version, Mesh XR version, active OpenXR runtime and controller tracking.
 2. Start from a simple cube and test both dominant-hand settings.
-3. Confirm the menu follows the non-dominant hand, appears in both eyes and all buttons are readable/clickable.
-4. Test Vertex, Edge and Face selection, including grip + trigger additive selection.
-5. Test Move Sel, Scale Sel, Extrude, Bevel, Inset, Delete, Merge, Subdivide, Duplicate and normals tools.
-6. Confirm preview commit/cancel behavior and Undo/Redo.
-7. Test Shapes, object grab, flight/walk, turbo, snap/smooth turning, vertical movement and grab-air navigation.
-8. Save, reopen, stop/restart VR and disable/re-enable the extension.
-9. Disconnect/reconnect controllers and stop the runtime mid-session to confirm safe cleanup.
+3. Confirm the menu follows the non-dominant hand, appears in both eyes and all icons are readable/clickable.
+4. Raycast over several icons and confirm immediate hover highlighting plus the delayed tooltip name/description.
+5. Switch Object/Edit modes from the mode selector and test Vertex, Edge and Face selection, including grip + trigger additive selection.
+6. Test Move Selection, Scale Selection, Extrude, Bevel, Inset Faces, Delete Geometry, Merge, Subdivide, Duplicate and normals tools.
+7. Confirm preview commit/cancel behavior and Undo/Redo.
+8. Test Shapes, object grab, Delete Object, flight/walk, turbo, snap/smooth turning, vertical movement and grab-air navigation.
+9. Save, reopen, stop/restart VR and disable/re-enable the extension.
+10. Disconnect/reconnect controllers and stop the runtime mid-session to confirm safe cleanup.
 
-## Manual headset checklist — v0.6.1 Materials + UV
+## Manual headset checklist — v0.6.5 Loop Cut + object deletion
+
+1. Enter Edit Mode, select an edge on a simple quad grid and open Loop Cut.
+2. Confirm the detected continuous ring is previewed in orange before applying.
+3. Test one cut and move its position from 5% through 95%.
+4. Test several multi-cut counts up to 16 and confirm even spacing.
+5. Try Loop Cut on deliberately invalid/non-quad topology and confirm it is rejected cleanly.
+6. Apply a valid cut, then Undo and Redo it.
+7. Return to Object Mode and delete a mesh with Delete Object.
+8. Undo the deletion and confirm the object and expected data return; Redo and confirm it is removed again.
+9. Enter Edit Mode and confirm Delete Geometry still removes selected mesh elements rather than the whole object.
+
+## Manual headset checklist — Materials + UV
 
 1. Open **Materials** in Object Mode and create/duplicate/delete materials.
 2. Open **Properties** and adjust Metallic, Roughness, Alpha and Emission; confirm the material updates visually.
@@ -99,7 +131,7 @@ Finger-touch shortcuts and the SteamVR skeletal bridge remain experimental.
 
 Automated tests are not a substitute for headset validation. When reporting a compatibility result, include:
 
-- XR Mesh version.
+- Mesh XR version.
 - Blender version.
 - Headset/controllers.
 - PCVR transport.
