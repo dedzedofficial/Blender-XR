@@ -1,37 +1,64 @@
-# Mesh XR v0.6.4
+# Mesh XR v0.6.5
 
-v0.6.4 is a focused Blender Extensions compatibility and packaging update. It keeps the existing v0.6 modeling, materials, texture and UV feature set while making the optional SteamVR hand bridge self-contained for extension installs.
+v0.6.5 is a modeling and usability update that builds on the completed Materials + UV workflow and the Blender Extensions packaging fixes from v0.6.4.
 
-## Blender Extensions dependency fix
+## Icon-first VR interface
 
-- Bundles **openvr 2.12.1401** as the official `openvr-2.12.1401-py3-none-any.whl` Python wheel required by the SteamVR skeletal hand helper.
-- Declares that wheel in `blender_manifest.toml` using Blender's supported extension-wheel mechanism.
-- The build downloads the unchanged upstream PyPI wheel when needed and verifies its published SHA-256 before packaging.
-- The generated extension ZIP is rejected by the build if the wheel is missing or its checksum does not match.
-- The external hand helper reuses the extension's installed `site-packages` through its own process environment, so users no longer need to run `pip install openvr` themselves and Blender's module search path is not modified.
+- Replaces long primary Object/Edit toolbar labels with compact pictogram icons.
+- Adds immediate raycast hover highlighting.
+- Adds delayed hover tooltips with the tool name and a short explanation.
+- Adds a Blender-style Object Mode / Edit Mode selector as the first primary toolbar control.
+- Keeps dedicated Vertex, Edge and Face selection icons in Edit Mode.
+- Restores Inset Faces directly to the main Edit toolbar.
+- Keeps secondary modeling commands grouped so the main toolbar remains compact.
+- Includes `ICON_GUIDE.md` with an icon-by-icon usage reference.
 
-## Naming and packaging
+## Loop Cut
 
-- Current extension/add-on branding is now **Mesh XR**.
-- Blender's sidebar, View menu, preferences text and in-headset menu header use Mesh XR branding.
-- The stable extension ID and Blender operator namespace remain `blender_xr` for install/update compatibility with the existing extension entry and project code.
-- Release archives are now named `mesh-xr-v0.6.4.zip` with a matching SHA-256 file.
-- GitHub Actions and release titles now use Mesh XR branding.
+- Adds Loop Cut for valid continuous quad edge rings.
+- The detected ring is previewed in orange before applying the operation.
+- Supports 1–16 cuts.
+- A single cut can be positioned from 5% to 95% in 5% steps.
+- Multiple cuts are evenly distributed.
+- Invalid/non-quad rings are rejected cleanly instead of producing an unpredictable result.
+- Loop Cut participates in Mesh XR session-local Undo/Redo.
 
-## Validation improvements
+## Delete Object
 
-- CI verifies the OpenVR wheel is physically present in every generated extension package.
-- Clean-profile extension smoke tests import the bundled `openvr` module after installing the generated ZIP.
-- Automated validation continues across Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**.
-- The add-on still contains no Python `threading` or `queue` imports.
-- The in-extension updater remains removed; updates continue to be managed through Blender Extensions.
+- Adds a dedicated Delete Object operation in Object Mode.
+- Keeps Edit Mode Delete Geometry as a separate operation so selected mesh elements cannot accidentally remove the whole object.
+- Deleted mesh objects can be restored with Mesh XR Undo and removed again with Redo.
 
-## Existing v0.6 features retained
+## Existing v0.6 workflow retained
 
-Mesh XR still includes vertex/edge/face selection and editing, Move/Scale Selected, extrude, bevel, inset, delete, merge, subdivide, duplicate, normals tools, object movement/scaling, primitives, flight/navigation, save, session Undo/Redo, HSL and per-face colors, materials, texture images, diagnostic textures, UV unwrap/projection/editing, UV preview, shading and scene statistics.
+Mesh XR continues to include:
+
+- Vertex, edge and face selection/editing.
+- Move/Scale Selection, Extrude, Bevel, Inset, Merge, Subdivide, Duplicate and normals tools.
+- HSL and per-face color workflows.
+- Material creation, duplication, deletion, slots and Principled controls.
+- Texture image loading/cycling plus built-in diagnostic textures.
+- UV Unwrap, Smart/Cube/Planar projection, seams, transform tools, Pack Islands and VR UV preview.
+- Object movement/scaling, primitives, travel/navigation, Save Blend and session Undo/Redo.
+
+## Blender Extensions compatibility
+
+- Keeps the stable `blender_xr` extension ID and operator namespace for install/update compatibility.
+- Bundles `openvr==2.12.1401` as the declared platform-independent Python wheel required by the optional SteamVR skeletal hand bridge.
+- Verifies the upstream wheel SHA-256 before packaging.
+- Keeps SteamVR polling in the external helper process.
+- Contains no packaged Python `threading` or `queue` imports.
+- Contains no in-extension updater; updates are managed through Blender Extensions.
+
+## Validation
+
+- Automated validation covers Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
+- Release validation runs the v0.6 Materials/UV and v0.6.5 modeling/UI regression coverage before publishing.
+- Clean-profile installation checks verify the generated extension package and bundled OpenVR dependency.
+- Blender 5.0.1 remains blocked because of its known VR crash.
 
 ## Compatibility
 
-Requires Blender **4.2+** with OpenXR support. Blender 5.0.1 remains blocked because of its known VR crash. Standard controller operation does not depend on OpenVR; the bundled OpenVR wheel is used by the optional experimental SteamVR skeletal hand bridge.
+Requires Blender 4.2+ with OpenXR support. Standard controller operation does not depend on OpenVR; the bundled OpenVR wheel is used only by the optional experimental SteamVR skeletal hand bridge.
 
-See `CHANGELOG.md` for shipped history, `ROADMAP.md` for future work and `TESTING.md` for validation coverage.
+See `README.md` for installation/use, `ICON_GUIDE.md` for the current VR controls, `CHANGELOG.md` for shipped history, `ROADMAP.md` for future work and `TESTING.md` for validation coverage.
