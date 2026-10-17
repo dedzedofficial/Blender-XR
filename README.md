@@ -1,24 +1,25 @@
-# Mesh XR v0.6.4
+# Mesh XR v0.6.5
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
 Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand carries a compact tool menu while the other points, selects, edits, transforms, places primitives, manages materials and textures, edits UVs, and moves around the scene.
 
-[Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Report Issues](https://github.com/dedzedofficial/Blender-XR/issues) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Testing](TESTING.md)
+[Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Blender Extensions](https://extensions.blender.org/add-ons/blender-xr/) · [Report Issues](https://github.com/dedzedofficial/Blender-XR/issues) · [Icon Guide](ICON_GUIDE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Testing](TESTING.md)
 
-## v0.6.4 highlights
+## v0.6.5 highlights
 
-v0.6.4 is a focused Blender Extensions packaging and compatibility update. The complete v0.6 modeling, materials, texture and UV workflow remains available.
+v0.6.5 is a modeling and usability update built on the complete v0.6 Materials + UV workflow and the v0.6.4 Blender Extensions packaging fixes.
 
-- Current extension/add-on branding is **Mesh XR**.
-- Bundles the official `openvr==2.12.1401` `py3-none-any` wheel for the optional SteamVR skeletal hand bridge.
-- Declares the dependency through Blender's extension `wheels` manifest field.
-- Build tooling downloads the unchanged PyPI wheel when needed and verifies its published SHA-256 before packaging.
-- The external hand helper uses the extension's installed `site-packages`, removing the previous manual `pip install openvr` requirement.
-- CI confirms the wheel is present in the generated ZIP and imports it after a clean Blender extension install.
-- Release packages now use `mesh-xr-v<version>.zip` naming.
-- The stable `blender_xr` extension ID and operator namespace are retained for compatibility with the existing extension entry and saved workflows.
-- The in-headset header, Blender sidebar, View menu and current add-on UI now use **Mesh XR** branding.
+- Replaces long main-toolbar labels with a compact **icon-first VR interface**.
+- Adds **raycast hover highlighting** plus delayed tooltips with the tool name and explanation.
+- Adds a Blender-style **Object Mode / Edit Mode selector** at the start of the toolbar.
+- Keeps dedicated **Vertex / Edge / Face** selection icons in Edit Mode.
+- Restores **Inset Faces** directly to the main Edit toolbar.
+- Adds **Loop Cut** with quad-ring detection, orange preview, 1–16 cuts and adjustable single-cut position.
+- Adds a dedicated **Delete Object** operation in Object Mode while keeping **Delete Geometry** separate in Edit Mode.
+- Loop Cut and Delete Object participate in Mesh XR session Undo/Redo.
+- Includes `ICON_GUIDE.md` with an icon-by-icon explanation of the current VR controls.
+- Retains the bundled verified `openvr==2.12.1401` wheel required by the optional SteamVR skeletal hand bridge.
 
 ## Launch
 
@@ -29,6 +30,16 @@ Mesh XR can be started from either:
 
 Blender's separate **VR Scene Inspection** extension provides Blender's own Start VR Session control; Mesh XR does not remove or replace it.
 
+## VR interface
+
+The main Object/Edit controls use pictogram icons so the interface is easier to understand without relying on language-specific button text.
+
+Point the menu ray at an icon to highlight it. Keep the ray on that control for roughly half a second to show its tool name and short explanation.
+
+The first control switches between **Object Mode** and **Edit Mode**. Edit Mode then exposes **Vertex**, **Edge** and **Face** selection directly.
+
+See [ICON_GUIDE.md](ICON_GUIDE.md) for the current icon and tooltip reference.
+
 ## Core modeling features
 
 - Vertex, edge and face selection in VR.
@@ -37,7 +48,10 @@ Blender's separate **VR Scene Inspection** extension provides Blender's own Star
 - Extrude vertices, edges and faces.
 - Bevel vertex/edge selections and face boundaries.
 - Inset selected faces.
-- Delete, merge, subdivide and duplicate selected geometry.
+- Loop Cut across valid continuous quad rings with preview and configurable cut count.
+- Delete selected geometry without confusing it with whole-object deletion.
+- Delete whole mesh objects from Object Mode with Undo/Redo support.
+- Merge, subdivide and duplicate selected geometry.
 - Recalculate and flip face normals.
 - Object movement and uniform scaling.
 - Distance-aware X/Y/Z and Size gizmos.
@@ -80,11 +94,17 @@ The desktop **UV Mapping** panel exposes the same practical operations with butt
 
 ## Mesh editing
 
-Enter **Edit Mode** from the VR menu and choose **VERT**, **EDGE** or **FACE**. The main edit page includes Select, Move Sel, Scale Sel, Extrude, Bevel, Materials, Undo and More. More Edit contains Inset, Delete, Merge, Subdivide, Duplicate, Recalculate Normals, Flip Normals and Redo.
+Switch to **Edit Mode** from the mode icon and choose **VERT**, **EDGE** or **FACE**.
+
+The primary edit toolbar exposes selection, Move Selection, Scale Selection, Extrude, Bevel, Inset Faces and Materials. Secondary commands such as Loop Cut, Delete Geometry, Merge, Subdivide, Duplicate, normals tools and Redo remain grouped where appropriate to keep the main toolbar compact.
+
+Loop Cut detects a continuous quad edge ring from the selected edge. The ring is previewed in orange before applying. You can choose 1–16 cuts; a single cut can be positioned from 5% to 95% in 5% steps, while multiple cuts are evenly distributed. Invalid/non-quad rings are rejected instead of applying an unpredictable cut.
 
 ## Scene building and movement
 
 Use **Shapes** to add cube, sphere, cylinder, cone, torus or plane meshes directly in VR. A placement preview appears before creation.
+
+Object Mode includes a dedicated **Delete Object** action. This is intentionally separate from Edit Mode's Delete Geometry operation.
 
 Use **Travel** for Fly/Walk, Turbo, Faster/Slower, Snap/Smooth turning and Reset View. The left stick controls movement and the right stick handles turning and vertical travel.
 
@@ -99,8 +119,16 @@ Use **Save Blend** from the VR menu or desktop sidebar.
 
 ## Install
 
+### Blender Extensions
+
+Install/update Mesh XR from the official Blender Extensions listing:
+
+https://extensions.blender.org/add-ons/blender-xr/
+
+### GitHub package
+
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download the current `mesh-xr-v0.6.4.zip` extension package.
+2. Download `mesh-xr-v0.6.5.zip`.
 3. In Blender open **Edit > Preferences > Add-ons / Extensions**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Mesh XR**.
@@ -116,16 +144,17 @@ The extension is free, open source and licensed under **GPL-3.0-or-later**.
 - Two tracked controllers for the standard controller workflow.
 - One active OpenXR runtime.
 
-Automated validation covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 is blocked because of a known VR crash.
+Automated validation covers Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. Blender 5.0.1 remains blocked because of its known VR crash.
 
 ## Experimental finger input
 
 Finger-touch shortcuts and the optional SteamVR skeletal bridge remain experimental and are not required for standard controller use. Standard controller operation does not depend on OpenVR.
 
-For the SteamVR skeletal path, v0.6.4 ships the required OpenVR Python wheel inside the Blender Extension package. The helper still runs as a separate system-Python process so SteamVR polling remains outside Blender's Python process, but it reuses the dependency installed with Mesh XR instead of asking the user to install a package manually. The add-on itself remains free of `threading` and `queue`.
+Mesh XR ships the required OpenVR Python wheel inside the Blender Extension package. The helper runs as a separate system-Python process so SteamVR polling remains outside Blender's Python process, while reusing the dependency installed with Mesh XR. The add-on itself remains free of `threading` and `queue`.
 
 ## Current limits
 
+- Loop Cut currently requires a valid continuous quad ring.
 - One local editable mesh at a time for topology work.
 - Shared/linked mesh data and shape-key meshes are rejected for topology edits.
 - Editing operates on the base mesh cage, not evaluated modifier geometry.
@@ -144,10 +173,10 @@ Build the extension with:
 python scripts/build.py
 ```
 
-The build verifies manifest/version/package metadata, Mesh XR branding, the v0.5.6 and v0.6 runtime layers, material/UV modules and menu routing, checks the pinned OpenVR wheel against its published SHA-256, verifies the wheel is present in the final ZIP, and rejects packaged imports of `threading` or `queue`.
+The build verifies manifest/version/package metadata, Mesh XR branding, runtime/modeling layers, material/UV modules and menu routing, checks the pinned OpenVR wheel against its published SHA-256, verifies the wheel is present in the final ZIP, and rejects packaged imports of `threading` or `queue`.
 
-The GitHub test matrix validates Mesh XR against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, including a clean-profile install of the generated extension ZIP, bundled OpenVR import and the complete v0.6 material/UV regression suite.
+The GitHub test matrix validates Mesh XR against Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, including a clean-profile install of the generated extension ZIP, bundled OpenVR import, v0.6 material/UV regression coverage and v0.6.5 modeling/UI regression coverage.
 
-See [TESTING.md](TESTING.md), [ROADMAP.md](ROADMAP.md) and [CHANGELOG.md](CHANGELOG.md).
+See [TESTING.md](TESTING.md), [ROADMAP.md](ROADMAP.md), [ICON_GUIDE.md](ICON_GUIDE.md) and [CHANGELOG.md](CHANGELOG.md).
 
 Independent project by Ded Zed. Not affiliated with the Blender Foundation, Freebird XR or the earlier MARUI BlenderXR project.
