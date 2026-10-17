@@ -115,13 +115,15 @@ def run():
     assert button.update(0.5)==(False,False)
     assert button.update(0.2)==(False,True)
     menu=drawing.Menu();menu.position(Vector((0,0,0)),Vector((0,-1,0.25)),1)
-    for i,(_,action) in enumerate(drawing.BUTTONS):
+    # Validate the active page rather than the old static button list. v0.6.5
+    # replaces the primary page at runtime with the icon-first layout.
+    for i,(_,action) in enumerate(menu.buttons):
         x,y,w,h=drawing.button_rect(i)
         target=menu.world(x+w/2,y+h/2)
         assert menu.hit(target+menu.normal,-menu.normal)[0]==action
     menu.visible=False
     assert menu.hit(Vector((0,-1,0)),Vector((0,1,0)))[0] is None
-    print('PASS face selection, guards, button hysteresis, all menu targets')
+    print('PASS face selection, guards, button hysteresis, all active menu targets')
     # Exercise the actual modal input-loss branch, not just the packet receiver.
     from types import SimpleNamespace as NS
     import time
