@@ -2,6 +2,32 @@
 
 This file records shipped user-facing changes. Planned work belongs in [ROADMAP.md](ROADMAP.md).
 
+## v0.6.5 — modeling tools + icon-first VR UI
+
+### Added
+
+- Icon-first Object/Edit VR toolbars designed to reduce reliance on language-specific labels.
+- Raycast hover highlighting plus delayed tooltips that show a tool name and short explanation.
+- Blender-style Object Mode / Edit Mode selector as the first primary toolbar control.
+- Dedicated Vertex / Edge / Face selection icons in Edit Mode.
+- Loop Cut with continuous quad-ring detection, orange preview, 1–16 cuts and adjustable single-cut position.
+- Dedicated Object Mode **Delete Object** command, separate from Edit Mode **Delete Geometry**.
+- `ICON_GUIDE.md` documenting the current icon set, hover behavior and controls.
+- v0.6.5 automated modeling/UI regression coverage in CI and release validation.
+
+### Changed
+
+- Restored **Inset Faces** directly to the primary Edit toolbar.
+- Kept secondary modeling operations under More Edit so the main toolbar remains compact.
+- Updated current documentation and release notes to Mesh XR v0.6.5.
+
+### Safety / Undo
+
+- Loop Cut rejects invalid/non-quad edge rings instead of applying an unpredictable cut.
+- Loop Cut participates in Mesh XR session-local Undo/Redo.
+- Deleted mesh objects can be restored with Mesh XR Undo and removed again with Redo.
+- Whole-object deletion and selected-geometry deletion remain intentionally separate operations.
+
 ## v0.6.4 — Blender Extensions packaging + Mesh XR naming
 
 ### Added
