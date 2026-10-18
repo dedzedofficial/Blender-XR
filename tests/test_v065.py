@@ -129,7 +129,11 @@ finally:
     # Release these test-only wrappers while Blender's Python runtime is alive.
     for _name in ('obj', 'restored', 'bm', 'edge', 'face', 'ring',
                   'entry', 'tx', 'preview', 'selected'):
+        print('v065: releasing ' + _name, flush=True)
         globals().pop(_name, None)
+        print('v065: released ' + _name, flush=True)
+    print('v065: garbage collection', flush=True)
     import gc
     gc.collect()
+    print('v065: garbage collection complete', flush=True)
     print('v065: stale test references collected', flush=True)
