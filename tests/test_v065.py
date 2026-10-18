@@ -57,11 +57,13 @@ try:
     mesh.set_selection_mode(bpy.context,'EDGE'); session.select_mode='EDGE'
     bm=mesh.editable(obj); bm.edges.ensure_lookup_table()
     for edge in bm.edges: edge.select_set(False)
+    del edge
     bm.edges[0].select_set(True); mesh.update(obj)
     ring=v065._ring_edges(obj)
     assert len(ring) >= 4
     preview=v065.loop_preview(obj)
     assert len(preview) == len(ring)
+    ring = None  # Drop BMEdge wrappers before topology snapshots replace the edit BMesh.
     before_edges=len(mesh.editable(obj).edges)
     print('v065: beginning loop subdivision', flush=True)
     entry=v065.loop_cut(obj,1,0.5)
@@ -78,9 +80,12 @@ try:
     print('v065: history complete; inset next', flush=True)
     # Inset remains directly available and transaction-safe in Face mode.
     session.history.clear()
+    entry = None
+    bm = None
     mesh.set_selection_mode(bpy.context,'FACE'); session.select_mode='FACE'
     bm=mesh.editable(obj)
     for face in bm.faces: face.select_set(False)
+    del face
     bm.faces.ensure_lookup_table(); bm.faces[0].select_set(True); mesh.update(obj)
     tx=mesh.Transaction(obj,'INSET','FACE')
     before_faces=len(mesh.editable(obj).faces)
@@ -88,6 +93,8 @@ try:
     assert len(mesh.editable(obj).faces) > before_faces
     tx.cancel()
     assert len(mesh.editable(obj).faces) == before_faces
+    tx = None
+    bm = None  # Must release edit-mode BMesh while still in Edit Mode (Blender 4.2).
 
     print('v065: inset complete; deletion next', flush=True)
     # Object deletion is a separate Object Mode history entry and is undo/redo safe.
