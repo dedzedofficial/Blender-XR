@@ -155,6 +155,8 @@ def _line_icon(action, x, y, w, h):
         box(.62)
     elif action == 'BACK':
         line((cx+sx*.8,cy),(cx-sx*.8,cy)); line((cx-sx*.8,cy),(cx-sx*.2,cy+sy*.6)); line((cx-sx*.8,cy),(cx-sx*.2,cy-sy*.6))
+    elif action == 'OBJECT_ADVANCED':
+        box(.82); line((cx-sx*.65,cy),(cx+sx*.65,cy)); line((cx,cy-sy*.65),(cx,cy+sy*.65))
     elif action == 'ADD_MENU':
         line((cx-sx,cy),(cx+sx,cy)); line((cx,cy-sy),(cx,cy+sy)); box(.35)
     elif action == 'MATERIAL_MENU':
@@ -226,16 +228,18 @@ def _patch_menu_draw():
 def _ring_edges(obj):
     bm=mesh.editable(obj)
     selected=[e for e in bm.edges if e.is_valid and e.select and not e.hide]
-    if not selected:
-        raise ValueError('Select one edge for Loop Cut')
+    if len(selected) != 1:
+        raise ValueError('Select exactly one edge for Loop Cut')
     start=selected[0]
     ring={start}
     queue=[start]
     while queue:
         edge=queue.pop()
         for face in edge.link_faces:
-            if not face.is_valid or face.hide or len(face.edges)!=4:
+            if not face.is_valid or face.hide:
                 continue
+            if len(face.edges) != 4:
+                raise ValueError('Loop Cut requires a continuous quad-only edge ring')
             opposite=[candidate for candidate in face.edges
                       if candidate.is_valid and candidate != edge and
                       not any(v in edge.verts for v in candidate.verts)]
@@ -246,7 +250,7 @@ def _ring_edges(obj):
                 ring.add(candidate); queue.append(candidate)
     if len(ring)<2:
         raise ValueError('Loop Cut requires a continuous quad edge ring')
-    return list(ring)
+    return sorted(ring, key=lambda edge: edge.index)
 
 
 def loop_preview(obj):
