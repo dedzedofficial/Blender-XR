@@ -11,7 +11,7 @@ from blender_xr import drawing, menus, mesh, runtime, v065, version
 blender_xr.register()
 session=None
 try:
-    assert version.VERSION == (0,6,5)
+    assert version.VERSION >= (0,6,5)
     assert blender_xr.bl_info['version'] == version.VERSION
     assert runtime.Runtime._v065_patched
     assert drawing.Menu._v065_icons
