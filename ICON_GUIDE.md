@@ -115,3 +115,11 @@ Inset requires Face Select and one or more selected faces. It keeps the existing
 The v0.6.5 UI uses icons for the common modeling workflow so users do not need to understand a long English menu before they can work. Raycast tooltips remain available when an icon is unfamiliar.
 
 Materials, UV and some advanced panels still retain text where a symbolic control would be unclear. Those areas can be converted gradually without sacrificing usability.
+
+## Advanced modeling introduced in v0.7.1
+
+Use **Mode > Object Tools** while in Object Mode for world-axis rotation, snap-to-grid, resetting orientation, duplication and modifier tools. From Object Tools, choose **Modifiers** to manage Mesh XR-created Mirror, Array and Solidify modifiers.
+
+Use **More Edit > Geometry Tools** while in Edit Mode for 15° local-axis selection rotation, dissolving vertices/edges, filling boundary holes, bridging selected edge loops and recalculating normals.
+
+Modifier setting buttons target the last Mesh XR-managed modifier. Standard modifiers created by users outside Mesh XR are not removed or changed. The v0.6.5 main toolbar and its raycast tooltip behavior are retained.
