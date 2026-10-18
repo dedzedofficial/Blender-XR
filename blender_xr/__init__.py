@@ -11,10 +11,11 @@ import bpy
 import textwrap
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060
+from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060, v071
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
+v071.patch(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Mesh XR'
