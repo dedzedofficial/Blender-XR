@@ -109,12 +109,18 @@ try:
     print('v065: redo object delete complete', flush=True)
     assert bpy.data.objects.get(name) is None
 
-    print('PASS v0.6.5 modeling and icon UI suite under Mesh XR '+version.DISPLAY_VERSION)
+    print('PASS v0.6.5 modeling and icon UI suite under Mesh XR '+version.DISPLAY_VERSION, flush=True)
 finally:
+    print('v065: finally begins', flush=True)
     if session is not None:
+        print('v065: history cleanup begins', flush=True)
         try: session.history.clear()
         except Exception: pass
+        print('v065: history cleanup completed', flush=True)
+        print('v065: release session attributes', flush=True)
         session.settings=None; session.menu=None; session=None
     if bpy.context.object and bpy.context.object.mode=='EDIT':
         bpy.ops.object.mode_set(mode='OBJECT')
+    print('v065: unregister begins', flush=True)
     blender_xr.unregister()
+    print('v065: unregister completed', flush=True)
