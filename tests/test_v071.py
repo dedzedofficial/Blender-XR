@@ -106,6 +106,12 @@ try:
     print('PASS v0.7.1 advanced modeling and history')
 finally:
     history.clear()
+    # A persistent reference to an edit BMesh can crash Blender 4.2 at exit
+    # after mode switching. Drop the script's BMesh wrappers while still live.
+    for _name in ('bm', 'v', 'face', 'edge'):
+        globals().pop(_name, None)
+    import gc
+    gc.collect()
     if bpy.context.object and bpy.context.object.mode == 'EDIT':
         bpy.ops.object.mode_set(mode='OBJECT')
     blender_xr.unregister()
