@@ -84,8 +84,8 @@ jobs:
           VERSION: ${{ steps.github_release.outputs.version }}
         run: |
           if [[ -z "$BLENDER_EXTENSIONS_TOKEN" ]]; then
-            echo "::warning::BLENDER_EXTENSIONS_TOKEN is not configured; skipping Blender Extensions submission."
-            exit 0
+            echo "::error::Blender Extensions upload blocked: configure BLENDER_EXTENSIONS_TOKEN in this repository's Actions secrets and rerun the workflow using publish_existing_to_blender=true."
+            exit 1
           fi
           package="dist/mesh-xr-v${VERSION}.zip"
           test -f "$package"
