@@ -112,6 +112,18 @@ v0.6.5 focuses on making the established modeling workflow faster to understand 
 - [x] Run v0.6.5 validation in release CI before GitHub/Blender Extensions publishing.
 - [x] Update current README, changelog, testing guide, icon guide, release notes and roadmap.
 
+## v0.7.1 — advanced modeling and stability improvements
+
+- [x] World-axis incremental object rotation, grid snapping and reset world rotation.
+- [x] Object duplication with retained object settings and XR history.
+- [x] Selected mesh rotation, dissolve, fill holes and bridge loops.
+- [x] Mesh XR-managed Mirror, Array and Solidify controls with reversible settings.
+- [x] UV editing and face material-slot assignment integrated with session-local history.
+- [x] Full Blender-version release gating and immutable GitHub release tags.
+- [ ] Continuous direct controller geometry manipulation, two-handed scale and haptics.
+- [ ] Numeric transform entry, full local/global/normal gizmos, modifier apply/reorder.
+- [ ] Complete physical headset compatibility and stability verification.
+
 ## Modeling polish backlog
 
 These are useful modeling improvements that remain open after v0.6.5 and can be scheduled alongside later transform/modeling work.
