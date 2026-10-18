@@ -1,4 +1,6 @@
-# Mesh XR v0.6.5
+# Mesh XR v0.7.1
+
+v0.7.1 adds Object Tools (axis rotation, grid snap, duplication), Geometry Tools (rotation, dissolve, fill holes, bridge), Mesh XR-managed Mirror/Array/Solidify modifiers with local Undo/Redo, UV history and safer Blender Extensions publication. The core 0.6.5 controls remain supported.
 
 Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed.
 

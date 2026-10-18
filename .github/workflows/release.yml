@@ -1,5 +1,5 @@
 name: Package and release Mesh XR
-# v0.6.5 release validation covers icon UI, current menu routing and legacy compatibility checks.
+# All supported Blender versions must pass before GitHub and Blender Extensions release.
 on:
   push:
     branches: [main]
@@ -19,7 +19,12 @@ concurrency:
   group: mesh-xr-release
   cancel-in-progress: false
 jobs:
+  validate:
+    uses: ./.github/workflows/check.yml
+    permissions:
+      contents: read
   release:
+    needs: validate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,7 +58,7 @@ jobs:
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v056.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v060.py
           /tmp/blender-5.2.2-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v065.py
-      - name: Publish or refresh current version
+      - name: Publish new verified version
         id: github_release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -66,14 +71,8 @@ jobs:
             exit 1
           fi
           if gh release view "$tag" >/dev/null 2>&1; then
-            echo "Refreshing existing ${tag} with the newly verified package."
-            gh release upload "$tag" "dist/mesh-xr-v${version}.zip" "dist/mesh-xr-v${version}.zip.sha256" --clobber
-            gh release edit "$tag" --title "Mesh XR v${version}" --notes-file RELEASE_NOTES.md --latest
-            if [[ "$GITHUB_REF_TYPE" != tag ]]; then
-              git tag -f "$tag" "$GITHUB_SHA"
-              git push origin "refs/tags/${tag}" --force
-            fi
-            echo "created=true" >> "$GITHUB_OUTPUT"
+            echo "Version ${tag} is already published; release assets and tags are immutable."
+            echo "created=false" >> "$GITHUB_OUTPUT"
           else
             gh release create "$tag" "dist/mesh-xr-v${version}.zip" "dist/mesh-xr-v${version}.zip.sha256" --target "$GITHUB_SHA" --title "Mesh XR v${version}" --notes-file RELEASE_NOTES.md --latest
             echo "created=true" >> "$GITHUB_OUTPUT"
@@ -96,7 +95,3 @@ jobs:
             -F "version_file=@${package}" \
             -F "release_notes=<RELEASE_NOTES.md"
           echo "Submitted Mesh XR v${VERSION} to Blender Extensions"
-      - name: Keep only verified current downloads
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python scripts/prune_releases.py

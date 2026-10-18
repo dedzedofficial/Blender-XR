@@ -2,6 +2,16 @@
 
 This file records shipped user-facing changes. Planned work belongs in [ROADMAP.md](ROADMAP.md).
 
+## v0.7.1 — advanced modeling and release safety
+
+- Added Object Tools for world-axis incremental rotation, snap-to-grid, reset rotation and reversible object duplication.
+- Added Geometry Tools for selected geometry rotation, dissolve vertices/edges, fill holes, bridge loops and normals recalculation.
+- Added Mesh XR-managed Mirror, Array and Solidify modifiers with adjustable settings and session-local history.
+- Added XR-local Undo/Redo for UV actions and selected-face material-slot assignment.
+- Fixed unsafe material-name access after deletion; improved quad-ring validation and controller-hover cleanup.
+- Added v0.7.1 regression coverage; versioned the Blender extension at 0.7.1.
+- Changed release automation to require the four-version validation matrix before publishing, stop force-moving release tags and avoid overwriting a published version.
+
 ## v0.6.5 — modeling tools + icon-first VR UI
 
 ### Added

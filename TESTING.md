@@ -74,6 +74,22 @@ The v0.6.5 coverage verifies the new modeling and interface layer in addition to
 
 Release publishing runs the v0.6.5 regression coverage before creating or refreshing the GitHub release and before submitting the package to Blender Extensions.
 
+## v0.7.1 regression and validation
+
+`tests/test_v071.py` validates object rotation, grid snapping, modifier history, modifier-preserving object duplication, safe material deletion, selected-geometry rotation and UV command history. The release workflow calls the entire reusable `check.yml` matrix and must not publish if any supported Blender-version check fails.
+
+**Known release gate:** The v0.6.5 modeling/UI regression previously triggered a Blender 4.2 process crash. Before publishing v0.7.1, isolate and resolve this crash on the CI matrix; do not waive that test.
+
+## Manual headset checklist — v0.7.1
+
+1. In Object Mode open Mode > Object Tools. Verify X/Y/Z rotation, snap, reset and duplication.
+2. Open Modifiers and create Mirror X/Y/Z, Array and Solidify. Change count/thickness, toggle and remove them; Undo/Redo after each.
+3. In Edit Mode choose V/E/F selection then More Edit > Geometry Tools. Rotate selected mesh elements about their center.
+4. On suitable boundary/loop geometry test Fill Hole, Dissolve and Bridge, including rejected invalid selections.
+5. Modify UVs, mark seams and assign a material slot to faces. Check Undo and Redo, save and reopen.
+6. Disconnect/reconnect tracking while aiming at the hand menu, and confirm no stale hover/accidental edit.
+7. Validate clean install and VR functionality on each claimed headset/runtime and Blender version.
+
 ## Manual headset checklist — core workflow
 
 Repeat on each runtime/controller combination you want to claim as physically verified.
