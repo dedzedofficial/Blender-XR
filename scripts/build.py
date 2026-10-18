@@ -52,11 +52,12 @@ assert "material_uv.BXR_PT_materials_v060.bl_category='Mesh XR'" in init_text
 assert "material_uv.BXR_PT_uv_v060.bl_category='Mesh XR'" in init_text
 assert "v056.patch(runtime.Runtime)" in init_text
 assert "v060.patch(runtime.Runtime)" in init_text
+assert "v071.patch(runtime.Runtime)" in init_text
 assert 'material_uv.CLASSES' in init_text
 assert 'Patreon' not in init_text
 assert "updates=layout.box()" not in init_text
 
-for required in ('material_uv.py','uv_tools.py','v060.py','steamvr_hand_bridge.py'):
+for required in ('material_uv.py','uv_tools.py','v060.py','v071.py','steamvr_hand_bridge.py'):
     assert (SOURCE/required).is_file(), required+' is required for the v0.6 package'
 menus_text=(SOURCE/'menus.py').read_text()
 assert "('MATERIALS','MATERIAL_MENU')" in menus_text
