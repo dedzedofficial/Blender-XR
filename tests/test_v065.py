@@ -124,3 +124,12 @@ finally:
     print('v065: unregister begins', flush=True)
     blender_xr.unregister()
     print('v065: unregister completed', flush=True)
+    # Blender 4.2 can crash on process teardown when module-global references
+    # retain BMesh or RNA wrappers for objects/edges already removed above.
+    # Release these test-only wrappers while Blender's Python runtime is alive.
+    for _name in ('obj', 'restored', 'bm', 'edge', 'face', 'ring',
+                  'entry', 'tx', 'preview', 'selected'):
+        globals().pop(_name, None)
+    import gc
+    gc.collect()
+    print('v065: stale test references collected', flush=True)
