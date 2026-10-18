@@ -1,4 +1,4 @@
-# Mesh XR v0.6.5
+# Mesh XR v0.7.1
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
@@ -6,9 +6,20 @@ Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand ca
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Blender Extensions](https://extensions.blender.org/add-ons/blender-xr/) · [Report Issues](https://github.com/dedzedofficial/Blender-XR/issues) · [Icon Guide](ICON_GUIDE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Testing](TESTING.md)
 
+## v0.7.1 highlights
+
+- **Object Tools:** Rotate objects in 15° increments around world X/Y/Z, reset world rotation, snap to the current step grid, and duplicate local objects with XR Undo/Redo.
+- **Geometry Tools:** Rotate selected vertices, edges or faces around their selection center on local X/Y/Z; dissolve geometry, fill boundary holes, bridge selected edge loops and recalculate normals.
+- **Modifiers:** Add and manage Mesh XR Mirror (X/Y/Z), Array and Solidify modifiers. Adjust Array count or Solidify thickness, toggle viewport display and remove the most recently managed modifier, with XR-local Undo/Redo.
+- **Undo improvements:** UV projection/transform/seam edits and selected-face material-slot assignment now use mesh snapshots for XR-local Undo/Redo.
+- **Reliability:** Safer material deletion, explicit quad-ring validation, tracking-loss tooltip cleanup and full Blender version matrix gating for releases.
+- **Blender Extensions:** Verified new versions are submitted through the official API. Updates on users' computers remain managed by Blender's built-in Extensions preferences.
+
+Open **Mode > Object Tools** in Object Mode, **More Edit > Geometry Tools** in Edit Mode, or **Object Tools > Modifiers** for the new commands.
+
 ## v0.6.5 highlights
 
-v0.6.5 is a modeling and usability update built on the complete v0.6 Materials + UV workflow and the v0.6.4 Blender Extensions packaging fixes.
+v0.6.5 introduced a modeling and usability update built on the complete v0.6 Materials + UV workflow and the v0.6.4 Blender Extensions packaging fixes.
 
 - Replaces long main-toolbar labels with a compact **icon-first VR interface**.
 - Adds **raycast hover highlighting** plus delayed tooltips with the tool name and explanation.
@@ -128,7 +139,7 @@ https://extensions.blender.org/add-ons/blender-xr/
 ### GitHub package
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download `mesh-xr-v0.6.5.zip`.
+2. Download `mesh-xr-v0.7.1.zip`.
 3. In Blender open **Edit > Preferences > Add-ons / Extensions**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Mesh XR**.
@@ -159,10 +170,10 @@ Mesh XR ships the required OpenVR Python wheel inside the Blender Extension pack
 - Shared/linked mesh data and shape-key meshes are rejected for topology edits.
 - Editing operates on the base mesh cage, not evaluated modifier geometry.
 - Scene Statistics reports base-mesh geometry rather than evaluated modifier output.
-- VR Undo/Redo is session-local; not every material/UV operation is currently part of that lightweight history.
+- VR Undo/Redo is session-local. UV operations, slot assignments, mesh changes, transforms, duplication and Mesh XR-managed modifier changes are tracked; not every material or texture edit has its own history entry.
 - Texture management currently targets a practical single Base Color image workflow rather than arbitrary shader-node authoring.
 - Custom text naming and browsing arbitrary files use Blender's desktop dialogs; VR provides auto-name and image cycling instead.
-- Rigging, weight painting, animation and advanced modifier workflows remain future roadmap features.
+- Rigging, weight painting, animation, full numeric transforms, direct controller edit manipulation and generic third-party modifier management remain future roadmap features.
 - Physical headset/runtime behavior can vary even when automated Blender tests pass.
 
 ## Development
