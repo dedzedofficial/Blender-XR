@@ -18,6 +18,7 @@ try:
     assert drawing._v065_loop_preview
     assert mesh.History._v065_delete_history
 
+    print('v065: menus', flush=True)
     # Core pages are icon-first and include the new Blender-style mode control.
     assert menus.PAGES['TOOLS'][0][1] == 'MODE_MENU'
     assert menus.PAGES['EDIT'][0][1] == 'MODE_MENU'
@@ -31,6 +32,7 @@ try:
     assert v065.TOOLTIP_DELAY == 0.5
     assert 'DELETE_OBJECT' in v065.TOOLTIPS and 'LOOP_CUT_MENU' in v065.TOOLTIPS
 
+    print('v065: create cube', flush=True)
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
     bpy.ops.mesh.primitive_cube_add()
@@ -50,6 +52,7 @@ try:
     session.command(bpy.context,'MODE_EDIT')
     assert obj.mode == 'EDIT'
 
+    print('v065: mode switch complete', flush=True)
     # Pick a cube edge and verify the continuous quad ring can be found and cut.
     mesh.set_selection_mode(bpy.context,'EDGE'); session.select_mode='EDGE'
     bm=mesh.editable(obj); bm.edges.ensure_lookup_table()
@@ -60,15 +63,19 @@ try:
     preview=v065.loop_preview(obj)
     assert len(preview) == len(ring)
     before_edges=len(mesh.editable(obj).edges)
+    print('v065: beginning loop subdivision', flush=True)
     entry=v065.loop_cut(obj,1,0.5)
+    print('v065: loop subdivision complete', flush=True)
     after_edges=len(mesh.editable(obj).edges)
     assert after_edges > before_edges
+    print('v065: loop history', flush=True)
     session.history.push(entry)
     assert session.history.step(True)
     assert len(mesh.editable(obj).edges) == before_edges
     assert session.history.step(False)
     assert len(mesh.editable(obj).edges) == after_edges
 
+    print('v065: history complete; inset next', flush=True)
     # Inset remains directly available and transaction-safe in Face mode.
     session.history.clear()
     mesh.set_selection_mode(bpy.context,'FACE'); session.select_mode='FACE'
@@ -82,17 +89,24 @@ try:
     tx.cancel()
     assert len(mesh.editable(obj).faces) == before_faces
 
+    print('v065: inset complete; deletion next', flush=True)
     # Object deletion is a separate Object Mode history entry and is undo/redo safe.
     bpy.ops.object.mode_set(mode='OBJECT')
     session.menu.page='TOOLS'; session.select_mode='FACE'; session.history.clear()
     name=obj.name
+    print('v065: delete start', flush=True)
     session.command(bpy.context,'DELETE_OBJECT')
+    print('v065: delete complete', flush=True)
     assert bpy.data.objects.get(name) is None
     assert session.history.undo[-1][0] == 'DELETE_OBJECT'
+    print('v065: undo object delete', flush=True)
     assert session.history.step(True)
+    print('v065: undo object delete complete', flush=True)
     restored=bpy.data.objects.get(name)
     assert restored is not None
+    print('v065: redo object delete', flush=True)
     assert session.history.step(False)
+    print('v065: redo object delete complete', flush=True)
     assert bpy.data.objects.get(name) is None
 
     print('PASS v0.6.5 modeling and icon UI suite under Mesh XR '+version.DISPLAY_VERSION)
