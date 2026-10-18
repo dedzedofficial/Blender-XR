@@ -163,13 +163,15 @@ def delete_material(obj):
     obj = _obj(obj)
     index = _safe_slot_index(obj)
     material = obj.material_slots[index].material
+    # Capture the name before Blender potentially destroys the RNA datablock.
+    material_name = material.name if material else 'Empty slot'
     obj.data.materials.pop(index=index)
     if material and material.users == 0:
         bpy.data.materials.remove(material)
     if obj.material_slots:
         obj.active_material_index = min(index, len(obj.material_slots) - 1)
     statistics.invalidate()
-    return material.name if material else 'Empty slot'
+    return material_name
 
 
 def rename_material(obj, name):
