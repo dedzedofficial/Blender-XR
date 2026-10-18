@@ -92,7 +92,18 @@ jobs:
       - name: v0.6.5 modeling and icon UI tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
-        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v065.py
+        run: |
+          set +e
+          /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v065.py
+          result=$?
+          if [[ "$result" -ne 0 ]]; then
+            echo "Blender exited with status $result"
+            if [[ -f /tmp/blender.crash.txt ]]; then
+              echo "==== Native Blender crash stack ===="
+              cat /tmp/blender.crash.txt
+            fi
+          fi
+          exit "$result"
       - name: v0.7.1 advanced modeling and history tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
