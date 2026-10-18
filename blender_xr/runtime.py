@@ -474,6 +474,9 @@ class Runtime:
             self.grip = Button()
             self.other_grip = Button()
             self.spawn_preview = None
+            self.hover = None
+            self.pointer = None
+            self.menu.tooltip_action = None
             if self.bridge:
                 self.bridge.armed = False
             self.status = 'WAITING FOR TRACKED HAND POSES'
