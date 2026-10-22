@@ -14,8 +14,8 @@ def active_mesh(context):
     return obj
 
 
-def mesh_health(obj):
-    """Read-only geometry/material/UV audit. Does not apply modifiers or edit data."""
+def mesh_health(obj, depsgraph=None):
+    """Read-only source and evaluated-mesh audit; never applies modifiers."""
     bm = bmesh.new()
     try:
         bm.from_mesh(obj.data)
@@ -23,30 +23,50 @@ def mesh_health(obj):
         bm.edges.ensure_lookup_table()
         bm.faces.ensure_lookup_table()
         # Boundary edges (one linked face) are open borders, not the same
-        # issue as edges shared by more than two faces. Report them separately.
+        # issue as edges shared by more than two faces. Report separately.
         boundary_edges = sum(1 for edge in bm.edges if edge.is_boundary)
-        non_manifold = sum(
-            1 for edge in bm.edges
-            if edge.link_faces and not edge.is_boundary and not edge.is_manifold
-        )
+        non_manifold = sum(1 for edge in bm.edges if edge.link_faces and not edge.is_boundary and not edge.is_manifold)
         loose_verts = sum(1 for vert in bm.verts if not vert.link_edges)
         loose_edges = sum(1 for edge in bm.edges if not edge.link_faces)
         degenerate_faces = sum(1 for face in bm.faces if face.calc_area() <= 1e-12)
-        triangles = sum(max(0, len(face.verts) - 2) for face in bm.faces)
-        return {
+        base_triangles = sum(max(0, len(face.verts) - 2) for face in bm.faces)
+        data = {
             'vertices': len(bm.verts), 'edges': len(bm.edges), 'faces': len(bm.faces),
-            'triangles': triangles, 'non_manifold_edges': non_manifold,
+            'base_triangles': base_triangles, 'non_manifold_edges': non_manifold,
             'boundary_edges': boundary_edges,
             'loose_vertices': loose_verts, 'loose_edges': loose_edges,
             'degenerate_faces': degenerate_faces,
             'has_uvs': bool(obj.data.uv_layers),
             'materials': len(obj.data.materials),
-            'missing_material_faces': sum(1 for face in bm.faces
-                                          if not obj.data.materials or face.material_index >= len(obj.data.materials)),
+            'missing_material_faces': sum(1 for face in bm.faces if not obj.data.materials or face.material_index >= len(obj.data.materials)),
             'modifiers': len(obj.modifiers),
         }
     finally:
         bm.free()
+
+    # Count the evaluated mesh so viewport modifiers such as Subdivision,
+    # Mirror and Solidify are reflected in the triangle-budget warning.
+    evaluated_triangles = None
+    evaluation_error = None
+    evaluated_obj = None
+    try:
+        graph = depsgraph or bpy.context.evaluated_depsgraph_get()
+        evaluated_obj = obj.evaluated_get(graph)
+        evaluated_mesh = evaluated_obj.to_mesh()
+        if evaluated_mesh is None:
+            raise RuntimeError('Blender did not return an evaluated mesh')
+        try:
+            evaluated_mesh.calc_loop_triangles()
+            evaluated_triangles = len(evaluated_mesh.loop_triangles)
+        finally:
+            evaluated_obj.to_mesh_clear()
+    except (AttributeError, ReferenceError, RuntimeError, TypeError, ValueError) as exc:
+        evaluation_error = str(exc)
+
+    data['evaluated_triangles'] = evaluated_triangles
+    data['evaluation_error'] = evaluation_error
+    data['triangles'] = evaluated_triangles if evaluated_triangles is not None else data['base_triangles']
+    return data
 
 
 def _report_health(operator, obj, triangle_budget=0):
