@@ -22,6 +22,7 @@ def run():
         assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
                 'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
         assert drawing.button_rect(0)[2] >= 0.19
+        from mathutils import Vector
         vr_menu = drawing.Menu()
         vr_menu.page = 'TOOLS'
         vr_menu.ready = True
