@@ -310,21 +310,64 @@ class BXR_OT_bind_auto_weights(bpy.types.Operator):
     def execute(self, context):
         armature = context.view_layer.objects.active
         meshes = [obj for obj in context.selected_objects if obj.type == 'MESH']
+        selected_before, active_before = _selection_snapshot(context)
+        original_state = {}
+        original_groups = {}
         try:
+            if armature is None or armature.type != 'ARMATURE':
+                raise ValueError('Select an armature and make it active')
             if armature.mode != 'OBJECT':
                 raise ValueError('Armature must be in Object Mode')
+            if armature.library or armature.data.library:
+                raise ValueError('Linked armatures cannot be used for automatic binding')
+            if not meshes:
+                raise ValueError('Select at least one mesh to bind')
             for obj in meshes:
+                if obj.mode != 'OBJECT':
+                    raise ValueError(obj.name + ' must be in Object Mode')
                 if obj.library or obj.data.library:
                     raise ValueError('Linked meshes cannot be bound')
                 if obj.parent and obj.parent != armature:
                     raise ValueError(obj.name + ' already has another parent; resolve it first')
-            bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+                original_state[obj] = (
+                    obj.parent, obj.matrix_parent_inverse.copy(), obj.matrix_world.copy()
+                )
+                original_groups[obj] = {group.name for group in obj.vertex_groups}
+
+            # Ensure Blender's parent operator only processes the intended mesh
+            # objects and the selected active armature.
+            for obj in context.view_layer.objects:
+                obj.select_set(False)
+            armature.select_set(True)
+            for obj in meshes:
+                obj.select_set(True)
+            context.view_layer.objects.active = armature
+            result = bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+            if 'FINISHED' not in result:
+                raise RuntimeError('Blender cancelled automatic weight binding')
+            unbound = [obj.name for obj in meshes if obj.parent != armature]
+            if unbound:
+                raise RuntimeError('Blender did not bind: ' + ', '.join(unbound))
             self.report({'INFO'}, 'Automatic weights assigned. Test deformation and correct weights before export.')
             return {'FINISHED'}
-        except (ValueError, RuntimeError) as exc:
+        except Exception as exc:
+            # Restore object relationships and remove newly-created groups if the
+            # automatic-weight operator fails after partially processing a mesh.
+            for obj, state in original_state.items():
+                parent, parent_inverse, world_matrix = state
+                try:
+                    obj.parent = parent
+                    obj.matrix_parent_inverse = parent_inverse
+                    obj.matrix_world = world_matrix
+                    existing_names = original_groups.get(obj, set())
+                    for group in list(obj.vertex_groups):
+                        if group.name not in existing_names:
+                            obj.vertex_groups.remove(group)
+                except (ReferenceError, RuntimeError, TypeError, ValueError):
+                    pass
+            _restore_selection(context, selected_before, active_before)
             self.report({'ERROR'}, 'Automatic weights failed: ' + str(exc))
             return {'CANCELLED'}
-
 
 class BXR_OT_weight_cleanup(bpy.types.Operator):
     bl_idname = 'blender_xr.weight_cleanup'
@@ -334,28 +377,44 @@ class BXR_OT_weight_cleanup(bpy.types.Operator):
 
     def execute(self, context):
         meshes = [obj for obj in context.selected_objects if obj.type == 'MESH']
+        selected_before, active_before = _selection_snapshot(context)
         if not meshes:
             self.report({'ERROR'}, 'Select one or more meshes with vertex groups')
             return {'CANCELLED'}
-        completed = 0
         try:
             for obj in meshes:
-                if not obj.vertex_groups:
-                    continue
-                bpy.ops.object.select_all(action='DESELECT')
+                if obj.mode != 'OBJECT':
+                    raise ValueError(obj.name + ' must be in Object Mode')
+                if obj.library or obj.data.library:
+                    raise ValueError('Linked meshes cannot be modified')
+            meshes = [obj for obj in meshes if obj.vertex_groups]
+            if not meshes:
+                raise ValueError('Selected meshes do not have vertex groups')
+
+            completed = 0
+            for obj in meshes:
+                for candidate in context.view_layer.objects:
+                    candidate.select_set(False)
                 obj.select_set(True)
                 context.view_layer.objects.active = obj
-                bpy.ops.object.vertex_group_clean(group_select_mode='ALL', limit=0.001, keep_single=True)
-                bpy.ops.object.vertex_group_normalize_all(group_select_mode='ALL', lock_active=False)
+                clean_result = bpy.ops.object.vertex_group_clean(
+                    group_select_mode='ALL', limit=0.001, keep_single=True
+                )
+                if 'FINISHED' not in clean_result:
+                    raise RuntimeError('Blender could not clean weights on ' + obj.name)
+                normalize_result = bpy.ops.object.vertex_group_normalize_all(
+                    group_select_mode='ALL', lock_active=False
+                )
+                if 'FINISHED' not in normalize_result:
+                    raise RuntimeError('Blender could not normalize weights on ' + obj.name)
                 completed += 1
-            if not completed:
-                raise ValueError('Selected meshes do not have vertex groups')
             self.report({'INFO'}, 'Normalized and cleaned weights on {} mesh(es)'.format(completed))
             return {'FINISHED'}
-        except (RuntimeError, ValueError) as exc:
+        except Exception as exc:
             self.report({'ERROR'}, 'Weight cleanup failed: ' + str(exc))
             return {'CANCELLED'}
-
+        finally:
+            _restore_selection(context, selected_before, active_before)
 
 class BXR_OT_pose_test(bpy.types.Operator):
     bl_idname = 'blender_xr.pose_test'
