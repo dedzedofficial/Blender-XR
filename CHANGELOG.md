@@ -15,6 +15,9 @@ This file records shipped user-facing changes. Planned work belongs in [ROADMAP.
 - Distinguished open boundary edges from true non-manifold edges shared by three or more faces in audit reports.
 - Used clearer humanoid starter-rig bone names and persisted the Precision Snap, Haptic Feedback and Triangle Budget settings.
 - Added a starter humanoid armature workflow, automatic-weight binding, weight normalization/cleanup, and Weight Paint entry.
+- Added separate source/evaluated triangle counts so the triangle budget accounts for viewport modifier output when available.
+- Hardened rigging and weight-tool failure recovery, and improved XR shutdown cleanup so unexpected session termination restores the normal PC view.
+- Added regression tests for evaluated modifier counts, two-hand scaling pivot math and failed rig creation state restoration.
 - Added a collapsible Workflow panel that groups asset, rigging and controller-modeling tools.
 
 ## v0.7.1 — advanced modeling and release safety
