@@ -15,6 +15,7 @@ Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed
 ## v0.7.5 development — workflow tools
 
 - **Precision Snap:** optional quantization of controller-driven geometry tool distances and axis translation using the configured tool step.
+- **Two-handed scaling:** grab an object with one controller, grab with the other, and scale around the midpoint between hands. Releasing either grip commits one XR history entry.
 - **Asset readiness:** read-only topology/UV/material audit with triangle and modifier counts.
 - **Rigging:** proportion-based starter humanoid armature, Blender automatic-weight binding, weight cleanup/normalization and native Weight Paint mode entry.
 - **Workflow panel:** a collapsed-by-default desktop panel groups asset checks, rigging and controller modeling guidance.
