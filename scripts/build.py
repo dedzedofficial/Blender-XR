@@ -56,6 +56,8 @@ assert "v071.patch(runtime.Runtime)" in init_text
 assert "v075_features.CLASSES" in init_text, 'v0.7.5 workflow features must be registered'
 assert "precision_mode" in init_text, 'precision mode setting must be present'
 assert "triangle_budget" in init_text, 'asset triangle budget setting must be present'
+assert "haptic_feedback" in init_text, 'optional haptic feedback setting must be present'
+assert "('haptic', 'VIBRATION', '/output/haptic')" in (SOURCE/'actions.py').read_text(), 'OpenXR haptic output action must be present'
 assert "mirror_xr_session" in init_text, 'PC View Mode must use Blender native XR mirroring'
 assert "Show VR View on PC" in init_text, 'PC View Mode toggle must be visible in the desktop panel'
 assert 'material_uv.CLASSES' in init_text
