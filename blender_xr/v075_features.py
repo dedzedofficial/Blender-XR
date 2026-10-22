@@ -254,6 +254,34 @@ class BXR_OT_pose_test(bpy.types.Operator):
             return {'CANCELLED'}
 
 
+
+
+class BXR_OT_weight_paint(bpy.types.Operator):
+    bl_idname = 'blender_xr.weight_paint'
+    bl_label = 'Enter Weight Paint'
+    bl_description = 'Show vertex weights and enter Blender Weight Paint mode'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.view_layer.objects.active
+        return obj is not None and obj.type == 'MESH' and obj.mode == 'OBJECT' and bool(obj.vertex_groups)
+
+    def execute(self, context):
+        obj = context.view_layer.objects.active
+        try:
+            if not obj.vertex_groups:
+                raise ValueError('Mesh has no vertex groups yet. Bind it to an armature first.')
+            obj.data.use_paint_mask_vertex = False
+            obj.data.use_paint_mask = False
+            obj.show_weight = True
+            bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
+            return {'FINISHED'}
+        except (RuntimeError, ValueError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
 class BXR_PT_workflow(bpy.types.Panel):
     bl_label = 'Mesh XR Workflow'
     bl_idname = 'BXR_PT_workflow'
@@ -276,6 +304,8 @@ class BXR_PT_workflow(bpy.types.Panel):
         layout.label(text='To bind: select mesh + armature, make armature active')
         layout.operator('blender_xr.bind_auto_weights', icon='CONSTRAINT_BONE')
         layout.operator('blender_xr.weight_cleanup', icon='GROUP_VERTEX')
+        if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' and obj.vertex_groups:
+            layout.operator('blender_xr.weight_paint', icon='WPAINT_HLT')
         if obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT':
             layout.operator('blender_xr.pose_test', icon='POSE_HLT')
         layout.separator()
@@ -287,5 +317,5 @@ class BXR_PT_workflow(bpy.types.Panel):
 
 CLASSES = (
     BXR_OT_asset_audit, BXR_OT_create_basic_rig, BXR_OT_bind_auto_weights,
-    BXR_OT_weight_cleanup, BXR_OT_pose_test, BXR_PT_workflow,
+    BXR_OT_weight_cleanup, BXR_OT_pose_test, BXR_OT_weight_paint, BXR_PT_workflow,
 )
