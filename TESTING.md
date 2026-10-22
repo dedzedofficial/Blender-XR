@@ -85,6 +85,21 @@ Automated package checks verify that the Mesh XR sidebar uses Blender's native `
 5. Stop/restart VR, switch workspaces, and repeat. Confirm no stale toggle state or accidental session stop.
 6. On a build without `mirror_xr_session`, confirm the UI reports mirroring as unsupported rather than showing a nonfunctional toggle.
 
+## v0.7.5 workflow expansion
+
+`tests/test_v075_features.py` checks the read-only asset audit, basic starter rig generation, operator registration and precision setting. CI runs it across the supported Blender matrix.
+
+Manual checks still required:
+
+1. Start Mesh XR and verify PC View Mode can mirror the live OpenXR viewport, then return to normal desktop view without stopping VR.
+2. Enable Precision Snap and verify controller geometry distances and axis translation quantize to the configured tool step; disable it and confirm smooth movement returns.
+3. Run **Audit Selected Mesh** on a clean mesh and on meshes with open boundaries, loose vertices, missing UVs and missing materials; confirm the audit does not modify mesh data.
+4. Create a starter rig on an upright humanoid mesh. Inspect bone placement and adjust it before binding; the generated proportions are only a starting point.
+5. Bind with Automatic Weights, enter Weight Paint, test deformations, and normalize/clean weights. Confirm failed binding reports an error without claiming success.
+6. Verify the Workflow panel is collapsed by default and its tools respect Blender's active-object and mode requirements.
+
+The starter rig is not a production auto-rigger. Complex anatomy, multiple disconnected parts, non-human meshes and export-specific rig conventions require manual review.
+
 ## v0.7.1 regression and validation
 
 `tests/test_v071.py` validates object rotation, grid snapping, modifier history, modifier-preserving object duplication, safe material deletion, selected-geometry rotation and UV command history. The release workflow calls the entire reusable `check.yml` matrix and must not publish if any supported Blender-version check fails.
