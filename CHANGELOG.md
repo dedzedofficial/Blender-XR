@@ -12,6 +12,8 @@ This file records shipped user-facing changes. Planned work belongs in [ROADMAP.
 - Added two-controller object scaling, with midpoint-aware scaling and XR-local Undo/Redo when either grip is released.
 - Added optional OpenXR haptic pulses after completed geometry edits and object transforms, with safe fallback when unsupported.
 - Added a read-only asset audit for topology health, UV availability, material slots, triangle count and modifiers, with a configurable triangle-budget warning.
+- Distinguished open boundary edges from true non-manifold edges shared by three or more faces in audit reports.
+- Used clearer humanoid starter-rig bone names and persisted the Precision Snap, Haptic Feedback and Triangle Budget settings.
 - Added a starter humanoid armature workflow, automatic-weight binding, weight normalization/cleanup, and Weight Paint entry.
 - Added a collapsible Workflow panel that groups asset, rigging and controller-modeling tools.
 
