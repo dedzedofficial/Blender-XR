@@ -11,7 +11,7 @@ import bpy
 import textwrap
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060, v071
+from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -42,7 +42,7 @@ class BXR_Settings(bpy.types.PropertyGroup):
     finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
         description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
-    step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
+    precision_mode: BoolProperty(name='Precision Snap',default=False,\n        description='Quantize controller-driven geometry tool distances to the configured tool step')\n    step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
                         description='Initial tool amount in local mesh units',update=_persist_setting)
     bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8,update=_persist_setting)
     move_speed: FloatProperty(name='Flight speed',default=3.0,min=0.1,max=1000,
@@ -355,7 +355,7 @@ class BXR_PT_panel(bpy.types.Panel):
         modeling=layout.box()
         modeling.label(text='Modeling',icon='MESH_CUBE')
         grid=modeling.grid_flow(columns=2,align=True)
-        grid.prop(settings,'step')
+        grid.prop(settings,'step')\n        grid.prop(settings,'precision_mode',text='Precision Snap',toggle=True,icon='SNAP_ON')
         grid.prop(settings,'bevel_segments')
         grid.prop(settings,'primitive_size')
         grid.prop(settings,'placement_distance')
