@@ -2,6 +2,13 @@
 
 This file records shipped user-facing changes. Planned work belongs in [ROADMAP.md](ROADMAP.md).
 
+## v0.7.5 — PC View Mode (development)
+
+- Added a PC View Mode toggle in the Mesh XR sidebar to switch the current 3D View between normal desktop display and Blender's live XR session mirror.
+- Kept mirroring separate from session lifecycle: toggling the view does not start or stop the headset session.
+- Disabled the control until Mesh XR's XR session is active and show a compatibility message when Blender does not expose the native mirror property.
+- Added documentation and build validation for the mirror toggle.
+
 ## v0.7.1 — advanced modeling and release safety
 
 - Added Object Tools for world-axis incremental rotation, snap-to-grid, reset rotation and reversible object duplication.
