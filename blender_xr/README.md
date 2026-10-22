@@ -12,6 +12,15 @@ Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed
 - If the current Blender build does not expose `SpaceView3D.mirror_xr_session`, the panel reports that mirroring is unavailable rather than pretending it worked.
 - The mirror is Blender's XR compositor output, not a recording and not a separate reconstructed camera view.
 
+## v0.7.5 development — workflow tools
+
+- **Precision Snap:** optional quantization of controller-driven geometry tool distances and axis translation using the configured tool step.
+- **Asset readiness:** read-only topology/UV/material audit with triangle and modifier counts.
+- **Rigging:** proportion-based starter humanoid armature, Blender automatic-weight binding, weight cleanup/normalization and native Weight Paint mode entry.
+- **Workflow panel:** a collapsed-by-default desktop panel groups asset checks, rigging and controller modeling guidance.
+
+The starter armature is a guide, not a finished production rig. Review bone placement before binding and test the resulting weights before using or exporting the asset.
+
 ## v0.6.5
 
 v0.6.5 is a modeling and usability update built on the v0.6 Materials + UV workflow and the v0.6.4 Blender Extensions packaging fixes.
