@@ -112,6 +112,13 @@ v0.6.5 focuses on making the established modeling workflow faster to understand 
 - [x] Run v0.6.5 validation in release CI before GitHub/Blender Extensions publishing.
 - [x] Update current README, changelog, testing guide, icon guide, release notes and roadmap.
 
+## v0.7.5 — PC View Mode development
+
+- [x] Add a desktop toggle for normal viewport versus live OpenXR session mirror where Blender supports it.
+- [x] Keep view switching independent from starting/stopping the VR session.
+- [x] Disable mirroring until the XR session is running and show a clear unsupported-build message.
+- [ ] Validate physical headset/runtime mirror behavior across the supported Blender matrix before release.
+
 ## v0.7.1 — advanced modeling and stability improvements
 
 - [x] World-axis incremental object rotation, grid snapping and reset world rotation.
