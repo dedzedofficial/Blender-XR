@@ -74,6 +74,17 @@ The v0.6.5 coverage verifies the new modeling and interface layer in addition to
 
 Release publishing runs the v0.6.5 regression coverage before creating or refreshing the GitHub release and before submitting the package to Blender Extensions.
 
+## v0.7.5 PC View Mode validation
+
+Automated package checks verify that the Mesh XR sidebar uses Blender's native `SpaceView3D.mirror_xr_session` property and guards unsupported builds. Manual validation is still required for the actual XR compositor output.
+
+1. Open the Mesh XR sidebar in a 3D View with VR stopped; confirm **Show VR View on PC** is disabled and the normal viewport remains visible.
+2. Start Mesh XR and confirm the toggle becomes enabled.
+3. Enable it and verify the PC 3D View shows the live XR session mirror while the headset session continues running.
+4. Disable it and verify the normal desktop viewport returns without stopping VR.
+5. Stop/restart VR, switch workspaces, and repeat. Confirm no stale toggle state or accidental session stop.
+6. On a build without `mirror_xr_session`, confirm the UI reports mirroring as unsupported rather than showing a nonfunctional toggle.
+
 ## v0.7.1 regression and validation
 
 `tests/test_v071.py` validates object rotation, grid snapping, modifier history, modifier-preserving object duplication, safe material deletion, selected-geometry rotation and UV command history. The release workflow calls the entire reusable `check.yml` matrix and must not publish if any supported Blender-version check fails.
