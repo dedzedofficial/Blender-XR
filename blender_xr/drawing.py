@@ -57,7 +57,7 @@ def rectangle_points(x, y, w, h):
 
 def button_rect(index):
     col, row = index % 2, index // 2
-    return (-0.174 + col * 0.177, 0.117 - row * 0.052, 0.168, 0.043)
+    return (-0.207 + col * 0.211, 0.117 - row * 0.052, 0.198, 0.045)
 
 
 class Menu:
@@ -105,7 +105,7 @@ class Menu:
         pos = origin + direction*t
         local = (pos-self.center)/self.scale
         x, y = local.dot(self.right), local.dot(self.up)
-        if not (-0.19 <= x <= 0.19 and -0.29 <= y <= 0.23):
+        if not (-0.222 <= x <= 0.222 and -0.29 <= y <= 0.23):
             return None, None
         for i, (_, action) in enumerate(self.buttons):
             bx, by, w, h = button_rect(i)
@@ -130,9 +130,9 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
-        rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        text('MESH XR / '+menus.title(self.page),-0.177,0.208,0.00275)
+        rect(-0.225,-0.29,0.45,0.52,(0.015,0.025,0.04,0.98))
+        rect(-0.225,0.166,0.45,0.064,(0.025,0.13,0.17,1),0.0003)
+        text('MESH XR / '+menus.title(self.page),-0.207,0.208,0.00275)
         if settings and self.page=='TRAVEL':
             summary=('FLY ' if settings.fly_mode else 'WALK ')+format(settings.move_speed,'.1f')+' / '+settings.turn_mode
         elif settings and self.page in {'MATERIALS','MATERIAL_ADJUST'}:
@@ -160,12 +160,12 @@ class Menu:
             if action==hover:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
-            text(label,bx+0.009,by+0.030,min(0.0032,0.15/(max(len(label),1)*6)))
-        text(('MESH '+selection)[:24],-0.174,-0.19,0.0023)
-        text(status[:25],-0.174,-0.214,0.00225)
+            text(label,bx+0.009,by+0.031,min(0.0032,0.177/(max(len(label),1)*6)))
+        text(('MESH '+selection)[:24],-0.207,-0.19,0.0023)
+        text(status[:25],-0.207,-0.214,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
-        text(hint,-0.174,-0.246,0.0021)
-        text(version.DISPLAY_VERSION,-0.174,-0.274,0.0021)
+        text(hint,-0.207,-0.246,0.0021)
+        text(version.DISPLAY_VERSION,-0.207,-0.274,0.0021)
 
 
 def draw_batch(shader, kind, points, color):
