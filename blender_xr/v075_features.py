@@ -35,7 +35,8 @@ def mesh_health(obj):
         triangles = sum(max(0, len(face.verts) - 2) for face in bm.faces)
         return {
             'vertices': len(bm.verts), 'edges': len(bm.edges), 'faces': len(bm.faces),
-            'triangles': triangles, 'non_manifold_edges': non_manifold,\n            'boundary_edges': boundary_edges,
+            'triangles': triangles, 'non_manifold_edges': non_manifold,
+            'boundary_edges': boundary_edges,
             'loose_vertices': loose_verts, 'loose_edges': loose_edges,
             'degenerate_faces': degenerate_faces,
             'has_uvs': bool(obj.data.uv_layers),
