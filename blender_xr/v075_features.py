@@ -73,7 +73,10 @@ class BXR_OT_asset_audit(bpy.types.Operator):
 
     def execute(self, context):
         try:
-            _report_health(self, active_mesh(context))
+            obj = active_mesh(context)
+            if obj.mode != 'OBJECT':
+                raise ValueError('Switch to Object Mode before running the asset audit')
+            _report_health(self, obj)
             return {'FINISHED'}
         except (ValueError, RuntimeError) as exc:
             self.report({'ERROR'}, str(exc))
