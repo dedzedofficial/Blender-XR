@@ -230,6 +230,14 @@ class Runtime:
             self.bridge.close()
             self.bridge = None
         self.cancel_work()
+        # Leaving XR must return this desktop viewport to its normal display mode.
+        try:
+            if self.area is not None and self.area.type == 'VIEW_3D':
+                view_space = self.area.spaces.active
+                if hasattr(view_space, 'mirror_xr_session'):
+                    view_space.mirror_xr_session = False
+        except (AttributeError, ReferenceError, RuntimeError, TypeError):
+            pass
         if self.draw_handle is not None:
             bpy.types.SpaceView3D.draw_handler_remove(self.draw_handle, 'XR')
             self.draw_handle = None
@@ -472,7 +480,10 @@ class Runtime:
         self.last_tick = now
         state = context.window_manager.xr_session_state
         if state is None or not bpy.types.XrSessionState.is_running(context):
-            if now-self.started > 8:
+            if self.navigation_initialized:
+                self.status = 'VR SESSION STOPPED'
+                self.request_stop = True
+            elif now-self.started > 8:
                 self.error = 'No VR session. Check the active OpenXR runtime and headset connection.'
                 self.request_stop = True
             return
