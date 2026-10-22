@@ -53,6 +53,8 @@ assert "material_uv.BXR_PT_uv_v060.bl_category='Mesh XR'" in init_text
 assert "v056.patch(runtime.Runtime)" in init_text
 assert "v060.patch(runtime.Runtime)" in init_text
 assert "v071.patch(runtime.Runtime)" in init_text
+assert "mirror_xr_session" in init_text, 'PC View Mode must use Blender native XR mirroring'
+assert "Show VR View on PC" in init_text, 'PC View Mode toggle must be visible in the desktop panel'
 assert 'material_uv.CLASSES' in init_text
 assert 'Patreon' not in init_text
 assert "updates=layout.box()" not in init_text
