@@ -8,6 +8,10 @@ This file records shipped user-facing changes. Planned work belongs in [ROADMAP.
 - Kept mirroring separate from session lifecycle: toggling the view does not start or stop the headset session.
 - Disabled the control until Mesh XR's XR session is active and show a compatibility message when Blender does not expose the native mirror property.
 - Added documentation and build validation for the mirror toggle.
+- Added optional controller precision snapping based on the configured tool step.
+- Added a read-only asset audit for topology health, UV availability, material slots, triangle count and modifiers.
+- Added a starter humanoid armature workflow, automatic-weight binding, weight normalization/cleanup, and Weight Paint entry.
+- Added a collapsible Workflow panel that groups asset, rigging and controller-modeling tools.
 
 ## v0.7.1 — advanced modeling and release safety
 
