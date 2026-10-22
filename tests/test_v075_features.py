@@ -15,6 +15,7 @@ def run():
         assert hasattr(bpy.ops.blender_xr, 'create_basic_rig')
         assert hasattr(bpy.ops.blender_xr, 'bind_auto_weights')
         assert hasattr(bpy.ops.blender_xr, 'weight_cleanup')
+        assert hasattr(bpy.ops.blender_xr, 'weight_paint')
         assert 'precision_mode' in bpy.context.scene.blender_xr.bl_rna.properties
 
         bpy.ops.object.select_all(action='SELECT')
