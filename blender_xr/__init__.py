@@ -321,6 +321,23 @@ class BXR_PT_panel(bpy.types.Panel):
         for line in textwrap.wrap(settings.status,44):
             session_box.label(text=line,icon='INFO' if line==settings.status else 'NONE')
 
+        # Blender exposes the active XR compositor mirror on each 3D View.
+        # Keep this as a display-only toggle: it must never start/stop the XR session.
+        view_box=layout.box()
+        view_box.label(text='PC View Mode',icon='WINDOW')
+        view_space=context.space_data
+        if hasattr(view_space,'mirror_xr_session'):
+            mirror_row=view_box.row(align=True)
+            mirror_row.enabled=active and bpy.types.XrSessionState.is_running(context)
+            mirror_row.prop(view_space,'mirror_xr_session',
+                            text='Show VR View on PC',toggle=True,icon='XRAY')
+            if active and bpy.types.XrSessionState.is_running(context):
+                view_box.label(text='Off: normal desktop view  |  On: live headset mirror')
+            else:
+                view_box.label(text='Start VR to enable the live headset mirror',icon='INFO')
+        else:
+            view_box.label(text='This Blender build does not expose XR view mirroring',icon='ERROR')
+
         setup=layout.box()
         setup.label(text='Controller Setup',icon='SETTINGS')
         col=setup.column(align=True)
