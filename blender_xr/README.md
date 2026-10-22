@@ -1,8 +1,16 @@
-# Mesh XR v0.7.1
+# Mesh XR v0.7.5
 
-v0.7.1 adds Object Tools (axis rotation, grid snap, duplication), Geometry Tools (rotation, dissolve, fill holes, bridge), Mesh XR-managed Mirror/Array/Solidify modifiers with local Undo/Redo, UV history and safer Blender Extensions publication. The core 0.6.5 controls remain supported.
+v0.7.5 development adds a PC View Mode toggle to switch the current Blender viewport between the normal desktop view and Blender's live OpenXR session mirror, where supported. The toggle is display-only and does not start or stop VR. It also carries forward the v0.7.1 Object Tools, Geometry Tools, managed modifiers and UV history.
 
 Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed.
+
+## v0.7.5 development — PC View Mode
+
+- In the Mesh XR sidebar, use **PC View Mode > Show VR View on PC** to switch the current 3D View between the regular desktop viewport and Blender's native live XR session mirror.
+- The toggle is enabled only while Mesh XR's OpenXR session is active.
+- Turning mirroring off restores the normal desktop view; it does not stop the headset session.
+- If the current Blender build does not expose `SpaceView3D.mirror_xr_session`, the panel reports that mirroring is unavailable rather than pretending it worked.
+- The mirror is Blender's XR compositor output, not a recording and not a separate reconstructed camera view.
 
 ## v0.6.5
 
