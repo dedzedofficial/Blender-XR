@@ -130,6 +130,7 @@ class Runtime:
         self.pointer = None
         self.transaction = None
         self.grab = None
+        self.two_hand_scale = None
         self.axis_move = None
         self.axis_drag = None
         self.gizmo = None
@@ -198,6 +199,7 @@ class Runtime:
             except ReferenceError:
                 pass
             self.grab = None
+        self.two_hand_scale = None
         self.status = 'CANCELLED'
 
     def cleanup(self, context):
@@ -532,7 +534,7 @@ class Runtime:
         press, release = self.trigger.update(trigger_value)
         off_press, _ = self.off_trigger.update(off_value)
         grab_press, grab_release = self.grip.update(grab_value)
-        other_grab_press, _ = self.other_grip.update(other_grab_value)
+        other_grab_press, other_grab_release = self.other_grip.update(other_grab_value)
         obj = context.view_layer.objects.active
         if off_press:
             if self.transaction or self.grab or self.air_grab or self.axis_move:
@@ -604,6 +606,32 @@ class Runtime:
         grip_matrix = Matrix.LocRotScale(grip_pos,grip_rot,Vector((1,1,1)))
         if self.grab:
             target, before, inverse_start = self.grab
+            if other_grab_press and self.two_hand_scale is None:
+                hand_delta = hand - grip_pos
+                start_distance = hand_delta.length
+                if start_distance > 0.025:
+                    self.two_hand_scale = (
+                        target, before, start_distance,
+                        (hand + grip_pos) * 0.5, target.matrix_world.copy(),
+                    )
+                    self.status = 'TWO-HAND SCALE / RELEASE EITHER GRIP TO FINISH'
+            if self.two_hand_scale is not None:
+                scale_target, original_before, start_distance, start_midpoint, start_matrix = self.two_hand_scale
+                current_delta = hand - grip_pos
+                current_distance = current_delta.length
+                if current_distance > 0.01:
+                    factor = max(0.02, min(50.0, current_distance / start_distance))
+                    midpoint = (hand + grip_pos) * 0.5
+                    result = uniform_scaled(start_matrix, factor)
+                    result.translation = midpoint + (start_matrix.translation - start_midpoint) * factor
+                    scale_target.matrix_world = result
+                if grab_release or other_grab_release:
+                    self.history.push(('OBJECT', scale_target.name, None,
+                                       original_before, scale_target.matrix_world.copy()))
+                    self.grab = None
+                    self.two_hand_scale = None
+                    self.status = 'TWO-HAND SCALE APPLIED'
+                return
             target.matrix_world = grip_matrix @ inverse_start @ before
             if grab_release:
                 self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
