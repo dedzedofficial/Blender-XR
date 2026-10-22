@@ -16,6 +16,8 @@ def run():
         assert hasattr(bpy.ops.blender_xr, 'bind_auto_weights')
         assert hasattr(bpy.ops.blender_xr, 'weight_cleanup')
         assert hasattr(bpy.ops.blender_xr, 'weight_paint')
+        assert 'haptic_feedback' in bpy.context.scene.blender_xr.bl_rna.properties
+        assert runtime.haptic_pulse(bpy.context, bpy.context.scene.blender_xr, 0) is False
         assert 'precision_mode' in bpy.context.scene.blender_xr.bl_rna.properties
         assert 'triangle_budget' in bpy.context.scene.blender_xr.bl_rna.properties
         # Uniform scaling preserves the matrix origin; two-hand scaling adds midpoint translation.
