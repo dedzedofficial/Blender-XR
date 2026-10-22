@@ -70,11 +70,18 @@ def mesh_health(obj, depsgraph=None):
 
 
 def _report_health(operator, obj, triangle_budget=0):
-    data = mesh_health(obj)
-    operator.report({'INFO'}, 'Mesh XR audit: {vertices} verts, {faces} faces, {triangles} tris'.format(**data))
+    data = mesh_health(obj, bpy.context.evaluated_depsgraph_get())
+    evaluated = data['evaluated_triangles']
+    triangle_label = (
+        '{} evaluated tris ({} base)'.format(evaluated, data['base_triangles'])
+        if evaluated is not None else '{} base tris (modifier evaluation unavailable)'.format(data['base_triangles'])
+    )
+    operator.report({'INFO'}, '{} verts, {} faces, {}'.format(data['vertices'], data['faces'], triangle_label))
     issues = []
     if data['non_manifold_edges']:
-        issues.append('{} non-manifold edges'.format(data['non_manifold_edges']))
+        issues.append('{} non-manifold edges (shared by 3+ faces)'.format(data['non_manifold_edges']))
+    if data['boundary_edges']:
+        issues.append('{} boundary/open edges'.format(data['boundary_edges']))
     if data['loose_vertices']:
         issues.append('{} loose vertices'.format(data['loose_vertices']))
     if data['loose_edges']:
@@ -87,8 +94,11 @@ def _report_health(operator, obj, triangle_budget=0):
         issues.append('no materials')
     if data['missing_material_faces']:
         issues.append('{} faces without a valid material slot'.format(data['missing_material_faces']))
-    if triangle_budget and data['triangles'] > triangle_budget:
-        issues.append('triangle budget exceeded: {} > {}'.format(data['triangles'], triangle_budget))
+    budget_triangles = evaluated if evaluated is not None else data['base_triangles']
+    if evaluated is None:
+        issues.append('evaluated triangle count unavailable; budget check is using the base mesh')
+    if triangle_budget and budget_triangles > triangle_budget:
+        issues.append('triangle budget exceeded: {} > {}'.format(budget_triangles, triangle_budget))
     operator.report({'WARNING'} if issues else {'INFO'},
                     ('Needs review: ' + '; '.join(issues)) if issues else 'No basic mesh-health issues detected')
     return data
