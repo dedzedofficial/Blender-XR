@@ -42,7 +42,7 @@ def mesh_health(obj):
         bm.free()
 
 
-def _report_health(operator, obj):
+def _report_health(operator, obj, triangle_budget=0):
     data = mesh_health(obj)
     operator.report({'INFO'}, 'Mesh XR audit: {vertices} verts, {faces} faces, {triangles} tris'.format(**data))
     issues = []
@@ -60,6 +60,8 @@ def _report_health(operator, obj):
         issues.append('no materials')
     if data['missing_material_faces']:
         issues.append('{} faces without a valid material slot'.format(data['missing_material_faces']))
+    if triangle_budget and data['triangles'] > triangle_budget:
+        issues.append('triangle budget exceeded: {} > {}'.format(data['triangles'], triangle_budget))
     operator.report({'WARNING'} if issues else {'INFO'},
                     ('Needs review: ' + '; '.join(issues)) if issues else 'No basic mesh-health issues detected')
     return data
@@ -76,7 +78,7 @@ class BXR_OT_asset_audit(bpy.types.Operator):
             obj = active_mesh(context)
             if obj.mode != 'OBJECT':
                 raise ValueError('Switch to Object Mode before running the asset audit')
-            _report_health(self, obj)
+            _report_health(self, obj, context.scene.blender_xr.triangle_budget)
             return {'FINISHED'}
         except (ValueError, RuntimeError) as exc:
             self.report({'ERROR'}, str(exc))
@@ -298,6 +300,7 @@ class BXR_PT_workflow(bpy.types.Panel):
         layout = self.layout
         obj = context.view_layer.objects.active
         layout.label(text='Asset readiness', icon='CHECKMARK')
+        layout.prop(context.scene.blender_xr, 'triangle_budget')
         row = layout.row(align=True)
         row.operator('blender_xr.asset_audit', icon='VIEWZOOM')
         row.operator('wm.search_menu', text='Search Tools', icon='VIEWZOOM')
