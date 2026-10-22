@@ -17,9 +17,11 @@ Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed
 - **Precision Snap:** optional quantization of controller-driven geometry tool distances and axis translation using the configured tool step.
 - **Two-handed scaling:** grab an object with one controller, grab with the other, and scale around the midpoint between hands. Releasing either grip commits one XR history entry.
 - **Optional haptics:** short OpenXR pulses after completed geometry edits and object transforms, when enabled and supported.
-- **Asset readiness:** read-only topology/UV/material audit with triangle and modifier counts, plus a configurable triangle-budget warning.
-- **Rigging:** proportion-based starter humanoid armature, Blender automatic-weight binding, weight cleanup/normalization and native Weight Paint mode entry.
+- **Asset readiness:** read-only topology/UV/material audit, separate base and evaluated triangle counts, and a configurable budget checked against the evaluated mesh when available.
+- **Rigging:** proportion-based starter humanoid armature, Blender automatic-weight binding, weight cleanup/normalization and native Weight Paint mode entry, with selection restoration and cleanup when setup fails.
 - **Workflow panel:** a collapsed-by-default desktop panel groups asset checks, rigging and controller modeling guidance.
+
+XR shutdown also returns the active Mesh XR viewport from headset mirroring to the regular PC view. Unexpected XR-session termination is cleaned up promptly.
 
 The starter armature is a guide, not a finished production rig. Review bone placement before binding and test the resulting weights before using or exporting the asset.
 
