@@ -1,18 +1,18 @@
-# Mesh XR v0.6.5 — Icon UI Guide
+# Mesh XR — VR Toolbar and Tool Guide
 
-Mesh XR v0.6.5 changes the main VR modeling interface to an icon-first layout. The goal is to make common tools recognizable without relying on long English button labels.
+Mesh XR v0.7.5 keeps the headset toolbar clear and text-first rather than overlaying homemade pictograms on button labels. The desktop sidebar uses Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
 
 ## Pointing and tooltips
 
-Use the dominant-hand controller ray to point at an icon.
+Use the dominant-hand controller ray to point at a labeled button.
 
-- The icon highlights immediately when the ray is over it.
+- The button highlights immediately when the ray is over it.
 - Keep the ray over the icon for about **0.5 seconds** to show its tooltip.
 - Moving the ray away hides the tooltip.
 - You do **not** need to wait for the tooltip before pressing Trigger.
 - The active tool remains highlighted so you can see what is selected.
 
-Tooltips contain the English tool name plus a short explanation. The icon remains the primary control so normal modeling does not depend on reading the label.
+Tooltips contain the English tool name plus a short explanation. They are drawn above the menu, not on top of the buttons. The labeled controls are designed to be readable even when a tooltip is not visible.
 
 ## Mode selector
 
@@ -40,6 +40,10 @@ Use Object Mode when you want to work with a complete mesh object.
 | Disk | Save | Saves the Blend project. |
 | Trash can | Delete Object | Deletes the active mesh object. Undo restores it. |
 | Stop square | Stop VR | Ends the Mesh XR session. |
+
+## Rigging and armatures
+
+Open **Rigging** from the main headset toolbar. The page provides **Create Rig**, **Bind Weights**, **Weight Paint**, **Clean Weights**, **Pose Test**, and **Audit Mesh**. Create Rig expects an upright humanoid mesh in Object Mode. Review the starter bone placement before binding. For Bind Weights, select the mesh and armature and make the armature active; automatic weights can fail on difficult geometry, and Blender will report the failure. Pose Test enters Pose Mode for deformation checks.
 
 ## Edit Mode
 
