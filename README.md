@@ -9,6 +9,10 @@ Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand ca
 ## v0.7.5 development highlights
 
 - **PC View Mode:** Toggle the active desktop 3D View between the normal Blender viewport and the live OpenXR headset mirror, without ending the VR session. Requires Blender's `mirror_xr_session` viewport support.
+- **Precision Snap:** Optional controller-driven move/tool quantization using the configured tool step.
+- **Rigging starter workflow:** Create a proportion-based humanoid armature, bind selected meshes with Blender automatic weights, enter Weight Paint, and normalize/clean groups.
+- **Asset readiness audit:** Read-only report for non-manifold/boundary edges, loose geometry, degenerate faces, UV availability, material slots, triangle count and modifiers.
+- **Workflow workspace:** A collapsible Mesh XR Workflow panel groups asset checks, rigging, weight painting and controller-modeling guidance.
 
 ## v0.7.1 highlights
 
