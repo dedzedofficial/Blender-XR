@@ -87,7 +87,7 @@ Automated package checks verify that the Mesh XR sidebar uses Blender's native `
 
 ## v0.7.5 workflow expansion
 
-`tests/test_v075_features.py` checks the read-only asset audit, basic starter rig generation, operator registration and precision setting. CI runs it across the supported Blender matrix.
+`tests/test_v075_features.py` checks the read-only asset audit, open-boundary versus true non-manifold classification, base versus modifier-evaluated triangle counts, standard starter-rig bone names, two-hand scaling pivot math, operator registration and rig-preflight failure recovery. CI runs it across the supported Blender matrix.
 
 Manual checks still required:
 
@@ -95,9 +95,11 @@ Manual checks still required:
 2. Enable Precision Snap and verify controller geometry distances and axis translation quantize to the configured tool step; disable it and confirm smooth movement returns.
 3. Enable Haptic Feedback on a supported controller/runtime and verify a short pulse follows a completed edit or transform. Confirm unsupported runtimes do not interrupt the operation.
 4. Run **Audit Selected Mesh** on a clean mesh and on meshes with open boundaries, edges shared by three or more faces, loose vertices, missing UVs and missing materials. Confirm open boundaries are reported separately from true non-manifold edges and that the audit does not modify mesh data.
-5. Create a starter rig on an upright humanoid mesh. Check the standard root, pelvis, spine, chest, neck, head, arm and leg bone names, then inspect placement and adjust it before binding; the generated proportions are only a starting point.
+5. Create a starter rig on an upright humanoid mesh. Check the standard root, pelvis, spine, chest, neck, head, arm and leg bone names, then inspect placement and adjust it before binding; the generated proportions are only a starting point. Try an invalid flat mesh and confirm it leaves selection/mode intact and creates no partial armature.
 6. Bind with Automatic Weights, enter Weight Paint, test deformations, and normalize/clean weights. Confirm failed binding reports an error without claiming success.
-7. Verify the Workflow panel is collapsed by default and its tools respect Blender's active-object and mode requirements.
+7. Verify the Workflow panel is collapsed by default and its tools respect Blender's active-object and mode requirements. Test that failed setup restores the selected objects and active object, and that weight tools return to the prior selection when finished.
+8. Add a Subdivision, Mirror or Solidify modifier, then rerun the audit. Verify it displays base and evaluated triangle counts and checks the configured triangle budget against the evaluated count.
+9. Stop the XR session externally and confirm cleanup promptly restores the PC viewport to normal mode without leaving a stale mirror toggle.
 
 The starter rig is not a production auto-rigger. Complex anatomy, multiple disconnected parts, non-human meshes and export-specific rig conventions require manual review.
 
