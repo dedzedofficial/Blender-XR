@@ -118,6 +118,22 @@ def run():
         bpy.context.view_layer.objects.active = obj
         result = bpy.ops.blender_xr.weight_cleanup()
         assert 'FINISHED' in result, result
+        assert bpy.context.view_layer.objects.active == obj
+        assert obj.select_get()
+
+        # Failed rig preflight must not strand selection or leave a partial armature.
+        bpy.ops.mesh.primitive_plane_add()
+        invalid = bpy.context.object
+        original_armatures = sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE')
+        result = bpy.ops.blender_xr.create_basic_rig()
+        assert 'CANCELLED' in result, result
+        assert bpy.context.view_layer.objects.active == invalid
+        assert list(bpy.context.selected_objects) == [invalid]
+        assert sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE') == original_armatures
+        bpy.data.objects.remove(invalid, do_unlink=True)
+        obj.select_set(True)
+        armature.select_set(False)
+        bpy.context.view_layer.objects.active = obj
 
         print('PASS Mesh XR v0.7.5 asset audit and starter rig')
     finally:
