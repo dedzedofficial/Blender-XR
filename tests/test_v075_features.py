@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bpy
+import bmesh
 import blender_xr
 from blender_xr import runtime, version, v075_features
 
@@ -53,6 +54,28 @@ def run():
         assert plane_audit['boundary_edges'] == 4
         assert plane_audit['non_manifold_edges'] == 0
         bpy.data.objects.remove(plane, do_unlink=True)
+
+        # Three faces sharing one edge must report one true non-manifold edge.
+        bm = bmesh.new()
+        v0 = bm.verts.new((0, 0, 0))
+        v1 = bm.verts.new((1, 0, 0))
+        v2 = bm.verts.new((0, 1, 0))
+        v3 = bm.verts.new((0, -1, 0))
+        v4 = bm.verts.new((0, 0, 1))
+        bm.faces.new((v0, v1, v2))
+        bm.faces.new((v1, v0, v3))
+        bm.faces.new((v0, v1, v4))
+        bad_mesh = bpy.data.meshes.new('Mesh XR non-manifold audit test')
+        bm.to_mesh(bad_mesh)
+        bm.free()
+        bad_obj = bpy.data.objects.new('Mesh XR non-manifold audit test', bad_mesh)
+        bpy.context.collection.objects.link(bad_obj)
+        bad_audit = v075_features.mesh_health(bad_obj)
+        assert bad_audit['non_manifold_edges'] == 1
+        assert bad_audit['boundary_edges'] == 6
+        bpy.data.objects.remove(bad_obj, do_unlink=True)
+        bpy.data.meshes.remove(bad_mesh)
+
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
 
