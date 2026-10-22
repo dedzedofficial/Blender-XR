@@ -44,7 +44,7 @@ class BXR_Settings(bpy.types.PropertyGroup):
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
     triangle_budget: IntProperty(name='Triangle Budget',default=70000,min=0,max=100000000,
         description='Target triangle budget used by the read-only asset readiness audit')
-    precision_mode: BoolProperty(name='Precision Snap',default=False,
+    haptic_feedback: BoolProperty(name='Haptic Feedback',default=False,\n        description='Use short controller vibrations when supported by the active OpenXR runtime')\n    precision_mode: BoolProperty(name='Precision Snap',default=False,
         description='Quantize controller-driven geometry tool distances to the configured tool step')
     step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
                         description='Initial tool amount in local mesh units',update=_persist_setting)
@@ -361,6 +361,7 @@ class BXR_PT_panel(bpy.types.Panel):
         grid=modeling.grid_flow(columns=2,align=True)
         grid.prop(settings,'step')
         grid.prop(settings,'precision_mode',text='Precision Snap',toggle=True,icon='SNAP_ON')
+        modeling.prop(settings,'haptic_feedback',toggle=True,icon='FORCE_HARMONIC')
         grid.prop(settings,'bevel_segments')
         grid.prop(settings,'primitive_size')
         grid.prop(settings,'placement_distance')
