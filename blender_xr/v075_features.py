@@ -22,14 +22,20 @@ def mesh_health(obj):
         bm.verts.ensure_lookup_table()
         bm.edges.ensure_lookup_table()
         bm.faces.ensure_lookup_table()
-        non_manifold = sum(1 for edge in bm.edges if not edge.is_manifold)
+        # Boundary edges (one linked face) are open borders, not the same
+        # issue as edges shared by more than two faces. Report them separately.
+        boundary_edges = sum(1 for edge in bm.edges if edge.is_boundary)
+        non_manifold = sum(
+            1 for edge in bm.edges
+            if edge.link_faces and not edge.is_boundary and not edge.is_manifold
+        )
         loose_verts = sum(1 for vert in bm.verts if not vert.link_edges)
         loose_edges = sum(1 for edge in bm.edges if not edge.link_faces)
         degenerate_faces = sum(1 for face in bm.faces if face.calc_area() <= 1e-12)
         triangles = sum(max(0, len(face.verts) - 2) for face in bm.faces)
         return {
             'vertices': len(bm.verts), 'edges': len(bm.edges), 'faces': len(bm.faces),
-            'triangles': triangles, 'non_manifold_edges': non_manifold,
+            'triangles': triangles, 'non_manifold_edges': non_manifold,\n            'boundary_edges': boundary_edges,
             'loose_vertices': loose_verts, 'loose_edges': loose_edges,
             'degenerate_faces': degenerate_faces,
             'has_uvs': bool(obj.data.uv_layers),
@@ -145,6 +151,36 @@ class BXR_OT_create_basic_rig(bpy.types.Operator):
                 ('pelvis','hip.L'), ('hip.L','knee.L'), ('knee.L','foot.L'),
                 ('pelvis','hip.R'), ('hip.R','knee.R'), ('knee.R','foot.R'),
             ]
+            # Standard, predictable bone names make the starter rig easier to
+            # inspect, weight-paint, retarget and adapt for common export workflows.
+            points.update({
+                'root_tip': (center_x, center_y, z0 + height * 0.12),
+                'pelvis_base': (center_x, center_y, z0 + height * 0.42),
+                'hand_end.L': (center_x - w * 1.35, center_y, z0 + height * 0.45),
+                'hand_end.R': (center_x + w * 1.35, center_y, z0 + height * 0.45),
+                'ankle.L': (center_x - w * 0.31, center_y, z0 + height * 0.08),
+                'ankle.R': (center_x + w * 0.31, center_y, z0 + height * 0.08),
+            })
+            bone_specs = [
+                ('root', 'root', 'root_tip', None, False),
+                ('pelvis', 'pelvis_base', 'pelvis', 'root', False),
+                ('spine', 'pelvis', 'spine', 'pelvis', True),
+                ('chest', 'spine', 'chest', 'spine', True),
+                ('neck', 'chest', 'neck', 'chest', True),
+                ('head', 'neck', 'head', 'neck', True),
+                ('upper_arm.L', 'shoulder.L', 'elbow.L', 'chest', False),
+                ('forearm.L', 'elbow.L', 'hand.L', 'upper_arm.L', True),
+                ('hand.L', 'hand.L', 'hand_end.L', 'forearm.L', True),
+                ('upper_arm.R', 'shoulder.R', 'elbow.R', 'chest', False),
+                ('forearm.R', 'elbow.R', 'hand.R', 'upper_arm.R', True),
+                ('hand.R', 'hand.R', 'hand_end.R', 'forearm.R', True),
+                ('thigh.L', 'hip.L', 'knee.L', 'pelvis', False),
+                ('shin.L', 'knee.L', 'ankle.L', 'thigh.L', True),
+                ('foot.L', 'ankle.L', 'foot.L', 'shin.L', True),
+                ('thigh.R', 'hip.R', 'knee.R', 'pelvis', False),
+                ('shin.R', 'knee.R', 'ankle.R', 'thigh.R', True),
+                ('foot.R', 'ankle.R', 'foot.R', 'shin.R', True),
+            ]
             arm_data = bpy.data.armatures.new(obj.name + ' Mesh XR Rig')
             arm_obj = bpy.data.objects.new(obj.name + ' Mesh XR Rig', arm_data)
             context.collection.objects.link(arm_obj)
@@ -154,17 +190,16 @@ class BXR_OT_create_basic_rig(bpy.types.Operator):
             context.view_layer.objects.active = arm_obj
             bpy.ops.object.mode_set(mode='EDIT')
             bones = {}
-            for start, end in links:
-                bone = arm_data.edit_bones.new(start + ('.' + end if end.endswith(('.L','.R')) else ''))
+            for name, start, end, _parent, _connected in bone_specs:
+                bone = arm_data.edit_bones.new(name)
                 bone.head = points[start]
                 bone.tail = points[end]
-                bones[(start, end)] = bone
-            for (start, end), bone in bones.items():
-                parent = next((candidate for (pstart, pend), candidate in bones.items()
-                               if pend == start and candidate != bone), None)
-                if parent:
-                    bone.parent = parent
-                    bone.use_connect = (parent.tail - bone.head).length < 1e-5
+                bones[name] = bone
+            for name, _start, _end, parent_name, connected in bone_specs:
+                bone = bones[name]
+                if parent_name:
+                    bone.parent = bones[parent_name]
+                    bone.use_connect = connected
             bpy.ops.object.mode_set(mode='OBJECT')
             bpy.ops.object.select_all(action='DESELECT')
             obj.select_set(True)
