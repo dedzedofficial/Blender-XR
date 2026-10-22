@@ -125,8 +125,12 @@ def run():
         bpy.ops.mesh.primitive_plane_add()
         invalid = bpy.context.object
         original_armatures = sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE')
-        result = bpy.ops.blender_xr.create_basic_rig()
-        assert 'CANCELLED' in result, result
+        try:
+            result = bpy.ops.blender_xr.create_basic_rig()
+            assert 'CANCELLED' in result, result
+        except RuntimeError as exc:
+            # Blender background mode may raise for an operator that reports an error.
+            assert 'Starter rig creation failed' in str(exc), str(exc)
         assert bpy.context.view_layer.objects.active == invalid
         assert list(bpy.context.selected_objects) == [invalid]
         assert sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE') == original_armatures
