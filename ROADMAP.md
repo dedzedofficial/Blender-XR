@@ -8,10 +8,14 @@ Mesh XR is a free controller-first OpenXR modeling extension for Blender by Ded 
 - [x] Optional precision snapping for controller-driven geometry tools and axis translation.
 - [x] Two-controller object scaling with midpoint-aware transforms and XR-local Undo/Redo.
 - [x] Optional OpenXR haptic pulses after completed geometry edits and object transforms, guarded by a preference and safe fallback.
-- [x] Read-only asset readiness audit for topology, UVs, material slots, triangle count and modifier count.
+- [x] Read-only asset readiness audit for topology, UVs, material slots, modifier counts, base triangles and evaluated modifier triangles when available.
+- [x] Distinguish open boundary edges from true non-manifold edges and test both cases.
+- [x] Restore selection and clean up partial starter rigs on failure; harden weight-tool selection/mode recovery.
+- [x] Restore the regular desktop viewport and clean up Mesh XR promptly when an XR session ends unexpectedly.
+- [x] Add regression coverage for evaluated triangle counts, two-hand scaling pivot math and rig-preflight failure recovery.
 - [x] Starter humanoid armature creation, automatic-weight binding, weight normalization/cleanup and Weight Paint entry.
 - [x] Collapsible desktop Workflow panel for asset checks, rigging and controller-modeling guidance.
-- [ ] Validate all new operators and package build on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release.
+- [ ] Complete CI validation for the final commit across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release.
 - [ ] Manually validate headset mirroring and controller interactions on physical OpenXR hardware.
 - [ ] Future follow-up: broader controller-direct vertex/edge manipulation, full custom wrist/radial workspace, and rig-aware VR weight painting.
 
