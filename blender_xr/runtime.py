@@ -14,6 +14,21 @@ def timer_due(session, now=None):
     return (time.monotonic() if now is None else now) - session.last_tick >= 1/60
 
 
+def haptic_pulse(context, settings, hand, amplitude=0.22):
+    """Best-effort short OpenXR pulse; never fail a modelling operation for missing haptics."""
+    if not getattr(settings, 'haptic_feedback', False):
+        return False
+    try:
+        state = context.window_manager.xr_session_state
+        if state is None or not bpy.types.XrSessionState.is_running(context):
+            return False
+        return bool(state.haptic_action_apply(
+            context, actions.SET, 'haptic', actions.HANDS[hand], 0.035, 0.0,
+            max(0.0, min(1.0, amplitude))))
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return False
+
+
 def stick_delta(rotation, stick, dt, speed, scale):
     """Camera-local -Z is forward; remove pitch without changing walking speed."""
     amount = Vector((stick[0], stick[1]))
@@ -574,6 +589,7 @@ class Runtime:
             if release:
                 transaction, self.transaction = self.transaction, None
                 self.history.push(transaction.finish())
+                haptic_pulse(context, self.settings, self.dom)
                 self.axis_drag=None
                 self.status = 'APPLIED'
             return
@@ -598,6 +614,7 @@ class Runtime:
             if release:
                 if matrix_changed(target.matrix_world,before):
                     self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
+                    haptic_pulse(context, self.settings, self.dom)
                 self.axis_move=None;self.axis_drag=None
                 self.status='OBJECT '+('MOVED' if mode=='MOVE' else 'SCALED')
             return
@@ -628,6 +645,8 @@ class Runtime:
                 if grab_release or other_grab_release:
                     self.history.push(('OBJECT', scale_target.name, None,
                                        original_before, scale_target.matrix_world.copy()))
+                    haptic_pulse(context, self.settings, self.dom)
+                    haptic_pulse(context, self.settings, self.off)
                     self.grab = None
                     self.two_hand_scale = None
                     self.status = 'TWO-HAND SCALE APPLIED'
@@ -635,6 +654,7 @@ class Runtime:
             target.matrix_world = grip_matrix @ inverse_start @ before
             if grab_release:
                 self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
+                haptic_pulse(context, self.settings, self.dom)
                 self.grab = None
                 self.status = 'MOVED OBJECT'
             return
