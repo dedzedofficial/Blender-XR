@@ -17,6 +17,11 @@ def run():
         assert hasattr(bpy.ops.blender_xr, 'weight_cleanup')
         assert hasattr(bpy.ops.blender_xr, 'weight_paint')
         assert 'precision_mode' in bpy.context.scene.blender_xr.bl_rna.properties
+        # Uniform scaling preserves the matrix origin; two-hand scaling adds midpoint translation.
+        from mathutils import Matrix, Vector
+        before = Matrix.Translation(Vector((1.0, 2.0, 3.0)))
+        scaled = runtime.uniform_scaled(before, 2.0)
+        assert (scaled.translation - Vector((1.0, 2.0, 3.0))).length < 1e-6
 
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
