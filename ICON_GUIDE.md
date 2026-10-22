@@ -4,6 +4,8 @@ Mesh XR v0.7.5 renders Blender UI icon artwork as transparent PNG textures in it
 
 The original SVG artwork is preserved in `blender_xr/icons_src/`; `tools/build_icon_textures.py` rasterizes it to 64×64 transparent PNGs in `blender_xr/icons/`. The branch's GitHub Actions workflow rebuilds these textures when the source artwork changes. The VR draw handler caches each loaded Blender image and GPU texture rather than decoding the PNG on every frame.
 
+The current icon set covers every action in the declared VR menu pages and every action with a tooltip. It includes dedicated Blender artwork for armatures (`armature_data`), armature modifiers/binding (`mod_armature`), weight paint and weight cleanup (`mod_vertex_weight`), pose testing (`pose_hlt`), and mesh audit (`mesh_data`). It also includes object/edit mode, selection types, primitive creation (cube, UV sphere, cylinder, cone, torus, plane), transform controls, mesh operations, materials/shaders, image textures, UV tools, navigation, confirmation, cancel/stop, undo/redo and save. When Blender has no exact icon for an individual operation, Mesh XR uses the closest relevant official Blender symbol while retaining the action's label and tooltip.
+
 ## Pointing and tooltips
 
 Use the dominant-hand controller ray to point at a labeled button.
