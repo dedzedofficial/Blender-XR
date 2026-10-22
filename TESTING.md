@@ -93,10 +93,11 @@ Manual checks still required:
 
 1. Start Mesh XR and verify PC View Mode can mirror the live OpenXR viewport, then return to normal desktop view without stopping VR.
 2. Enable Precision Snap and verify controller geometry distances and axis translation quantize to the configured tool step; disable it and confirm smooth movement returns.
-3. Run **Audit Selected Mesh** on a clean mesh and on meshes with open boundaries, loose vertices, missing UVs and missing materials; confirm the audit does not modify mesh data.
-4. Create a starter rig on an upright humanoid mesh. Inspect bone placement and adjust it before binding; the generated proportions are only a starting point.
-5. Bind with Automatic Weights, enter Weight Paint, test deformations, and normalize/clean weights. Confirm failed binding reports an error without claiming success.
-6. Verify the Workflow panel is collapsed by default and its tools respect Blender's active-object and mode requirements.
+3. Enable Haptic Feedback on a supported controller/runtime and verify a short pulse follows a completed edit or transform. Confirm unsupported runtimes do not interrupt the operation.
+4. Run **Audit Selected Mesh** on a clean mesh and on meshes with open boundaries, loose vertices, missing UVs and missing materials; confirm the audit does not modify mesh data.
+5. Create a starter rig on an upright humanoid mesh. Inspect bone placement and adjust it before binding; the generated proportions are only a starting point.
+6. Bind with Automatic Weights, enter Weight Paint, test deformations, and normalize/clean weights. Confirm failed binding reports an error without claiming success.
+7. Verify the Workflow panel is collapsed by default and its tools respect Blender's active-object and mode requirements.
 
 The starter rig is not a production auto-rigger. Complex anatomy, multiple disconnected parts, non-human meshes and export-specific rig conventions require manual review.
 
