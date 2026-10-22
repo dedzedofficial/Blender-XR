@@ -1,6 +1,8 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
-Mesh XR v0.7.5 keeps the headset toolbar clear and text-first rather than overlaying homemade pictograms on button labels. The desktop sidebar uses Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
+Mesh XR v0.7.5 renders Blender UI icon artwork as transparent PNG textures in its world-space headset menu. The icons are paired with short text labels so controls remain understandable, including where Blender has no exact matching icon and the closest official Blender symbol is used. The desktop sidebar continues to use Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
+
+The original SVG artwork is preserved in `blender_xr/icons_src/`; `tools/build_icon_textures.py` rasterizes it to 64×64 transparent PNGs in `blender_xr/icons/`. The branch's GitHub Actions workflow rebuilds these textures when the source artwork changes. The VR draw handler caches each loaded Blender image and GPU texture rather than decoding the PNG on every frame.
 
 ## Pointing and tooltips
 
@@ -116,7 +118,7 @@ Inset requires Face Select and one or more selected faces. It keeps the existing
 
 ## Why icons?
 
-The v0.6.5 UI uses icons for the common modeling workflow so users do not need to understand a long English menu before they can work. Raycast tooltips remain available when an icon is unfamiliar.
+The headset UI uses Blender's official icon artwork as GPU textures for the common modeling workflow, so users can recognize familiar controls without needing to read every label. Labels and raycast tooltips remain available for clarity, especially for actions that do not have a dedicated Blender icon.
 
 Materials, UV and some advanced panels still retain text where a symbolic control would be unclear. Those areas can be converted gradually without sacrificing usability.
 
