@@ -23,6 +23,21 @@ def run():
         assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
                 'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
         assert drawing.button_rect(0)[2] >= 0.19
+        # Official Blender SVG sources are shipped with their generated transparent
+        # PNG textures; the VR renderer uses the packaged PNGs, not drawn glyphs.
+        icon_dir = Path(drawing.__file__).resolve().parent / "icons"
+        source_dir = Path(drawing.__file__).resolve().parent / "icons_src"
+        expected_icons = {
+            "cursor", "transform_move", "transform_scale", "transform_rotate",
+            "extrude_region", "bevel", "inset_faces", "undo", "redo", "delete",
+            "material", "uv", "mesh_cube", "add", "file", "modifier",
+            "save_as", "view_camera",
+        }
+        assert all((icon_dir / (name + ".png")).is_file() for name in expected_icons)
+        assert all((source_dir / (name + ".svg")).is_file() for name in expected_icons)
+        assert all(drawing._ICON_BY_ACTION.get(action) for action in
+                   ("SELECT", "MOVE", "SCALE", "EXTRUDE", "BEVEL", "INSET",
+                    "UNDO", "REDO", "DELETE_GEOM", "MATERIAL_MENU", "UV_UNWRAP"))
         from mathutils import Vector
         vr_menu = drawing.Menu()
         vr_menu.page = 'TOOLS'
