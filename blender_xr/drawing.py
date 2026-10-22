@@ -105,7 +105,7 @@ class Menu:
         pos = origin + direction*t
         local = (pos-self.center)/self.scale
         x, y = local.dot(self.right), local.dot(self.up)
-        if not (-0.222 <= x <= 0.222 and -0.29 <= y <= 0.23):
+        if not (-0.222 <= x <= 0.222 and -0.34 <= y <= 0.23):
             return None, None
         for i, (_, action) in enumerate(self.buttons):
             bx, by, w, h = button_rect(i)
@@ -130,7 +130,7 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.225,-0.29,0.45,0.52,(0.015,0.025,0.04,0.98))
+        rect(-0.225,-0.34,0.45,0.57,(0.015,0.025,0.04,0.98))
         rect(-0.225,0.166,0.45,0.064,(0.025,0.13,0.17,1),0.0003)
         text('MESH XR / '+menus.title(self.page),-0.207,0.208,0.00275)
         if settings and self.page=='TRAVEL':
@@ -160,12 +160,25 @@ class Menu:
             if action==hover:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
-            text(label,bx+0.009,by+0.031,min(0.0032,0.177/(max(len(label),1)*6)))
-        text(('MESH '+selection)[:24],-0.207,-0.19,0.0023)
-        text(status[:25],-0.207,-0.214,0.00225)
+            friendly = {
+                'MODE_MENU':'MODE', 'MODE_OBJECT':'OBJECT', 'MODE_EDIT':'EDIT',
+                'SELECT_VERT':'VERTEX', 'SELECT_EDGE':'EDGE', 'SELECT_FACE':'FACE',
+                'MOVE_EDIT':'MOVE SEL', 'SCALE_EDIT':'SCALE SEL',
+                'ADD_MENU':'SHAPES', 'MATERIAL_MENU':'MATERIALS', 'NAV_MENU':'TRAVEL',
+                'RIG_MENU':'RIGGING', 'DELETE_OBJECT':'DELETE OBJ',
+                'DELETE_GEOM':'DELETE GEO', 'LOOP_CUT_MENU':'LOOP CUT',
+                'RIG_CREATE':'CREATE RIG', 'RIG_BIND':'BIND WEIGHTS',
+                'RIG_WEIGHT':'WEIGHT PAINT', 'RIG_CLEAN':'CLEAN WEIGHTS',
+                'RIG_POSE':'POSE TEST', 'RIG_AUDIT':'AUDIT MESH',
+            }
+            display_label = label or friendly.get(action, action.replace('_',' '))
+            text(display_label,bx+0.009,by+0.031,
+                 min(0.0032,0.177/(max(len(display_label),1)*6)))
+        text(('MESH '+selection)[:24],-0.207,-0.222,0.0023)
+        text(status[:25],-0.207,-0.252,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
-        text(hint,-0.207,-0.246,0.0021)
-        text(version.DISPLAY_VERSION,-0.207,-0.274,0.0021)
+        text(hint,-0.207,-0.292,0.0021)
+        text(version.DISPLAY_VERSION,-0.207,-0.322,0.0021)
 
 
 def draw_batch(shader, kind, points, color):
