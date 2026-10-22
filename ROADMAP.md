@@ -2,6 +2,17 @@
 
 Mesh XR is a free controller-first OpenXR modeling extension for Blender by Ded Zed. This roadmap describes scoped goals rather than promises of full Blender parity. Shipped release history is kept in [CHANGELOG.md](CHANGELOG.md); this file tracks completed milestones and future direction.
 
+## v0.7.5 — workflow expansion (development)
+
+- [x] PC View Mode toggle for Blender's live OpenXR viewport mirror, independent of VR session start/stop.
+- [x] Optional precision snapping for controller-driven geometry tools and axis translation.
+- [x] Read-only asset readiness audit for topology, UVs, material slots, triangle count and modifier count.
+- [x] Starter humanoid armature creation, automatic-weight binding, weight normalization/cleanup and Weight Paint entry.
+- [x] Collapsible desktop Workflow panel for asset checks, rigging and controller-modeling guidance.
+- [ ] Validate all new operators and package build on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release.
+- [ ] Manually validate headset mirroring and controller interactions on physical OpenXR hardware.
+- [ ] Future follow-up: true two-handed object scaling, broader controller-direct vertex/edge manipulation, haptic feedback, full custom wrist/radial workspace, and rig-aware VR weight painting.
+
 ## Shipped foundation
 
 ### v0.3–v0.4
