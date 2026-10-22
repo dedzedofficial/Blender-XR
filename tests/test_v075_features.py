@@ -41,13 +41,31 @@ def run():
         assert audit['vertices'] == 8 and audit['faces'] == 6
         assert audit['triangles'] == 12
         assert audit['non_manifold_edges'] == 0
+        assert audit['boundary_edges'] == 0
         assert audit['loose_vertices'] == 0
         assert audit['loose_edges'] == 0
+
+        # An open plane should be reported as boundary edges, not as edges
+        # shared by too many faces.
+        bpy.ops.mesh.primitive_plane_add()
+        plane = bpy.context.object
+        plane_audit = v075_features.mesh_health(plane)
+        assert plane_audit['boundary_edges'] == 4
+        assert plane_audit['non_manifold_edges'] == 0
+        bpy.data.objects.remove(plane, do_unlink=True)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
 
         result = bpy.ops.blender_xr.create_basic_rig()
         assert 'FINISHED' in result, result
         armature = next(o for o in bpy.context.scene.objects if o.type == 'ARMATURE')
-        assert len(armature.data.bones) >= 15
+        expected_bones = {
+            'root', 'pelvis', 'spine', 'chest', 'neck', 'head',
+            'upper_arm.L', 'forearm.L', 'hand.L',
+            'upper_arm.R', 'forearm.R', 'hand.R',
+            'thigh.L', 'shin.L', 'foot.L', 'thigh.R', 'shin.R', 'foot.R',
+        }
+        assert expected_bones <= {bone.name for bone in armature.data.bones}
         assert bpy.context.view_layer.objects.active == obj
 
         # Weight cleanup is safe to call on an object with a small valid group.
