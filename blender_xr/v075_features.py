@@ -14,6 +14,31 @@ def active_mesh(context):
     return obj
 
 
+def _selection_snapshot(context):
+    return tuple(context.selected_objects), context.view_layer.objects.active
+
+
+def _restore_selection(context, selected, active):
+    """Best-effort restoration so a failed operator does not strand the UI."""
+    try:
+        for obj in context.view_layer.objects:
+            obj.select_set(False)
+    except (ReferenceError, RuntimeError):
+        pass
+    for obj in selected:
+        try:
+            if obj.name in context.view_layer.objects:
+                obj.select_set(True)
+        except (ReferenceError, RuntimeError):
+            pass
+    try:
+        context.view_layer.objects.active = (
+            active if active is not None and active.name in context.view_layer.objects else None
+        )
+    except (ReferenceError, RuntimeError):
+        pass
+
+
 def mesh_health(obj, depsgraph=None):
     """Read-only source and evaluated-mesh audit; never applies modifiers."""
     bm = bmesh.new()
@@ -134,6 +159,9 @@ class BXR_OT_create_basic_rig(bpy.types.Operator):
         return obj is not None and obj.type == 'MESH' and obj.mode == 'OBJECT'
 
     def execute(self, context):
+        selected_before, active_before = _selection_snapshot(context)
+        arm_obj = None
+        arm_data = None
         try:
             obj = active_mesh(context)
             if obj.mode != 'OBJECT':
@@ -237,9 +265,33 @@ class BXR_OT_create_basic_rig(bpy.types.Operator):
             context.view_layer.objects.active = obj
             self.report({'INFO'}, 'Starter rig created. Inspect bone placement before binding weights.')
             return {'FINISHED'}
-        except (ValueError, RuntimeError) as exc:
-            self.report({'ERROR'}, str(exc))
+        except Exception as exc:
+            # If construction failed halfway through, delete the incomplete rig
+            # and return selection/active-object state to where the user started.
+            try:
+                active_now = context.view_layer.objects.active
+                if active_now is not None and active_now.mode != 'OBJECT':
+                    bpy.ops.object.mode_set(mode='OBJECT')
+            except (ReferenceError, RuntimeError):
+                pass
+            if arm_obj is not None:
+                try:
+                    data_block = arm_obj.data
+                    bpy.data.objects.remove(arm_obj, do_unlink=True)
+                    if data_block is not None and data_block.users == 0:
+                        bpy.data.armatures.remove(data_block)
+                except (ReferenceError, RuntimeError, TypeError):
+                    pass
+            elif arm_data is not None:
+                try:
+                    if arm_data.users == 0:
+                        bpy.data.armatures.remove(arm_data)
+                except (ReferenceError, RuntimeError, TypeError):
+                    pass
+            _restore_selection(context, selected_before, active_before)
+            self.report({'ERROR'}, 'Starter rig creation failed: ' + str(exc))
             return {'CANCELLED'}
+
 
 
 class BXR_OT_bind_auto_weights(bpy.types.Operator):
