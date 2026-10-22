@@ -26,6 +26,11 @@ def run():
         before = Matrix.Translation(Vector((1.0, 2.0, 3.0)))
         scaled = runtime.uniform_scaled(before, 2.0)
         assert (scaled.translation - Vector((1.0, 2.0, 3.0))).length < 1e-6
+        # Two-hand scaling keeps the object's midpoint relationship consistent.
+        pivot = Vector((0.0, 0.0, 0.0))
+        moved_midpoint = Vector((2.0, 0.0, 0.0))
+        scaled_around_pivot = runtime.two_hand_scaled(before, pivot, moved_midpoint, 2.0)
+        assert (scaled_around_pivot.translation - Vector((4.0, 4.0, 6.0))).length < 1e-6
 
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
@@ -41,6 +46,20 @@ def run():
         audit = v075_features.mesh_health(obj)
         assert audit['vertices'] == 8 and audit['faces'] == 6
         assert audit['triangles'] == 12
+        assert audit['base_triangles'] == 12
+        assert audit['evaluated_triangles'] == 12
+
+        # Modifier evaluation must contribute to the triangle budget report.
+        subdivision = obj.modifiers.new('Mesh XR audit subdivision test', 'SUBSURF')
+        subdivision.levels = 1
+        bpy.context.view_layer.update()
+        evaluated_audit = v075_features.mesh_health(obj)
+        assert evaluated_audit['base_triangles'] == 12
+        assert evaluated_audit['evaluated_triangles'] is not None
+        assert evaluated_audit['evaluated_triangles'] > evaluated_audit['base_triangles']
+        assert evaluated_audit['triangles'] == evaluated_audit['evaluated_triangles']
+        obj.modifiers.remove(subdivision)
+        bpy.context.view_layer.update()
         assert audit['non_manifold_edges'] == 0
         assert audit['boundary_edges'] == 0
         assert audit['loose_vertices'] == 0
