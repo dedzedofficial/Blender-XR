@@ -646,9 +646,9 @@ class Runtime:
                 if current_distance > 0.01:
                     factor = max(0.02, min(50.0, current_distance / start_distance))
                     midpoint = (hand + grip_pos) * 0.5
-                    result = uniform_scaled(start_matrix, factor)
-                    result.translation = midpoint + (start_matrix.translation - start_midpoint) * factor
-                    scale_target.matrix_world = result
+                    scale_target.matrix_world = two_hand_scaled(
+                        start_matrix, start_midpoint, midpoint, factor
+                    )
                 if grab_release or other_grab_release:
                     self.history.push(('OBJECT', scale_target.name, None,
                                        original_before, scale_target.matrix_world.copy()))
