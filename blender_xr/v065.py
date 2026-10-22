@@ -7,7 +7,7 @@ import gpu
 from mathutils import Vector
 from . import drawing, menus, mesh
 
-CORE_PAGES = {'TOOLS', 'EDIT', 'EDIT_MORE', 'MODE_SELECT', 'LOOP_CUT'}
+CORE_PAGES = {'TOOLS', 'EDIT', 'EDIT_MORE', 'MODE_SELECT', 'LOOP_CUT', 'RIGGING'}
 TOOLTIP_DELAY = 0.5
 
 TOOLTIPS = {
@@ -205,9 +205,9 @@ def _patch_menu_draw():
             color=(0.025,0.35,0.35,1) if active else (0.06,0.12,0.18,1)
             if action==hover: color=(0.12,0.42,0.55,1)
             drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0025) for px,py in drawing.rectangle_points(bx,by,w,h)],color)
-            lines=_line_icon(action,bx,by,w,h)
-            if lines:
-                drawing.draw_batch(shader,'LINES',[self.world(px,py,0.0030) for px,py in lines],(0.88,0.95,1,1))
+            # Keep world-space controls text-first. Blender's native icon IDs
+            # are used in desktop panels; homemade glyphs overlaid on labels
+            # made headset controls visually collide.
         tip=getattr(self,'tooltip_action',None)
         if tip and tip==hover and tip in TOOLTIPS:
             title,desc=TOOLTIPS[tip]
