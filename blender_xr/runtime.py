@@ -562,6 +562,9 @@ class Runtime:
             elif self.tool == 'SCALE_FACE':
                 amount = max(-0.98, amount)
             amount = max(-10, min(10, amount))
+            if getattr(self.settings, 'precision_mode', False):
+                step = max(float(self.settings.step), 1e-6)
+                amount = round(amount / step) * step
             if self.last_amount is None or abs(amount-self.last_amount)>0.00005:
                 self.transaction.preview(amount, self.settings.bevel_segments,axis)
                 self.last_amount = amount
@@ -581,6 +584,9 @@ class Runtime:
             value=gizmo.parameter(origin,direction,anchor,axis)
             if value is not None:
                 delta=value[0]-start
+                if mode=='MOVE' and getattr(self.settings, 'precision_mode', False):
+                    step = max(float(self.settings.step), 1e-6)
+                    delta = round(delta / step) * step
                 if mode=='MOVE':
                     result=before.copy()
                     result.translation=before.translation+axis*delta
