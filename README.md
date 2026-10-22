@@ -1,10 +1,20 @@
-# Mesh XR v0.7.1
+# Mesh XR v0.7.5
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
 Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand carries a compact tool menu while the other points, selects, edits, transforms, places primitives, manages materials and textures, edits UVs, and moves around the scene.
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Blender Extensions](https://extensions.blender.org/add-ons/blender-xr/) · [Report Issues](https://github.com/dedzedofficial/Blender-XR/issues) · [Icon Guide](ICON_GUIDE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Testing](TESTING.md)
+
+## v0.7.5 development highlights
+
+- **PC View Mode:** Toggle the active desktop 3D View between the normal Blender viewport and the live OpenXR headset mirror, without ending the VR session. Requires Blender's `mirror_xr_session` viewport support.
+- **Precision Snap:** Optional controller-driven move/tool quantization using the configured tool step.
+- **Two-handed object scaling:** Grab an object with one controller, grab it with the other, then move your hands apart or together to scale it. Releasing either grip commits the change to XR Undo/Redo. The pivot math is regression-tested.
+- **Optional haptic feedback:** Short controller pulses after completed geometry edits and object transforms when enabled and supported by the OpenXR runtime.
+- **Rigging starter workflow:** Create a proportion-based humanoid armature, bind selected meshes with Blender automatic weights, enter Weight Paint, and normalize/clean groups. Failed setup steps restore the original selection and report the error.
+- **Asset readiness audit:** Read-only report for non-manifold/boundary edges, loose geometry, degenerate faces, UV availability, material slots, source and modifier-evaluated triangle counts, with a configurable budget checked against the evaluated mesh.
+- **Workflow workspace:** A collapsible Mesh XR Workflow panel groups asset checks, rigging, weight painting and controller-modeling guidance.
 
 ## v0.7.1 highlights
 

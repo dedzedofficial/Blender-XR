@@ -2,6 +2,23 @@
 
 Mesh XR is a free controller-first OpenXR modeling extension for Blender by Ded Zed. This roadmap describes scoped goals rather than promises of full Blender parity. Shipped release history is kept in [CHANGELOG.md](CHANGELOG.md); this file tracks completed milestones and future direction.
 
+## v0.7.5 — workflow expansion (development)
+
+- [x] PC View Mode toggle for Blender's live OpenXR viewport mirror, independent of VR session start/stop.
+- [x] Optional precision snapping for controller-driven geometry tools and axis translation.
+- [x] Two-controller object scaling with midpoint-aware transforms and XR-local Undo/Redo.
+- [x] Optional OpenXR haptic pulses after completed geometry edits and object transforms, guarded by a preference and safe fallback.
+- [x] Read-only asset readiness audit for topology, UVs, material slots, modifier counts, base triangles and evaluated modifier triangles when available.
+- [x] Distinguish open boundary edges from true non-manifold edges and test both cases.
+- [x] Restore selection and clean up partial starter rigs on failure; harden weight-tool selection/mode recovery.
+- [x] Restore the regular desktop viewport and clean up Mesh XR promptly when an XR session ends unexpectedly.
+- [x] Add regression coverage for evaluated triangle counts, two-hand scaling pivot math and rig-preflight failure recovery.
+- [x] Starter humanoid armature creation, automatic-weight binding, weight normalization/cleanup and Weight Paint entry.
+- [x] Collapsible desktop Workflow panel for asset checks, rigging and controller-modeling guidance.
+- [ ] Complete CI validation for the final commit across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 before release.
+- [ ] Manually validate headset mirroring and controller interactions on physical OpenXR hardware.
+- [ ] Future follow-up: broader controller-direct vertex/edge manipulation, full custom wrist/radial workspace, and rig-aware VR weight painting.
+
 ## Shipped foundation
 
 ### v0.3–v0.4
@@ -111,6 +128,13 @@ v0.6.5 focuses on making the established modeling workflow faster to understand 
 - [x] Dedicated v0.6.5 modeling/UI regression coverage.
 - [x] Run v0.6.5 validation in release CI before GitHub/Blender Extensions publishing.
 - [x] Update current README, changelog, testing guide, icon guide, release notes and roadmap.
+
+## v0.7.5 — PC View Mode development
+
+- [x] Add a desktop toggle for normal viewport versus live OpenXR session mirror where Blender supports it.
+- [x] Keep view switching independent from starting/stopping the VR session.
+- [x] Disable mirroring until the XR session is running and show a clear unsupported-build message.
+- [ ] Validate physical headset/runtime mirror behavior across the supported Blender matrix before release.
 
 ## v0.7.1 — advanced modeling and stability improvements
 

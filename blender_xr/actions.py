@@ -17,6 +17,7 @@ ACTION_DEFINITIONS = (
         ('grab', 'FLOAT', None),
         ('stick', 'VECTOR2D', '/input/thumbstick'),
         ('boost', 'FLOAT', '/input/thumbstick/click'),
+        ('haptic', 'VIBRATION', '/output/haptic'),
     )
 TOUCH_DEFINITIONS = (('trigger_touch', 'FLOAT', '/input/trigger/touch'),
                      ('thumb_touch', 'FLOAT', '/input/thumbstick/touch'))
@@ -69,7 +70,7 @@ def activate(context):
             raise RuntimeError('OpenXR could not create action: ' + item.name)
         for binding in item.bindings:
             if not state.action_binding_create(context, amap, item, binding):
-                if not item.name.endswith('_touch') and item.name != 'boost':
+                if not item.name.endswith('_touch') and item.name not in {'boost', 'haptic'}:
                     raise RuntimeError('OpenXR could not bind: ' + item.name)
     if not state.controller_pose_actions_set(context, SET, 'grip_pose', 'aim_pose'):
         raise RuntimeError('OpenXR could not attach controller poses')

@@ -11,7 +11,7 @@ import bpy
 import textwrap
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060, v071
+from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -42,6 +42,15 @@ class BXR_Settings(bpy.types.PropertyGroup):
     finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
         description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
+    triangle_budget: IntProperty(name='Triangle Budget', default=70000, min=0, max=100000000,
+        description='Target triangle budget used by the read-only asset readiness audit',
+        update=_persist_setting)
+    haptic_feedback: BoolProperty(name='Haptic Feedback', default=False,
+        description='Use short controller vibrations when supported by the active OpenXR runtime',
+        update=_persist_setting)
+    precision_mode: BoolProperty(name='Precision Snap', default=False,
+        description='Quantize controller-driven geometry tool distances to the configured tool step',
+        update=_persist_setting)
     step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
                         description='Initial tool amount in local mesh units',update=_persist_setting)
     bevel_segments: IntProperty(name='Bevel segments',default=2,min=1,max=8,update=_persist_setting)
@@ -321,6 +330,23 @@ class BXR_PT_panel(bpy.types.Panel):
         for line in textwrap.wrap(settings.status,44):
             session_box.label(text=line,icon='INFO' if line==settings.status else 'NONE')
 
+        # Blender exposes the active XR compositor mirror on each 3D View.
+        # Keep this as a display-only toggle: it must never start/stop the XR session.
+        view_box=layout.box()
+        view_box.label(text='PC View Mode',icon='WINDOW')
+        view_space=context.space_data
+        if hasattr(view_space,'mirror_xr_session'):
+            mirror_row=view_box.row(align=True)
+            mirror_row.enabled=active and bpy.types.XrSessionState.is_running(context)
+            mirror_row.prop(view_space,'mirror_xr_session',
+                            text='Show VR View on PC',toggle=True,icon='XRAY')
+            if active and bpy.types.XrSessionState.is_running(context):
+                view_box.label(text='Off: normal desktop view  |  On: live headset mirror')
+            else:
+                view_box.label(text='Start VR to enable the live headset mirror',icon='INFO')
+        else:
+            view_box.label(text='This Blender build does not expose XR view mirroring',icon='ERROR')
+
         setup=layout.box()
         setup.label(text='Controller Setup',icon='SETTINGS')
         col=setup.column(align=True)
@@ -339,6 +365,8 @@ class BXR_PT_panel(bpy.types.Panel):
         modeling.label(text='Modeling',icon='MESH_CUBE')
         grid=modeling.grid_flow(columns=2,align=True)
         grid.prop(settings,'step')
+        grid.prop(settings,'precision_mode',text='Precision Snap',toggle=True,icon='SNAP_ON')
+        modeling.prop(settings,'haptic_feedback',toggle=True,icon='FORCE_HARMONIC')
         grid.prop(settings,'bevel_segments')
         grid.prop(settings,'primitive_size')
         grid.prop(settings,'placement_distance')
@@ -427,7 +455,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES
 
 def register():
     for cls in CLASSES:

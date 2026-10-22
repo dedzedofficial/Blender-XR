@@ -79,7 +79,7 @@ class Tests(unittest.TestCase):
                                  ('AUTO', {'touch','index','vive','simple'})]:
             state = NS(actionmaps=NS(new=lambda *a, **k: NS(actionmap_items=Collection())))
             amap = actions.build_map(state, family, True)
-            self.assertEqual(len(amap.actionmap_items), 8)
+            self.assertEqual(len(amap.actionmap_items), 9)
             for item in amap.actionmap_items:
                 self.assertEqual([p.name for p in item.user_paths], list(actions.HANDS))
                 keys = {b.name for b in item.bindings}
@@ -91,7 +91,8 @@ class Tests(unittest.TestCase):
                     self.assertEqual(keys, expected)
                 for binding in item.bindings:
                     self.assertEqual(len(binding.component_paths), 2)
-                    self.assertTrue(all(p.name.startswith('/input/') for p in binding.component_paths))
+                    prefix = '/output/' if item.name == 'haptic' else '/input/'
+                    self.assertTrue(all(p.name.startswith(prefix) for p in binding.component_paths))
 
     def test_helper_manifest_and_skeletal_measurements(self):
         with tempfile.TemporaryDirectory() as folder:

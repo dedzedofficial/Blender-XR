@@ -14,6 +14,21 @@ def timer_due(session, now=None):
     return (time.monotonic() if now is None else now) - session.last_tick >= 1/60
 
 
+def haptic_pulse(context, settings, hand, amplitude=0.22):
+    """Best-effort short OpenXR pulse; never fail a modelling operation for missing haptics."""
+    if not getattr(settings, 'haptic_feedback', False):
+        return False
+    try:
+        state = context.window_manager.xr_session_state
+        if state is None or not bpy.types.XrSessionState.is_running(context):
+            return False
+        return bool(state.haptic_action_apply(
+            context, actions.SET, 'haptic', actions.HANDS[hand], 0.035, 0.0,
+            max(0.0, min(1.0, amplitude))))
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        return False
+
+
 def stick_delta(rotation, stick, dt, speed, scale):
     """Camera-local -Z is forward; remove pitch without changing walking speed."""
     amount = Vector((stick[0], stick[1]))
@@ -93,6 +108,13 @@ def uniform_scaled(matrix, factor):
     return result
 
 
+def two_hand_scaled(matrix, start_midpoint, midpoint, factor):
+    """Scale around the midpoint between hands while preserving the pivot."""
+    result = uniform_scaled(matrix, factor)
+    result.translation = Vector(midpoint) + (matrix.translation - Vector(start_midpoint)) * factor
+    return result
+
+
 def session_pre(*_args):
     global START_ERROR
     if PENDING or CURRENT is not None:
@@ -130,6 +152,7 @@ class Runtime:
         self.pointer = None
         self.transaction = None
         self.grab = None
+        self.two_hand_scale = None
         self.axis_move = None
         self.axis_drag = None
         self.gizmo = None
@@ -198,6 +221,7 @@ class Runtime:
             except ReferenceError:
                 pass
             self.grab = None
+        self.two_hand_scale = None
         self.status = 'CANCELLED'
 
     def cleanup(self, context):
@@ -206,6 +230,14 @@ class Runtime:
             self.bridge.close()
             self.bridge = None
         self.cancel_work()
+        # Leaving XR must return this desktop viewport to its normal display mode.
+        try:
+            if self.area is not None and self.area.type == 'VIEW_3D':
+                view_space = self.area.spaces.active
+                if hasattr(view_space, 'mirror_xr_session'):
+                    view_space.mirror_xr_session = False
+        except (AttributeError, ReferenceError, RuntimeError, TypeError):
+            pass
         if self.draw_handle is not None:
             bpy.types.SpaceView3D.draw_handler_remove(self.draw_handle, 'XR')
             self.draw_handle = None
@@ -448,7 +480,10 @@ class Runtime:
         self.last_tick = now
         state = context.window_manager.xr_session_state
         if state is None or not bpy.types.XrSessionState.is_running(context):
-            if now-self.started > 8:
+            if self.navigation_initialized:
+                self.status = 'VR SESSION STOPPED'
+                self.request_stop = True
+            elif now-self.started > 8:
                 self.error = 'No VR session. Check the active OpenXR runtime and headset connection.'
                 self.request_stop = True
             return
@@ -532,7 +567,7 @@ class Runtime:
         press, release = self.trigger.update(trigger_value)
         off_press, _ = self.off_trigger.update(off_value)
         grab_press, grab_release = self.grip.update(grab_value)
-        other_grab_press, _ = self.other_grip.update(other_grab_value)
+        other_grab_press, other_grab_release = self.other_grip.update(other_grab_value)
         obj = context.view_layer.objects.active
         if off_press:
             if self.transaction or self.grab or self.air_grab or self.axis_move:
@@ -562,6 +597,9 @@ class Runtime:
             elif self.tool == 'SCALE_FACE':
                 amount = max(-0.98, amount)
             amount = max(-10, min(10, amount))
+            if getattr(self.settings, 'precision_mode', False):
+                step = max(float(self.settings.step), 1e-6)
+                amount = round(amount / step) * step
             if self.last_amount is None or abs(amount-self.last_amount)>0.00005:
                 self.transaction.preview(amount, self.settings.bevel_segments,axis)
                 self.last_amount = amount
@@ -569,6 +607,7 @@ class Runtime:
             if release:
                 transaction, self.transaction = self.transaction, None
                 self.history.push(transaction.finish())
+                haptic_pulse(context, self.settings, self.dom)
                 self.axis_drag=None
                 self.status = 'APPLIED'
             return
@@ -581,6 +620,9 @@ class Runtime:
             value=gizmo.parameter(origin,direction,anchor,axis)
             if value is not None:
                 delta=value[0]-start
+                if mode=='MOVE' and getattr(self.settings, 'precision_mode', False):
+                    step = max(float(self.settings.step), 1e-6)
+                    delta = round(delta / step) * step
                 if mode=='MOVE':
                     result=before.copy()
                     result.translation=before.translation+axis*delta
@@ -590,6 +632,7 @@ class Runtime:
             if release:
                 if matrix_changed(target.matrix_world,before):
                     self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
+                    haptic_pulse(context, self.settings, self.dom)
                 self.axis_move=None;self.axis_drag=None
                 self.status='OBJECT '+('MOVED' if mode=='MOVE' else 'SCALED')
             return
@@ -598,9 +641,38 @@ class Runtime:
         grip_matrix = Matrix.LocRotScale(grip_pos,grip_rot,Vector((1,1,1)))
         if self.grab:
             target, before, inverse_start = self.grab
+            if other_grab_press and self.two_hand_scale is None:
+                hand_delta = hand - grip_pos
+                start_distance = hand_delta.length
+                if start_distance > 0.025:
+                    self.two_hand_scale = (
+                        target, before, start_distance,
+                        (hand + grip_pos) * 0.5, target.matrix_world.copy(),
+                    )
+                    self.status = 'TWO-HAND SCALE / RELEASE EITHER GRIP TO FINISH'
+            if self.two_hand_scale is not None:
+                scale_target, original_before, start_distance, start_midpoint, start_matrix = self.two_hand_scale
+                current_delta = hand - grip_pos
+                current_distance = current_delta.length
+                if current_distance > 0.01:
+                    factor = max(0.02, min(50.0, current_distance / start_distance))
+                    midpoint = (hand + grip_pos) * 0.5
+                    scale_target.matrix_world = two_hand_scaled(
+                        start_matrix, start_midpoint, midpoint, factor
+                    )
+                if grab_release or other_grab_release:
+                    self.history.push(('OBJECT', scale_target.name, None,
+                                       original_before, scale_target.matrix_world.copy()))
+                    haptic_pulse(context, self.settings, self.dom)
+                    haptic_pulse(context, self.settings, self.off)
+                    self.grab = None
+                    self.two_hand_scale = None
+                    self.status = 'TWO-HAND SCALE APPLIED'
+                return
             target.matrix_world = grip_matrix @ inverse_start @ before
             if grab_release:
                 self.history.push(('OBJECT',target.name,None,before,target.matrix_world.copy()))
+                haptic_pulse(context, self.settings, self.dom)
                 self.grab = None
                 self.status = 'MOVED OBJECT'
             return

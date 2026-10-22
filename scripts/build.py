@@ -53,11 +53,18 @@ assert "material_uv.BXR_PT_uv_v060.bl_category='Mesh XR'" in init_text
 assert "v056.patch(runtime.Runtime)" in init_text
 assert "v060.patch(runtime.Runtime)" in init_text
 assert "v071.patch(runtime.Runtime)" in init_text
+assert "v075_features.CLASSES" in init_text, 'v0.7.5 workflow features must be registered'
+assert "precision_mode" in init_text, 'precision mode setting must be present'
+assert "triangle_budget" in init_text, 'asset triangle budget setting must be present'
+assert "haptic_feedback" in init_text, 'optional haptic feedback setting must be present'
+assert "('haptic', 'VIBRATION', '/output/haptic')" in (SOURCE/'actions.py').read_text(), 'OpenXR haptic output action must be present'
+assert "mirror_xr_session" in init_text, 'PC View Mode must use Blender native XR mirroring'
+assert "Show VR View on PC" in init_text, 'PC View Mode toggle must be visible in the desktop panel'
 assert 'material_uv.CLASSES' in init_text
 assert 'Patreon' not in init_text
 assert "updates=layout.box()" not in init_text
 
-for required in ('material_uv.py','uv_tools.py','v060.py','v071.py','steamvr_hand_bridge.py'):
+for required in ('material_uv.py','uv_tools.py','v060.py','v071.py','v075_features.py','steamvr_hand_bridge.py'):
     assert (SOURCE/required).is_file(), required+' is required for the v0.6 package'
 menus_text=(SOURCE/'menus.py').read_text()
 assert "('MATERIALS','MATERIAL_MENU')" in menus_text

@@ -11,7 +11,7 @@ FIELDS = (
     'dominant_hand','controller_family','input_source','finger_touch','bridge_port',
     'step','bevel_segments','move_speed','fly_mode','fast_flight','turn_mode',
     'turn_angle','turn_speed','grab_air','primitive_size','placement_distance',
-    'show_statistics',
+    'show_statistics','precision_mode','haptic_feedback','triangle_budget',
 )
 _RESTORED_SCENES = set()
 _PENDING_SCENES = set()
@@ -39,10 +39,13 @@ class BXR_Preferences(bpy.types.AddonPreferences):
     primitive_size: FloatProperty(default=0.5,min=0.01,max=10)
     placement_distance: FloatProperty(default=1.5,min=0.1,max=10)
     show_statistics: BoolProperty(default=True)
+    precision_mode: BoolProperty(default=False)
+    haptic_feedback: BoolProperty(default=False)
+    triangle_budget: IntProperty(default=70000,min=0,max=100000000)
 
     def draw(self, context):
         layout=self.layout
-        layout.label(text='Mesh XR remembers controller, movement, modeling and UI settings automatically.')
+        layout.label(text='Mesh XR remembers controller, movement, modeling, precision, haptic and asset settings automatically.')
 
 
 def get(context=None):

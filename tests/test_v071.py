@@ -11,7 +11,9 @@ from blender_xr import drawing, material_uv, menus, mesh, runtime, uv_tools, v07
 blender_xr.register()
 history = mesh.History()
 try:
-    assert version.VERSION == (0, 7, 1)
+    assert version.VERSION >= (0, 7, 1)
+    # The desktop mirror toggle uses Blender's native XR viewport property when available.
+    assert 'mirror_xr_session' in __import__('inspect').getsource(blender_xr.BXR_PT_panel.draw)
     assert runtime.Runtime._v071_patched
     assert {'OBJECT_ADVANCED', 'GEOMETRY_ADVANCED', 'MODIFIER_MENU'} <= set(menus.PAGES)
 
