@@ -5,13 +5,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bpy
 import bmesh
 import blender_xr
-from blender_xr import runtime, version, v075_features
+from blender_xr import drawing, gizmo, menus, runtime, version, v065, v075_features
 
 
 def run():
     blender_xr.register()
     try:
         assert version.VERSION == (0, 7, 5)
+        # The v0.7.5 headset toolbar must expose functional rigging routes,
+        # clear labels/tooltips, a separate tooltip strip and pickable gizmos.
+        assert 'RIG_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
+        assert {'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT', 'RIG_CLEAN',
+                'RIG_POSE', 'RIG_AUDIT'} <= {
+                    action for _label, action in menus.PAGES['RIGGING']}
+        assert 'RIGGING' in v065.CORE_PAGES
+        assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
+                'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
+        assert drawing.button_rect(0)[2] >= 0.19
+        assert "ty=0.247" in Path(v065.__file__).read_text(encoding='utf-8')
+        # A controller ray slightly off the drawn axis should still acquire a
+        # handle; this models normal headset aiming variance.
+        handle = gizmo.Handles((0, 0, 0), [('X', (1, 0, 0))], 1.0, (0, 0, 5))
+        assert handle.pick((0.15, 0.06, 1.0), (0, 0, -1.0)) is not None
         assert hasattr(bpy.ops.blender_xr, 'asset_audit')
         assert hasattr(bpy.ops.blender_xr, 'create_basic_rig')
         assert hasattr(bpy.ops.blender_xr, 'bind_auto_weights')
