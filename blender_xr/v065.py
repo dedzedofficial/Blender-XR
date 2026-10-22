@@ -216,11 +216,13 @@ def _patch_menu_draw():
             except StopIteration:
                 return
             bx,by,w,h=drawing.button_rect(index)
-            ty=max(-0.155,min(0.125,by-0.050))
-            tw=0.34
-            drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0031) for px,py in drawing.rectangle_points(-0.17,ty,tw,0.046)],(0.01,0.02,0.03,0.98))
-            _draw_text(self,shader,title,-0.162,ty+0.035,0.0020)
-            _draw_text(self,shader,desc[:34],-0.162,ty+0.016,0.00155)
+            # A dedicated strip above the panel prevents the tooltip from
+            # covering controls, selection readouts or the controller ray.
+            ty=0.247
+            tw=0.37
+            drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0045) for px,py in drawing.rectangle_points(-0.185,ty,tw,0.050)],(0.01,0.02,0.03,0.99))
+            _draw_text(self,shader,title,-0.177,ty+0.037,0.0020)
+            _draw_text(self,shader,desc[:39],-0.177,ty+0.017,0.0015)
     drawing.Menu.draw=draw
     drawing.Menu._v065_icons=True
 
