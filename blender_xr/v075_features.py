@@ -451,16 +451,34 @@ class BXR_OT_weight_paint(bpy.types.Operator):
 
     def execute(self, context):
         obj = context.view_layer.objects.active
+        selected_before, active_before = _selection_snapshot(context)
+        old_mask_vertex = obj.data.use_paint_mask_vertex
+        old_mask_face = obj.data.use_paint_mask
+        old_show_weight = obj.show_weight
         try:
             if not obj.vertex_groups:
                 raise ValueError('Mesh has no vertex groups yet. Bind it to an armature first.')
+            result = bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
+            if 'FINISHED' not in result:
+                raise RuntimeError('Blender could not enter Weight Paint mode')
             obj.data.use_paint_mask_vertex = False
             obj.data.use_paint_mask = False
             obj.show_weight = True
-            bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
             return {'FINISHED'}
-        except (RuntimeError, ValueError) as exc:
-            self.report({'ERROR'}, str(exc))
+        except Exception as exc:
+            try:
+                if obj.mode != 'OBJECT':
+                    bpy.ops.object.mode_set(mode='OBJECT')
+            except (ReferenceError, RuntimeError):
+                pass
+            try:
+                obj.data.use_paint_mask_vertex = old_mask_vertex
+                obj.data.use_paint_mask = old_mask_face
+                obj.show_weight = old_show_weight
+            except (ReferenceError, RuntimeError):
+                pass
+            _restore_selection(context, selected_before, active_before)
+            self.report({'ERROR'}, 'Could not enter Weight Paint mode: ' + str(exc))
             return {'CANCELLED'}
 
 
