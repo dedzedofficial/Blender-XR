@@ -552,7 +552,22 @@ class Runtime:
         obj=context.view_layer.objects.active
         anchor=self.gizmo.anchor.copy()
         value=gizmo.parameter(origin,direction,anchor,axis)
-        if value is None:raise ValueError('Aim across the handle to drag it')
+        if value is None:
+            # Picking tolerates near-parallel rays; drag initialization must
+            # use the same fallback or a visibly highlighted handle would
+            # still refuse to move.
+            ray=Vector(direction).normalized()
+            axis=Vector(axis).normalized()
+            offset=Vector(origin)-anchor
+            if abs(ray.dot(axis)) > 0.999:
+                raise ValueError('Aim across the handle to drag it')
+            along=axis.dot(offset)
+            nearest=anchor+axis*along
+            ray_distance=max(0.0,(nearest-Vector(origin)).dot(ray))
+            ray_point=Vector(origin)+ray*ray_distance
+            value=(along,ray_distance,(nearest-ray_point).length)
+            if value[2] > max(self.gizmo.radius*2.5,self.gizmo.length*0.075):
+                raise ValueError('Aim closer to the handle to drag it')
         if obj.mode=='OBJECT' and self.tool in {'MOVE','SCALE'}:
             if obj.library or obj.parent or obj.constraints:
                 raise ValueError('Object transforms require a local unparented object without constraints')
