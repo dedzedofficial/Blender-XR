@@ -13,6 +13,12 @@ DISTANCE_SCALE=0.35
 
 
 def parameter(origin, direction, anchor, axis):
+    # Accept plain tuples as well as mathutils vectors so tests and callers
+    # cannot fail just because a coordinate came from a serialized pose.
+    origin=Vector(origin)
+    direction=Vector(direction)
+    anchor=Vector(anchor)
+    axis=Vector(axis)
     ray=direction.normalized();axis=axis.normalized();offset=origin-anchor
     dot=ray.dot(axis);denominator=1-dot*dot
     if denominator<0.002:
