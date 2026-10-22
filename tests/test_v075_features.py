@@ -27,17 +27,20 @@ def run():
         # PNG textures; the VR renderer uses the packaged PNGs, not drawn glyphs.
         icon_dir = Path(drawing.__file__).resolve().parent / "icons"
         source_dir = Path(drawing.__file__).resolve().parent / "icons_src"
-        expected_icons = {
-            "cursor", "transform_move", "transform_scale", "transform_rotate",
-            "extrude_region", "bevel", "inset_faces", "undo", "redo", "delete",
-            "material", "uv", "mesh_cube", "add", "file", "modifier",
-            "save_as", "view_camera",
-        }
+        expected_icons = set(drawing._ICON_BY_ACTION.values()) - {None}
+        # Every mapped texture must ship both the original SVG and its generated PNG.
         assert all((icon_dir / (name + ".png")).is_file() for name in expected_icons)
         assert all((source_dir / (name + ".svg")).is_file() for name in expected_icons)
-        assert all(drawing._ICON_BY_ACTION.get(action) for action in
-                   ("SELECT", "MOVE", "SCALE", "EXTRUDE", "BEVEL", "INSET",
-                    "UNDO", "REDO", "DELETE_GEOM", "MATERIAL_MENU", "UV_UNWRAP"))
+        # Rigging actions deliberately use Blender's armature, modifier, weight and pose icons.
+        assert drawing._ICON_BY_ACTION["RIG_CREATE"] == "armature_data"
+        assert drawing._ICON_BY_ACTION["RIG_BIND"] == "mod_armature"
+        assert drawing._ICON_BY_ACTION["RIG_WEIGHT"] == "mod_vertex_weight"
+        assert drawing._ICON_BY_ACTION["RIG_POSE"] == "pose_hlt"
+        assert drawing._ICON_BY_ACTION["RIG_AUDIT"] == "mesh_data"
+        # Every declared page action must have an icon mapping (PANEL is intentionally blank).
+        page_actions = {action for page in menus.PAGES.values()
+                        for _label, action in page}
+        assert page_actions <= set(drawing._ICON_BY_ACTION), page_actions - set(drawing._ICON_BY_ACTION)
         from mathutils import Vector
         vr_menu = drawing.Menu()
         vr_menu.page = 'TOOLS'
