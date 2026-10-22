@@ -108,6 +108,13 @@ def uniform_scaled(matrix, factor):
     return result
 
 
+def two_hand_scaled(matrix, start_midpoint, midpoint, factor):
+    """Scale around the midpoint between hands while preserving the pivot."""
+    result = uniform_scaled(matrix, factor)
+    result.translation = Vector(midpoint) + (matrix.translation - Vector(start_midpoint)) * factor
+    return result
+
+
 def session_pre(*_args):
     global START_ERROR
     if PENDING or CURRENT is not None:
