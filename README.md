@@ -10,10 +10,10 @@ Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand ca
 
 - **PC View Mode:** Toggle the active desktop 3D View between the normal Blender viewport and the live OpenXR headset mirror, without ending the VR session. Requires Blender's `mirror_xr_session` viewport support.
 - **Precision Snap:** Optional controller-driven move/tool quantization using the configured tool step.
-- **Two-handed object scaling:** Grab an object with one controller, grab it with the other, then move your hands apart or together to scale it. Releasing either grip commits the change to XR Undo/Redo.
+- **Two-handed object scaling:** Grab an object with one controller, grab it with the other, then move your hands apart or together to scale it. Releasing either grip commits the change to XR Undo/Redo. The pivot math is regression-tested.
 - **Optional haptic feedback:** Short controller pulses after completed geometry edits and object transforms when enabled and supported by the OpenXR runtime.
-- **Rigging starter workflow:** Create a proportion-based humanoid armature, bind selected meshes with Blender automatic weights, enter Weight Paint, and normalize/clean groups.
-- **Asset readiness audit:** Read-only report for non-manifold/boundary edges, loose geometry, degenerate faces, UV availability, material slots, triangle count and modifiers, with a configurable triangle-budget warning.
+- **Rigging starter workflow:** Create a proportion-based humanoid armature, bind selected meshes with Blender automatic weights, enter Weight Paint, and normalize/clean groups. Failed setup steps restore the original selection and report the error.
+- **Asset readiness audit:** Read-only report for non-manifold/boundary edges, loose geometry, degenerate faces, UV availability, material slots, source and modifier-evaluated triangle counts, with a configurable budget checked against the evaluated mesh.
 - **Workflow workspace:** A collapsible Mesh XR Workflow panel groups asset checks, rigging, weight painting and controller-modeling guidance.
 
 ## v0.7.1 highlights
