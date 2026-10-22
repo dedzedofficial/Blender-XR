@@ -42,7 +42,7 @@ class BXR_Settings(bpy.types.PropertyGroup):
     finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
         description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
-    precision_mode: BoolProperty(name='Precision Snap',default=False,
+    triangle_budget: IntProperty(name='Triangle Budget',default=70000,min=0,max=100000000,\n        description='Target triangle budget used by the read-only asset readiness audit')\n    precision_mode: BoolProperty(name='Precision Snap',default=False,
         description='Quantize controller-driven geometry tool distances to the configured tool step')
     step: FloatProperty(name='Tool distance',default=0.03,min=0.0001,max=10,
                         description='Initial tool amount in local mesh units',update=_persist_setting)
