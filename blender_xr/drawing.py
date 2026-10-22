@@ -3,7 +3,41 @@
 import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
-from . import materials, menus, version
+from . import materials, menus, version, icon_textures
+
+# Official Blender UI artwork, rasterized to transparent PNGs by the asset build.
+_ICON_BY_ACTION = {
+    'SELECT': 'cursor', 'SELECT_VERT': 'cursor', 'SELECT_EDGE': 'cursor',
+    'SELECT_FACE': 'cursor', 'MOVE': 'transform_move', 'MOVE_EDIT': 'transform_move',
+    'SCALE': 'transform_scale', 'SCALE_EDIT': 'transform_scale',
+    'ROTATE': 'transform_rotate', 'MODE': 'mesh_cube', 'MODE_OBJECT': 'mesh_cube',
+    'ADD_MENU': 'add', 'MATERIAL_MENU': 'material', 'NAV_MENU': 'view_camera',
+    'RIG_MENU': 'modifier', 'RIG_CREATE': 'modifier', 'RIG_BIND': 'modifier',
+    'RIG_WEIGHT': 'modifier', 'RIG_CLEAN': 'modifier', 'RIG_POSE': 'modifier',
+    'RIG_AUDIT': 'modifier', 'UNDO': 'undo', 'REDO': 'redo', 'SAVE': 'save_as',
+    'EXTRUDE': 'extrude_region', 'BEVEL': 'bevel', 'INSET': 'inset_faces',
+    'DELETE_GEOM': 'delete', 'DELETE_OBJECT': 'delete', 'DUPLICATE': 'add',
+    'MERGE': 'mesh_cube', 'SUBDIVIDE': 'mesh_cube', 'RECALC': 'modifier',
+    'MATERIALS': 'material', 'UV_MENU': 'uv', 'UV_UNWRAP': 'uv',
+    'UV_SMART': 'uv', 'UV_CUBE': 'uv', 'UV_PLANAR': 'uv',
+    'UV_MARK_SEAM': 'uv', 'UV_CLEAR_SEAM': 'uv', 'UV_PACK': 'uv',
+    'UV_RESET': 'uv', 'UV_PREVIEW': 'uv',
+}
+_IMAGE_SHADER = None
+
+
+def _draw_icon_texture(texture, corners):
+    """Draw one transparent icon texture on a world-space quad."""
+    global _IMAGE_SHADER
+    if _IMAGE_SHADER is None:
+        _IMAGE_SHADER = gpu.shader.from_builtin('IMAGE')
+    batch = batch_for_shader(
+        _IMAGE_SHADER, 'TRI_FAN',
+        {'pos': corners, 'texCoord': ((0, 0), (1, 0), (1, 1), (0, 1))},
+    )
+    _IMAGE_SHADER.bind()
+    _IMAGE_SHADER.uniform_sampler('image', texture)
+    batch.draw(_IMAGE_SHADER)
 
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
@@ -160,6 +194,14 @@ class Menu:
             if action==hover:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
+            icon_name = _ICON_BY_ACTION.get(action)
+            icon_texture = icon_textures.texture_for(icon_name) if icon_name else None
+            has_icon = icon_texture is not None
+            if has_icon:
+                ix, iy, iw, ih = bx + 0.006, by + 0.008, 0.029, 0.029
+                corners = [self.world(ix, iy, 0.0015), self.world(ix+iw, iy, 0.0015),
+                           self.world(ix+iw, iy+ih, 0.0015), self.world(ix, iy+ih, 0.0015)]
+                _draw_icon_texture(icon_texture, corners)
             friendly = {
                 'MODE_MENU':'MODE', 'MODE_OBJECT':'OBJECT', 'MODE_EDIT':'EDIT',
                 'SELECT_VERT':'VERTEX', 'SELECT_EDGE':'EDGE', 'SELECT_FACE':'FACE',
@@ -172,8 +214,10 @@ class Menu:
                 'RIG_POSE':'POSE TEST', 'RIG_AUDIT':'AUDIT MESH',
             }
             display_label = label or friendly.get(action, action.replace('_',' '))
-            text(display_label,bx+0.009,by+0.031,
-                 min(0.0032,0.177/(max(len(display_label),1)*6)))
+            label_x = bx + (0.041 if has_icon else 0.009)
+            label_width = 0.151 if has_icon else 0.177
+            text(display_label,label_x,by+0.031,
+                 min(0.0032,label_width/(max(len(display_label),1)*6)))
         text(('MESH '+selection)[:24],-0.207,-0.222,0.0023)
         text(status[:25],-0.207,-0.252,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
