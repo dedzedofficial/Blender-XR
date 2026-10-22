@@ -22,6 +22,18 @@ def run():
         assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
                 'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
         assert drawing.button_rect(0)[2] >= 0.19
+        vr_menu = drawing.Menu()
+        vr_menu.page = 'TOOLS'
+        vr_menu.ready = True
+        vr_menu.center = Vector((0, 0, 0))
+        vr_menu.right = Vector((1, 0, 0))
+        vr_menu.up = Vector((0, 1, 0))
+        vr_menu.normal = Vector((0, 0, 1))
+        vr_menu.scale = 1.0
+        bx, by, bw, bh = drawing.button_rect(0)
+        action, _hit_point = vr_menu.hit(
+            Vector((bx + bw * 0.5, by + bh * 0.5, 1.0)), Vector((0, 0, -1)))
+        assert action == 'MODE_MENU', action
         assert "ty=0.247" in Path(v065.__file__).read_text(encoding='utf-8')
         # A controller ray slightly off the drawn axis should still acquire a
         # handle; this models normal headset aiming variance.
