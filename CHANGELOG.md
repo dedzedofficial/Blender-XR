@@ -9,6 +9,7 @@ This file records shipped user-facing changes. Planned work belongs in [ROADMAP.
 - Disabled the control until Mesh XR's XR session is active and show a compatibility message when Blender does not expose the native mirror property.
 - Added documentation and build validation for the mirror toggle.
 - Added optional controller precision snapping based on the configured tool step.
+- Added two-controller object scaling, with midpoint-aware scaling and XR-local Undo/Redo when either grip is released.
 - Added a read-only asset audit for topology health, UV availability, material slots, triangle count and modifiers.
 - Added a starter humanoid armature workflow, automatic-weight binding, weight normalization/cleanup, and Weight Paint entry.
 - Added a collapsible Workflow panel that groups asset, rigging and controller-modeling tools.
