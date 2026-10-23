@@ -38,7 +38,7 @@ def run():
             png = icon_dir / (name + ".png")
             with png.open("rb") as handle:
                 header = handle.read(24)
-            assert header[:8] == b"\\x89PNG\\r\\n\\x1a\\n", name
+            assert header[:8] == b"\x89PNG\r\n\x1a\n", name
             width, height = struct.unpack(">II", header[16:24])
             assert (width, height) == (256, 256), (name, width, height)
         # Rigging actions deliberately use Blender's armature, modifier, weight and pose icons.
