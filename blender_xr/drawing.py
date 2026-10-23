@@ -75,6 +75,23 @@ _ICON_BY_ACTION = {
     'TURBO': 'preferences', 'SLOWER': 'transform_scale',
     'FASTER': 'transform_scale', 'TURN_TOGGLE': 'transform_rotate',
     'RESET': 'view_camera',
+    # Advanced object, geometry and modifier tools added in v0.7.1.
+    'OBJECT_ADVANCED': 'object_data', 'GEOMETRY_ADVANCED': 'mesh_data',
+    'OBJ_DUPLICATE': 'duplicate', 'OBJ_SNAP': 'transform_move',
+    'OBJ_RESET_ROT': 'transform_rotate',
+    'ROT_X_POS': 'transform_rotate', 'ROT_X_NEG': 'transform_rotate',
+    'ROT_Y_POS': 'transform_rotate', 'ROT_Y_NEG': 'transform_rotate',
+    'ROT_Z_POS': 'transform_rotate', 'ROT_Z_NEG': 'transform_rotate',
+    'GEO_DISSOLVE_VERT': 'delete', 'GEO_DISSOLVE_EDGE': 'delete',
+    'GEO_FILL': 'add', 'GEO_BRIDGE': 'mesh_data', 'GEO_RECALC': 'mesh_data',
+    'MODIFIER_MENU': 'modifier',
+    'MOD_MIRROR_X': 'modifier', 'MOD_MIRROR_Y': 'modifier',
+    'MOD_MIRROR_Z': 'modifier', 'MOD_ARRAY': 'modifier',
+    'MOD_SOLIDIFY': 'modifier', 'MOD_COUNT_UP': 'add',
+    'MOD_COUNT_DOWN': 'delete', 'MOD_THICK_UP': 'transform_scale',
+    'MOD_THICK_DOWN': 'transform_scale', 'MOD_TOGGLE': 'modifier',
+    'MOD_REMOVE': 'delete',
+}
 }
 _IMAGE_SHADER = None
 
