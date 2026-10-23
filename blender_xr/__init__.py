@@ -18,8 +18,8 @@ v060.patch(runtime.Runtime)
 v071.patch(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
-material_uv.BXR_PT_materials_v060.bl_category='Mesh XR'
-material_uv.BXR_PT_uv_v060.bl_category='Mesh XR'
+material_uv.BXR_PT_materials_v060.bl_category='Blender XR'
+material_uv.BXR_PT_uv_v060.bl_category='Blender XR'
 material_uv.BXR_OT_material_action.bl_label='Mesh XR Material Action'
 material_uv.BXR_OT_uv_action.bl_label='Mesh XR UV Action'
 
@@ -88,7 +88,7 @@ class BXR_Settings(bpy.types.PropertyGroup):
 class BXR_OT_session(bpy.types.Operator):
     bl_idname = 'blender_xr.session'
     bl_label = 'Start VR'
-    bl_description = 'Start Mesh XR using the active OpenXR runtime'
+    bl_description = 'Start Blender XR using the active OpenXR runtime'
 
     @classmethod
     def poll(cls,context):
@@ -301,16 +301,16 @@ def draw_view_menu(self, context):
     active=runtime.CURRENT is not None
     self.layout.separator()
     self.layout.operator('blender_xr.stop' if active else 'blender_xr.session',
-                         text='Stop Mesh XR' if active else 'Start Mesh XR',
+                         text='Stop Blender XR' if active else 'Start Blender XR',
                          icon='PAUSE' if active else 'PLAY')
 
 
 class BXR_PT_panel(bpy.types.Panel):
-    bl_label='Mesh XR v'+VERSION_TEXT
+    bl_label='Blender XR v'+VERSION_TEXT
     bl_idname='BXR_PT_panel'
     bl_space_type='VIEW_3D'
     bl_region_type='UI'
-    bl_category='Mesh XR'
+    bl_category='Blender XR'
 
     def draw(self,context):
         layout=self.layout
