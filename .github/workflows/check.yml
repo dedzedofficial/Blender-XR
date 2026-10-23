@@ -24,6 +24,10 @@ jobs:
           python tests/test_prune.py
       - name: Check Python syntax
         run: python -m compileall -q blender_xr tests
+      - name: Regenerate and validate 256px icon textures
+        run: |
+          python -m pip install cairosvg
+          python tools/build_icon_textures.py
       - name: Build installer
         run: python scripts/build.py
       - name: Verify bundled OpenVR wheel

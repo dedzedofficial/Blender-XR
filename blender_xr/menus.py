@@ -10,7 +10,8 @@ PAGES = {
         ('SELECT','SELECT'), ('MOVE','MOVE'),
         ('SCALE','SCALE'), ('EDIT MODE','MODE'),
         ('SHAPES','ADD_MENU'), ('MATERIALS','MATERIAL_MENU'),
-        ('TRAVEL','NAV_MENU'), ('UNDO','UNDO'),
+        ('TRAVEL','NAV_MENU'), ('RIGGING','RIG_MENU'),
+        ('UNDO','UNDO'),
         ('REDO','REDO'), ('SAVE','SAVE'),
         ('STOP','STOP'),
     ),
@@ -99,6 +100,12 @@ PAGES = {
                         ('CUBE','SPHERE','CYLINDER','CONE','TORUS','PLANE')) + (
         ('TOOLS','BACK'),
     ),
+    'RIGGING': (
+        ('CREATE RIG','RIG_CREATE'), ('BIND WEIGHTS','RIG_BIND'),
+        ('WEIGHT PAINT','RIG_WEIGHT'), ('CLEAN WEIGHTS','RIG_CLEAN'),
+        ('POSE TEST','RIG_POSE'), ('AUDIT MESH','RIG_AUDIT'),
+        ('BACK','BACK'),
+    ),
     'TRAVEL': (
         ('FLY/WALK','FLY_TOGGLE'), ('TURBO','TURBO'),
         ('SLOWER','SLOWER'), ('FASTER','FASTER'),
@@ -122,6 +129,7 @@ TITLES = {
     'UV_PREVIEW': 'UV PREVIEW',
     'PRIMITIVES': 'SHAPES',
     'TRAVEL': 'TRAVEL',
+    'RIGGING': 'RIGGING / ARMATURE',
 }
 
 

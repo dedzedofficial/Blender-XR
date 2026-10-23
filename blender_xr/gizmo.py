@@ -13,6 +13,12 @@ DISTANCE_SCALE=0.35
 
 
 def parameter(origin, direction, anchor, axis):
+    # Accept plain tuples as well as mathutils vectors so tests and callers
+    # cannot fail just because a coordinate came from a serialized pose.
+    origin=Vector(origin)
+    direction=Vector(direction)
+    anchor=Vector(anchor)
+    axis=Vector(axis)
     ray=direction.normalized();axis=axis.normalized();offset=origin-anchor
     dot=ray.dot(axis);denominator=1-dot*dot
     if denominator<0.002:
@@ -39,7 +45,19 @@ class Handles:
         hits=[]
         for name,axis in self.axes:
             point=parameter(origin,direction,self.anchor,axis)
-            if point and self.length*MIN_PICK<=point[0]<=self.length*MAX_PICK and point[2]<=self.radius:
+            if point is None:
+                # Near-parallel controller rays are common in VR. Use the
+                # nearest forward point on the axis rather than making the
+                # handle impossible to select at these angles.
+                ray=Vector(direction).normalized()
+                offset=Vector(origin)-self.anchor
+                along=axis.dot(offset)
+                nearest=self.anchor+axis*along
+                ray_distance=max(0.0,(nearest-Vector(origin)).dot(ray))
+                ray_point=Vector(origin)+ray*ray_distance
+                point=(along,ray_distance,(nearest-ray_point).length)
+            pick_radius=max(self.radius*2.5,self.length*0.075)
+            if self.length*0.05<=point[0]<=self.length*1.25 and point[2]<=pick_radius:
                 hits.append((point[1],name,axis))
         return min(hits,key=lambda hit:hit[0])[1:] if hits else None
 

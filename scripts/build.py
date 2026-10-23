@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tomllib
 import zipfile
+import struct
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'blender_xr'
@@ -104,12 +105,26 @@ for old in output.parent.glob('*xr-v*'):
 
 package_names={'blender_manifest.toml','LICENSE','README.md'}
 manifest_wheels={Path(item.removeprefix('./')).as_posix() for item in manifest['wheels']}
+icon_sources=sorted((SOURCE/'icons_src').glob('*.svg'))
+icon_pngs=sorted((SOURCE/'icons').glob('*.png'))
+assert icon_sources, 'Bundled SVG icon sources are missing'
+assert len(icon_pngs)==len(icon_sources), f'Icon source/PNG count mismatch: {len(icon_sources)} SVGs, {len(icon_pngs)} PNGs'
+for source_path in icon_sources:
+    png_path=SOURCE/'icons'/(source_path.stem+'.png')
+    assert png_path.is_file(), f'Missing generated icon texture for {source_path.name}'
+    with png_path.open('rb') as handle:
+        header=handle.read(24)
+    assert header[:8]==b'\x89PNG\r\n\x1a\n', f'Invalid PNG texture: {png_path.name}'
+    width,height=struct.unpack('>II',header[16:24])
+    assert (width,height)==(256,256), f'{png_path.name} is {width}x{height}, expected 256x256'
 with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(SOURCE.rglob('*')):
         if not path.is_file():
             continue
         relative=path.relative_to(SOURCE).as_posix()
-        if not (path.suffix=='.py' or relative in package_names or relative in manifest_wheels):
+        is_icon_png=relative.startswith('icons/') and path.suffix=='.png'
+        is_icon_source=relative.startswith('icons_src/') and (path.suffix=='.svg' or path.name=='NOTICE.md')
+        if not (path.suffix=='.py' or relative in package_names or relative in manifest_wheels or is_icon_png or is_icon_source):
             continue
         item=zipfile.ZipInfo(relative,date_time=(2026,1,1,0,0,0))
         item.compress_type=zipfile.ZIP_DEFLATED
@@ -120,6 +135,10 @@ with zipfile.ZipFile(output) as archive:
     names=set(archive.namelist())
     assert 'wheels/'+OPENVR_WHEEL in names, 'OpenVR wheel missing from extension ZIP'
     assert 'blender_manifest.toml' in names and '__init__.py' in names
+    assert 'icons/armature_data.png' in names, 'Rigging icon textures missing from extension ZIP'
+    assert 'icons_src/NOTICE.md' in names, 'Icon source provenance notice missing from extension ZIP'
+    assert all('icons/'+path.name in names for path in icon_pngs), 'One or more icon PNGs missing from extension ZIP'
+    assert all('icons_src/'+path.name in names for path in icon_sources), 'One or more SVG sources missing from extension ZIP'
 
 checksum=hashlib.sha256(output.read_bytes()).hexdigest()
 Path(str(output)+'.sha256').write_text(checksum+'  '+output.name+'\n')

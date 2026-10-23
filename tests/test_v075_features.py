@@ -1,17 +1,74 @@
 """v0.7.5 asset audit, precision settings and starter rig regression checks."""
 import sys
+import struct
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bpy
 import bmesh
 import blender_xr
-from blender_xr import runtime, version, v075_features
+from blender_xr import drawing, gizmo, menus, runtime, version, v065, v075_features
 
 
 def run():
     blender_xr.register()
     try:
         assert version.VERSION == (0, 7, 5)
+        # The v0.7.5 headset toolbar must expose functional rigging routes,
+        # clear labels/tooltips, a separate tooltip strip and pickable gizmos.
+        assert 'RIG_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
+        assert {'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT', 'RIG_CLEAN',
+                'RIG_POSE', 'RIG_AUDIT'} <= {
+                    action for _label, action in menus.PAGES['RIGGING']}
+        assert 'RIGGING' in v065.CORE_PAGES
+        assert 'DEFAULT_CLOSED' not in getattr(v075_features.BXR_PT_workflow, 'bl_options', set())
+        assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
+                'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
+        assert drawing.button_rect(0)[2] >= 0.19
+        # Official Blender SVG sources are shipped with their generated transparent
+        # PNG textures; the VR renderer uses the packaged PNGs, not drawn glyphs.
+        icon_dir = Path(drawing.__file__).resolve().parent / "icons"
+        source_dir = Path(drawing.__file__).resolve().parent / "icons_src"
+        expected_icons = set(drawing._ICON_BY_ACTION.values()) - {None}
+        # Every mapped texture must ship both the original SVG and its generated PNG.
+        assert all((icon_dir / (name + ".png")).is_file() for name in expected_icons)
+        assert all((source_dir / (name + ".svg")).is_file() for name in expected_icons)
+        # Every packaged icon must be a readable PNG rasterized at the current
+        # high-resolution target, not an empty placeholder or stale lower-resolution texture.
+        for name in expected_icons:
+            png = icon_dir / (name + ".png")
+            with png.open("rb") as handle:
+                header = handle.read(24)
+            assert header[:8] == b"\x89PNG\r\n\x1a\n", name
+            width, height = struct.unpack(">II", header[16:24])
+            assert (width, height) == (256, 256), (name, width, height)
+        # Rigging actions deliberately use Blender's armature, modifier, weight and pose icons.
+        assert drawing._ICON_BY_ACTION["RIG_CREATE"] == "armature_data"
+        assert drawing._ICON_BY_ACTION["RIG_BIND"] == "mod_armature"
+        assert drawing._ICON_BY_ACTION["RIG_WEIGHT"] == "mod_vertex_weight"
+        assert drawing._ICON_BY_ACTION["RIG_POSE"] == "pose_hlt"
+        assert drawing._ICON_BY_ACTION["RIG_AUDIT"] == "mesh_data"
+        # Every declared page action must have an icon mapping (PANEL is intentionally blank).
+        page_actions = {action for page in menus.PAGES.values()
+                        for _label, action in page}
+        assert page_actions <= set(drawing._ICON_BY_ACTION), page_actions - set(drawing._ICON_BY_ACTION)
+        from mathutils import Vector
+        vr_menu = drawing.Menu()
+        vr_menu.page = 'TOOLS'
+        vr_menu.ready = True
+        vr_menu.center = Vector((0, 0, 0))
+        vr_menu.right = Vector((1, 0, 0))
+        vr_menu.up = Vector((0, 1, 0))
+        vr_menu.normal = Vector((0, 0, 1))
+        vr_menu.scale = 1.0
+        bx, by, bw, bh = drawing.button_rect(0)
+        action, _hit_point = vr_menu.hit(
+            Vector((bx + bw * 0.5, by + bh * 0.5, 1.0)), Vector((0, 0, -1)))
+        assert action == 'MODE_MENU', action
+        assert "ty=0.247" in Path(v065.__file__).read_text(encoding='utf-8')
+        # A controller ray slightly off the drawn axis should still acquire a
+        # handle; this models normal headset aiming variance.
+        handle = gizmo.Handles((0, 0, 0), [('X', (1, 0, 0))], 1.0, (0, 0, 5))
+        assert handle.pick((0.15, 0.06, 1.0), (0, 0, -1.0)) is not None
         assert hasattr(bpy.ops.blender_xr, 'asset_audit')
         assert hasattr(bpy.ops.blender_xr, 'create_basic_rig')
         assert hasattr(bpy.ops.blender_xr, 'bind_auto_weights')

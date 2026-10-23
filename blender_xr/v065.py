@@ -7,7 +7,7 @@ import gpu
 from mathutils import Vector
 from . import drawing, menus, mesh
 
-CORE_PAGES = {'TOOLS', 'EDIT', 'EDIT_MORE', 'MODE_SELECT', 'LOOP_CUT'}
+CORE_PAGES = {'TOOLS', 'EDIT', 'EDIT_MORE', 'MODE_SELECT', 'LOOP_CUT', 'RIGGING'}
 TOOLTIP_DELAY = 0.5
 
 TOOLTIPS = {
@@ -41,6 +41,13 @@ TOOLTIPS = {
     'ADD_MENU': ('Add Object', 'Open primitive creation tools'),
     'MATERIAL_MENU': ('Materials', 'Open materials, textures and UV tools'),
     'NAV_MENU': ('Travel', 'Open movement and turning controls'),
+    'RIG_MENU': ('Rigging', 'Armature creation, binding, weights and pose testing'),
+    'RIG_CREATE': ('Create Starter Rig', 'Create a proportion-based humanoid armature for the selected mesh'),
+    'RIG_BIND': ('Bind Automatic Weights', 'Bind the selected mesh to the active armature'),
+    'RIG_WEIGHT': ('Weight Paint', 'Inspect and paint vertex weights on a bound mesh'),
+    'RIG_CLEAN': ('Clean Weights', 'Clean small weights and normalize vertex-group totals'),
+    'RIG_POSE': ('Pose Test', 'Enter Pose Mode to test mesh deformation'),
+    'RIG_AUDIT': ('Mesh Audit', 'Check topology, UVs, materials and evaluated triangle budget'),
     'UNDO': ('Undo', 'Undo the last Mesh XR action'),
     'REDO': ('Redo', 'Redo the last undone Mesh XR action'),
     'SAVE': ('Save', 'Save the current Blend file'),
@@ -57,9 +64,10 @@ def _install_pages():
         ('', 'MODE_MENU'), ('', 'SELECT'),
         ('', 'MOVE'), ('', 'SCALE'),
         ('', 'ADD_MENU'), ('', 'MATERIAL_MENU'),
-        ('', 'NAV_MENU'), ('', 'UNDO'),
-        ('', 'REDO'), ('', 'SAVE'),
-        ('', 'DELETE_OBJECT'), ('', 'STOP'),
+        ('', 'NAV_MENU'), ('', 'RIG_MENU'),
+        ('', 'UNDO'), ('', 'REDO'),
+        ('', 'SAVE'), ('', 'DELETE_OBJECT'),
+        ('', 'STOP'),
     )
     menus.PAGES['EDIT'] = (
         ('', 'MODE_MENU'), ('', 'SELECT'),
@@ -205,9 +213,9 @@ def _patch_menu_draw():
             color=(0.025,0.35,0.35,1) if active else (0.06,0.12,0.18,1)
             if action==hover: color=(0.12,0.42,0.55,1)
             drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0025) for px,py in drawing.rectangle_points(bx,by,w,h)],color)
-            lines=_line_icon(action,bx,by,w,h)
-            if lines:
-                drawing.draw_batch(shader,'LINES',[self.world(px,py,0.0030) for px,py in lines],(0.88,0.95,1,1))
+            # Keep world-space controls text-first. Blender's native icon IDs
+            # are used in desktop panels; homemade glyphs overlaid on labels
+            # made headset controls visually collide.
         tip=getattr(self,'tooltip_action',None)
         if tip and tip==hover and tip in TOOLTIPS:
             title,desc=TOOLTIPS[tip]
@@ -216,11 +224,13 @@ def _patch_menu_draw():
             except StopIteration:
                 return
             bx,by,w,h=drawing.button_rect(index)
-            ty=max(-0.155,min(0.125,by-0.050))
-            tw=0.34
-            drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0031) for px,py in drawing.rectangle_points(-0.17,ty,tw,0.046)],(0.01,0.02,0.03,0.98))
-            _draw_text(self,shader,title,-0.162,ty+0.035,0.0020)
-            _draw_text(self,shader,desc[:34],-0.162,ty+0.016,0.00155)
+            # A dedicated strip above the panel prevents the tooltip from
+            # covering controls, selection readouts or the controller ray.
+            ty=0.247
+            tw=0.37
+            drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0045) for px,py in drawing.rectangle_points(-0.185,ty,tw,0.050)],(0.01,0.02,0.03,0.99))
+            _draw_text(self,shader,title,-0.177,ty+0.037,0.0020)
+            _draw_text(self,shader,desc[:39],-0.177,ty+0.017,0.0015)
     drawing.Menu.draw=draw
     drawing.Menu._v065_icons=True
 

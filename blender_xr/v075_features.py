@@ -489,7 +489,6 @@ class BXR_PT_workflow(bpy.types.Panel):
     bl_region_type = 'UI'
     bl_category = 'Mesh XR'
     bl_parent_id = 'BXR_PT_panel'
-    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout

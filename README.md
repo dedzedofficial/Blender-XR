@@ -53,7 +53,7 @@ Blender's separate **VR Scene Inspection** extension provides Blender's own Star
 
 ## VR interface
 
-The main Object/Edit controls use pictogram icons so the interface is easier to understand without relying on language-specific button text.
+The headset menu uses larger, text-first controls with wider raycast targets to avoid homemade glyphs colliding with labels. Blender's native icon IDs remain in the desktop sidebar and rigging panels. Tooltips occupy a dedicated strip above the headset menu, so they do not cover the buttons.
 
 Point the menu ray at an icon to highlight it. Keep the ray on that control for roughly half a second to show its tool name and short explanation.
 
@@ -175,6 +175,7 @@ Mesh XR ships the required OpenVR Python wheel inside the Blender Extension pack
 
 ## Current limits
 
+- The starter humanoid rig is a proportion-based guide, not an automatic production rig; inspect and adjust bone placement before binding.
 - Loop Cut currently requires a valid continuous quad ring.
 - One local editable mesh at a time for topology work.
 - Shared/linked mesh data and shape-key meshes are rejected for topology edits.

@@ -3,7 +3,110 @@
 import gpu
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
-from . import materials, menus, version
+from . import materials, menus, version, icon_textures
+
+# Official Blender UI artwork, rasterized to transparent PNGs by the asset build.
+_ICON_BY_ACTION = {
+    # Main object/edit workflows.
+    'MODE_MENU': 'object_datamode', 'MODE': 'object_datamode',
+    'MODE_OBJECT': 'object_data', 'MODE_EDIT': 'mesh_data',
+    'SELECT': 'cursor', 'SELECT_VERT': 'mesh_data',
+    'SELECT_EDGE': 'object_data', 'SELECT_FACE': 'mesh_cube',
+    'MOVE': 'transform_move', 'MOVE_EDIT': 'transform_move',
+    'SCALE': 'transform_scale', 'SCALE_EDIT': 'transform_scale',
+    'ROTATE': 'transform_rotate', 'ADD_MENU': 'add',
+    'ADD_CUBE': 'mesh_cube', 'ADD_SPHERE': 'mesh_uvsphere',
+    'ADD_CYLINDER': 'mesh_cylinder', 'ADD_CONE': 'mesh_cone',
+    'ADD_TORUS': 'mesh_torus', 'ADD_PLANE': 'mesh_plane',
+    'DUPLICATE': 'duplicate', 'UNDO': 'undo', 'REDO': 'redo',
+    'SAVE': 'save_as', 'STOP': 'cancel', 'BACK': 'undo',
+    'LESS': 'transform_scale', 'MORE': 'transform_scale',
+    'EDIT_MORE': 'properties', 'LOOP_CUT_MENU': 'mesh_data',
+    'LOOP_CUT_LESS': 'transform_scale', 'LOOP_CUT_MORE': 'transform_scale',
+    'LOOP_POS_LEFT': 'transform_move', 'LOOP_POS_RIGHT': 'transform_move',
+    'LOOP_CUT_APPLY': 'checkmark',
+    # Modeling / mesh diagnostics.
+    'EXTRUDE': 'extrude_region', 'BEVEL': 'bevel', 'INSET': 'inset_faces',
+    'DELETE_GEOM': 'delete', 'DELETE_OBJECT': 'delete',
+    'MERGE': 'mesh_data', 'SUBDIVIDE': 'mesh_cube',
+    'RECALC': 'mesh_data', 'FLIP_NORMALS': 'mesh_data',
+    'RIG_AUDIT': 'mesh_data',
+    # Armature and weights have dedicated Blender symbols, not a generic tool icon.
+    'RIG_MENU': 'armature_data', 'RIG_CREATE': 'armature_data',
+    'RIG_BIND': 'mod_armature', 'RIG_WEIGHT': 'mod_vertex_weight',
+    'RIG_CLEAN': 'mod_vertex_weight', 'RIG_POSE': 'pose_hlt',
+    # Materials, shader, image and texture operations.
+    'MATERIAL_MENU': 'node_material', 'MATERIALS': 'node_material',
+    'MAT_PROPS': 'properties', 'MAT_SLOTS': 'object_data',
+    'MAT_TEXTURES': 'image_data', 'MAT_PREVIEW': 'image',
+    'MAT_NEW': 'node_material', 'MAT_DUP': 'duplicate',
+    'MAT_DELETE': 'delete', 'MAT_RENAME_AUTO': 'properties',
+    'MAT_METAL_DOWN': 'node_material', 'MAT_METAL_UP': 'node_material',
+    'MAT_ROUGH_DOWN': 'node_material', 'MAT_ROUGH_UP': 'node_material',
+    'MAT_ALPHA_DOWN': 'node_material', 'MAT_ALPHA_UP': 'node_material',
+    'MAT_EMIT_DOWN': 'node_material', 'MAT_EMIT_UP': 'node_material',
+    'MAT_SYNC': 'node_material', 'SLOT_PREV': 'object_data',
+    'SLOT_NEXT': 'object_data', 'SLOT_ADD': 'add',
+    'SLOT_REMOVE': 'delete', 'SLOT_ASSIGN': 'object_data',
+    'SLOT_SELECT_FACES': 'mesh_cube',
+    'IMG_PREV': 'image_data', 'IMG_NEXT': 'image_data',
+    'IMG_APPLY': 'checkmark', 'IMG_CLEAR': 'delete',
+    'IMG_CHECKER': 'image', 'IMG_DIRECTION': 'image',
+    'IMG_GRID': 'image', 'COLOR_MENU': 'node_material',
+    'COLOR_ADJUST_MENU': 'brush_data', 'COLOR_PICK': 'brush_data',
+    'COLOR_APPLY': 'checkmark', 'COLOR_PALETTE': 'brush_data',
+    'COLOR_RED': 'brush_data', 'COLOR_ORANGE': 'brush_data',
+    'COLOR_YELLOW': 'brush_data', 'COLOR_GREEN': 'brush_data',
+    'COLOR_CYAN': 'brush_data', 'COLOR_BLUE': 'brush_data',
+    'COLOR_PURPLE': 'brush_data', 'COLOR_PINK': 'brush_data',
+    'COLOR_WHITE': 'brush_data', 'COLOR_BLACK': 'brush_data',
+    'PANEL': None,
+    # UV operations and transform controls.
+    'UV_MENU': 'uv', 'UV_UNWRAP': 'uv', 'UV_SMART': 'uv',
+    'UV_CUBE': 'uv', 'UV_PLANAR': 'uv', 'UV_MARK_SEAM': 'uv',
+    'UV_CLEAR_SEAM': 'uv', 'UV_TRANSFORM_MENU': 'uv',
+    'UV_PACK': 'uv', 'UV_RESET': 'uv', 'UV_PREVIEW': 'image',
+    'UV_U_DOWN': 'transform_move', 'UV_U_UP': 'transform_move',
+    'UV_V_DOWN': 'transform_move', 'UV_V_UP': 'transform_move',
+    'UV_ROT_DOWN': 'transform_rotate', 'UV_ROT_UP': 'transform_rotate',
+    'UV_SCALE_DOWN': 'transform_scale', 'UV_SCALE_UP': 'transform_scale',
+    # View/travel and other utility actions.
+    'NAV_MENU': 'view_camera', 'FLY_TOGGLE': 'view_camera',
+    'TURBO': 'preferences', 'SLOWER': 'transform_scale',
+    'FASTER': 'transform_scale', 'TURN_TOGGLE': 'transform_rotate',
+    'RESET': 'view_camera',
+    # Advanced object, geometry and modifier tools added in v0.7.1.
+    'OBJECT_ADVANCED': 'object_data', 'GEOMETRY_ADVANCED': 'mesh_data',
+    'OBJ_DUPLICATE': 'duplicate', 'OBJ_SNAP': 'transform_move',
+    'OBJ_RESET_ROT': 'transform_rotate',
+    'ROT_X_POS': 'transform_rotate', 'ROT_X_NEG': 'transform_rotate',
+    'ROT_Y_POS': 'transform_rotate', 'ROT_Y_NEG': 'transform_rotate',
+    'ROT_Z_POS': 'transform_rotate', 'ROT_Z_NEG': 'transform_rotate',
+    'GEO_DISSOLVE_VERT': 'delete', 'GEO_DISSOLVE_EDGE': 'delete',
+    'GEO_FILL': 'add', 'GEO_BRIDGE': 'mesh_data', 'GEO_RECALC': 'mesh_data',
+    'MODIFIER_MENU': 'modifier',
+    'MOD_MIRROR_X': 'modifier', 'MOD_MIRROR_Y': 'modifier',
+    'MOD_MIRROR_Z': 'modifier', 'MOD_ARRAY': 'modifier',
+    'MOD_SOLIDIFY': 'modifier', 'MOD_COUNT_UP': 'add',
+    'MOD_COUNT_DOWN': 'delete', 'MOD_THICK_UP': 'transform_scale',
+    'MOD_THICK_DOWN': 'transform_scale', 'MOD_TOGGLE': 'modifier',
+    'MOD_REMOVE': 'delete',
+}
+_IMAGE_SHADER = None
+
+
+def _draw_icon_texture(texture, corners):
+    """Draw one transparent icon texture on a world-space quad."""
+    global _IMAGE_SHADER
+    if _IMAGE_SHADER is None:
+        _IMAGE_SHADER = gpu.shader.from_builtin('IMAGE')
+    batch = batch_for_shader(
+        _IMAGE_SHADER, 'TRI_FAN',
+        {'pos': corners, 'texCoord': ((0, 0), (1, 0), (1, 1), (0, 1))},
+    )
+    _IMAGE_SHADER.bind()
+    _IMAGE_SHADER.uniform_sampler('image', texture)
+    batch.draw(_IMAGE_SHADER)
 
 FONT = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],
@@ -57,7 +160,7 @@ def rectangle_points(x, y, w, h):
 
 def button_rect(index):
     col, row = index % 2, index // 2
-    return (-0.174 + col * 0.177, 0.117 - row * 0.052, 0.168, 0.043)
+    return (-0.207 + col * 0.211, 0.117 - row * 0.052, 0.198, 0.045)
 
 
 class Menu:
@@ -105,7 +208,7 @@ class Menu:
         pos = origin + direction*t
         local = (pos-self.center)/self.scale
         x, y = local.dot(self.right), local.dot(self.up)
-        if not (-0.19 <= x <= 0.19 and -0.29 <= y <= 0.23):
+        if not (-0.222 <= x <= 0.222 and -0.34 <= y <= 0.23):
             return None, None
         for i, (_, action) in enumerate(self.buttons):
             bx, by, w, h = button_rect(i)
@@ -130,9 +233,9 @@ class Menu:
                                 points.append(self.world(px,py,0.0015))
             if points:
                 draw_batch(shader,'TRIS',points,(0.88,0.95,1,1))
-        rect(-0.195,-0.29,0.39,0.52,(0.015,0.025,0.04,0.97))
-        rect(-0.195,0.166,0.39,0.064,(0.025,0.13,0.17,1),0.0003)
-        text('MESH XR / '+menus.title(self.page),-0.177,0.208,0.00275)
+        rect(-0.225,-0.34,0.45,0.57,(0.015,0.025,0.04,0.98))
+        rect(-0.225,0.166,0.45,0.064,(0.025,0.13,0.17,1),0.0003)
+        text('MESH XR / '+menus.title(self.page),-0.207,0.208,0.00275)
         if settings and self.page=='TRAVEL':
             summary=('FLY ' if settings.fly_mode else 'WALK ')+format(settings.move_speed,'.1f')+' / '+settings.turn_mode
         elif settings and self.page in {'MATERIALS','MATERIAL_ADJUST'}:
@@ -160,12 +263,35 @@ class Menu:
             if action==hover:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
-            text(label,bx+0.009,by+0.030,min(0.0032,0.15/(max(len(label),1)*6)))
-        text(('MESH '+selection)[:24],-0.174,-0.19,0.0023)
-        text(status[:25],-0.174,-0.214,0.00225)
+            icon_name = _ICON_BY_ACTION.get(action)
+            icon_texture = icon_textures.texture_for(icon_name) if icon_name else None
+            has_icon = icon_texture is not None
+            if has_icon:
+                ix, iy, iw, ih = bx + 0.006, by + 0.008, 0.029, 0.029
+                corners = [self.world(ix, iy, 0.0015), self.world(ix+iw, iy, 0.0015),
+                           self.world(ix+iw, iy+ih, 0.0015), self.world(ix, iy+ih, 0.0015)]
+                _draw_icon_texture(icon_texture, corners)
+            friendly = {
+                'MODE_MENU':'MODE', 'MODE_OBJECT':'OBJECT', 'MODE_EDIT':'EDIT',
+                'SELECT_VERT':'VERTEX', 'SELECT_EDGE':'EDGE', 'SELECT_FACE':'FACE',
+                'MOVE_EDIT':'MOVE SEL', 'SCALE_EDIT':'SCALE SEL',
+                'ADD_MENU':'SHAPES', 'MATERIAL_MENU':'MATERIALS', 'NAV_MENU':'TRAVEL',
+                'RIG_MENU':'RIGGING', 'DELETE_OBJECT':'DELETE OBJ',
+                'DELETE_GEOM':'DELETE GEO', 'LOOP_CUT_MENU':'LOOP CUT',
+                'RIG_CREATE':'CREATE RIG', 'RIG_BIND':'BIND WEIGHTS',
+                'RIG_WEIGHT':'WEIGHT PAINT', 'RIG_CLEAN':'CLEAN WEIGHTS',
+                'RIG_POSE':'POSE TEST', 'RIG_AUDIT':'AUDIT MESH',
+            }
+            display_label = label or friendly.get(action, action.replace('_',' '))
+            label_x = bx + (0.041 if has_icon else 0.009)
+            label_width = 0.151 if has_icon else 0.177
+            text(display_label,label_x,by+0.031,
+                 min(0.0032,label_width/(max(len(display_label),1)*6)))
+        text(('MESH '+selection)[:24],-0.207,-0.222,0.0023)
+        text(status[:25],-0.207,-0.252,0.00225)
         hint = 'LEFT MOVE / RIGHT TURN' if self.page=='TRAVEL' else 'POINT + TRIGGER TO USE'
-        text(hint,-0.174,-0.246,0.0021)
-        text(version.DISPLAY_VERSION,-0.174,-0.274,0.0021)
+        text(hint,-0.207,-0.292,0.0021)
+        text(version.DISPLAY_VERSION,-0.207,-0.322,0.0021)
 
 
 def draw_batch(shader, kind, points, color):

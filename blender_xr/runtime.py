@@ -267,6 +267,108 @@ class Runtime:
             self.menu.page = 'PRIMITIVES'
             self.status = 'CHOOSE A SHAPE'
             return
+        if action == 'RIG_MENU':
+            self.menu.page = 'RIGGING'
+            self.status = 'RIGGING / ARMATURE TOOLS'
+            return
+        if action == 'RIG_CREATE':
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'MESH' or obj.mode != 'OBJECT':
+                raise ValueError('Select a humanoid mesh in Object Mode first')
+            before = set(context.view_layer.objects)
+            result = bpy.ops.blender_xr.create_basic_rig()
+            if 'FINISHED' not in result:
+                raise ValueError('Rig creation failed; see Blender operator report')
+            rigs = [candidate for candidate in context.view_layer.objects
+                    if candidate.type == 'ARMATURE' and candidate not in before]
+            if not rigs:
+                raise ValueError('Rig operator finished but no new armature was found')
+            armature = rigs[-1]
+            for candidate in context.selected_objects:
+                candidate.select_set(False)
+            obj.select_set(True)
+            armature.select_set(True)
+            context.view_layer.objects.active = armature
+            self.menu.page = 'RIGGING'
+            self.status = 'RIG CREATED / REVIEW BONES THEN BIND'
+            return
+        if action == 'RIG_BIND':
+            armature = context.view_layer.objects.active
+            if not armature or armature.type != 'ARMATURE':
+                armature = next((candidate for candidate in context.selected_objects
+                                 if candidate.type == 'ARMATURE'), None)
+            meshes = [candidate for candidate in context.selected_objects
+                      if candidate.type == 'MESH']
+            if not armature or not meshes:
+                raise ValueError('Select the mesh and armature, then make the armature active')
+            for candidate in context.view_layer.objects:
+                candidate.select_set(False)
+            armature.select_set(True)
+            for candidate in meshes:
+                candidate.select_set(True)
+            context.view_layer.objects.active = armature
+            result = bpy.ops.blender_xr.bind_auto_weights()
+            if 'FINISHED' not in result:
+                raise ValueError('Automatic weight binding failed; check the Blender report')
+            self.menu.page = 'RIGGING'
+            self.status = 'WEIGHTS BOUND / TEST THE POSE'
+            return
+        if action == 'RIG_WEIGHT':
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'MESH' or not obj.vertex_groups:
+                obj = next((candidate for candidate in context.selected_objects
+                            if candidate.type == 'MESH' and candidate.vertex_groups), None)
+            if obj is None:
+                raise ValueError('Select a bound mesh with vertex groups first')
+            for candidate in context.selected_objects:
+                candidate.select_set(False)
+            obj.select_set(True)
+            context.view_layer.objects.active = obj
+            result = bpy.ops.blender_xr.weight_paint()
+            if 'FINISHED' not in result:
+                raise ValueError('Could not enter Weight Paint; check the Blender report')
+            self.status = 'WEIGHT PAINT MODE'
+            return
+        if action == 'RIG_CLEAN':
+            result = bpy.ops.blender_xr.weight_cleanup()
+            if 'FINISHED' not in result:
+                raise ValueError('Weight cleanup failed; select a weighted mesh')
+            self.menu.page = 'RIGGING'
+            self.status = 'WEIGHTS CLEANED AND NORMALIZED'
+            return
+        if action == 'RIG_POSE':
+            armature = context.view_layer.objects.active
+            if not armature or armature.type != 'ARMATURE':
+                armature = next((candidate for candidate in context.selected_objects
+                                 if candidate.type == 'ARMATURE'), None)
+            if armature is None:
+                raise ValueError('Select an armature first')
+            for candidate in context.selected_objects:
+                candidate.select_set(False)
+            armature.select_set(True)
+            context.view_layer.objects.active = armature
+            result = bpy.ops.blender_xr.pose_test()
+            if 'FINISHED' not in result:
+                raise ValueError('Could not enter Pose Mode')
+            self.status = 'POSE MODE / TEST DEFORMATION'
+            return
+        if action == 'RIG_AUDIT':
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'MESH':
+                obj = next((candidate for candidate in context.selected_objects
+                            if candidate.type == 'MESH'), None)
+            if obj is None:
+                raise ValueError('Select a mesh to audit')
+            for candidate in context.selected_objects:
+                candidate.select_set(False)
+            obj.select_set(True)
+            context.view_layer.objects.active = obj
+            result = bpy.ops.blender_xr.asset_audit()
+            if 'FINISHED' not in result:
+                raise ValueError('Mesh audit failed')
+            self.menu.page = 'RIGGING'
+            self.status = 'MESH AUDIT COMPLETE'
+            return
         if action == 'EDIT_MENU':
             self.menu.page = 'EDIT'
             return
@@ -450,7 +552,22 @@ class Runtime:
         obj=context.view_layer.objects.active
         anchor=self.gizmo.anchor.copy()
         value=gizmo.parameter(origin,direction,anchor,axis)
-        if value is None:raise ValueError('Aim across the handle to drag it')
+        if value is None:
+            # Picking tolerates near-parallel rays; drag initialization must
+            # use the same fallback or a visibly highlighted handle would
+            # still refuse to move.
+            ray=Vector(direction).normalized()
+            axis=Vector(axis).normalized()
+            offset=Vector(origin)-anchor
+            if abs(ray.dot(axis)) > 0.999:
+                raise ValueError('Aim across the handle to drag it')
+            along=axis.dot(offset)
+            nearest=anchor+axis*along
+            ray_distance=max(0.0,(nearest-Vector(origin)).dot(ray))
+            ray_point=Vector(origin)+ray*ray_distance
+            value=(along,ray_distance,(nearest-ray_point).length)
+            if value[2] > max(self.gizmo.radius*2.5,self.gizmo.length*0.075):
+                raise ValueError('Aim closer to the handle to drag it')
         if obj.mode=='OBJECT' and self.tool in {'MOVE','SCALE'}:
             if obj.library or obj.parent or obj.constraints:
                 raise ValueError('Object transforms require a local unparented object without constraints')

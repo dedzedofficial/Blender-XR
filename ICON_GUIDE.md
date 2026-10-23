@@ -1,18 +1,22 @@
-# Mesh XR v0.6.5 — Icon UI Guide
+# Mesh XR — VR Toolbar and Tool Guide
 
-Mesh XR v0.6.5 changes the main VR modeling interface to an icon-first layout. The goal is to make common tools recognizable without relying on long English button labels.
+Mesh XR v0.7.5 renders Blender UI icon artwork as transparent PNG textures in its world-space headset menu. The icons are paired with short text labels so controls remain understandable, including where Blender has no exact matching icon and the closest official Blender symbol is used. The desktop sidebar continues to use Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
+
+The original SVG artwork is preserved in `blender_xr/icons_src/`; `tools/build_icon_textures.py` rasterizes it to 256×256 transparent PNGs in `blender_xr/icons/`. The branch's GitHub Actions workflow rebuilds these textures when the source artwork changes. The VR draw handler caches each loaded Blender image and GPU texture rather than decoding the PNG on every frame.
+
+The current icon set covers every action in the declared VR menu pages and every action with a tooltip. It includes dedicated Blender artwork for armatures (`armature_data`), armature modifiers/binding (`mod_armature`), weight paint and weight cleanup (`mod_vertex_weight`), pose testing (`pose_hlt`), and mesh audit (`mesh_data`). It also includes object/edit mode, selection types, primitive creation (cube, UV sphere, cylinder, cone, torus, plane), transform controls, mesh operations, materials/shaders, image textures, UV tools, navigation, confirmation, cancel/stop, undo/redo and save. When Blender has no exact icon for an individual operation, Mesh XR uses the closest relevant official Blender symbol while retaining the action's label and tooltip.
 
 ## Pointing and tooltips
 
-Use the dominant-hand controller ray to point at an icon.
+Use the dominant-hand controller ray to point at a labeled button.
 
-- The icon highlights immediately when the ray is over it.
+- The button highlights immediately when the ray is over it.
 - Keep the ray over the icon for about **0.5 seconds** to show its tooltip.
 - Moving the ray away hides the tooltip.
 - You do **not** need to wait for the tooltip before pressing Trigger.
 - The active tool remains highlighted so you can see what is selected.
 
-Tooltips contain the English tool name plus a short explanation. The icon remains the primary control so normal modeling does not depend on reading the label.
+Tooltips contain the English tool name plus a short explanation. They are drawn above the menu, not on top of the buttons. The labeled controls are designed to be readable even when a tooltip is not visible.
 
 ## Mode selector
 
@@ -40,6 +44,10 @@ Use Object Mode when you want to work with a complete mesh object.
 | Disk | Save | Saves the Blend project. |
 | Trash can | Delete Object | Deletes the active mesh object. Undo restores it. |
 | Stop square | Stop VR | Ends the Mesh XR session. |
+
+## Rigging and armatures
+
+Open **Rigging** from the main headset toolbar. The page provides **Create Rig**, **Bind Weights**, **Weight Paint**, **Clean Weights**, **Pose Test**, and **Audit Mesh**. Create Rig expects an upright humanoid mesh in Object Mode. Review the starter bone placement before binding. For Bind Weights, select the mesh and armature and make the armature active; automatic weights can fail on difficult geometry, and Blender will report the failure. Pose Test enters Pose Mode for deformation checks.
 
 ## Edit Mode
 
@@ -112,7 +120,7 @@ Inset requires Face Select and one or more selected faces. It keeps the existing
 
 ## Why icons?
 
-The v0.6.5 UI uses icons for the common modeling workflow so users do not need to understand a long English menu before they can work. Raycast tooltips remain available when an icon is unfamiliar.
+The headset UI uses Blender's official icon artwork as GPU textures for the common modeling workflow, so users can recognize familiar controls without needing to read every label. Labels and raycast tooltips remain available for clarity, especially for actions that do not have a dedicated Blender icon.
 
 Materials, UV and some advanced panels still retain text where a symbolic control would be unclear. Those areas can be converted gradually without sacrificing usability.
 
