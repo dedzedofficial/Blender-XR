@@ -46,8 +46,8 @@ v0.6.5 introduced a modeling and usability update built on the complete v0.6 Mat
 
 Mesh XR can be started from either:
 
-- **3D Viewport > Sidebar (`N`) > Mesh XR > Start VR**
-- **3D Viewport > View > Start Mesh XR**
+- **3D Viewport > Sidebar (`N`) > Blender XR > Start VR**
+- **3D Viewport > View > Start Blender XR**
 
 Blender's separate **VR Scene Inspection** extension provides Blender's own Start VR Session control; Mesh XR does not remove or replace it.
 
