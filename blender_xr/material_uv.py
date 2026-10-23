@@ -549,7 +549,7 @@ class BXR_PT_materials_v060(bpy.types.Panel):
     bl_idname = 'BXR_PT_materials_v060'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'XR Mesh'
+    bl_category = 'Blender XR'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -599,7 +599,7 @@ class BXR_PT_uv_v060(bpy.types.Panel):
     bl_idname = 'BXR_PT_uv_v060'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'XR Mesh'
+    bl_category = 'Blender XR'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
