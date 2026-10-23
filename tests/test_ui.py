@@ -50,7 +50,7 @@ def run():
         runtime.CURRENT=NS()
         layout=FakeLayout()
         blender_xr.draw_view_menu(NS(layout=layout),bpy.context)
-        assert ('operator','blender_xr.stop','Stop Mesh XR','PAUSE') in layout.calls
+        assert ('operator','blender_xr.stop','Stop Blender XR','PAUSE') in layout.calls
     finally:
         runtime.CURRENT=previous
 
