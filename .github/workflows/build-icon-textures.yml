@@ -7,7 +7,6 @@ on:
     paths:
       - "blender_xr/icons_src/**"
       - "tools/build_icon_textures.py"
-      - "blender_xr/drawing.py"
 
 permissions:
   contents: write
