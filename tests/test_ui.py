@@ -25,10 +25,10 @@ def run():
     assert version.VERSION >= (0,6,4)
     assert blender_xr.bl_info['name']=='Mesh XR'
     assert blender_xr.bl_info['version']==version.VERSION
-    assert blender_xr.BXR_PT_panel.bl_label=='Mesh XR v'+version.VERSION_TEXT
-    assert blender_xr.BXR_PT_panel.bl_category=='Mesh XR'
-    assert material_uv.BXR_PT_materials_v060.bl_category=='Mesh XR'
-    assert material_uv.BXR_PT_uv_v060.bl_category=='Mesh XR'
+    assert blender_xr.BXR_PT_panel.bl_label=='Blender XR v'+version.VERSION_TEXT
+    assert blender_xr.BXR_PT_panel.bl_category=='Blender XR'
+    assert material_uv.BXR_PT_materials_v060.bl_category=='Blender XR'
+    assert material_uv.BXR_PT_uv_v060.bl_category=='Blender XR'
     assert material_uv.BXR_OT_material_action.bl_label=='Mesh XR Material Action'
     assert material_uv.BXR_OT_uv_action.bl_label=='Mesh XR UV Action'
     assert getattr(runtime.Runtime,'_v056_patched',False), 'v0.5.6 runtime layer was not activated'
@@ -43,7 +43,7 @@ def run():
 
     layout=FakeLayout()
     blender_xr.draw_view_menu(NS(layout=layout),bpy.context)
-    assert ('operator','blender_xr.session','Start Mesh XR','PLAY') in layout.calls
+    assert ('operator','blender_xr.session','Start Blender XR','PLAY') in layout.calls
 
     previous=runtime.CURRENT
     try:
