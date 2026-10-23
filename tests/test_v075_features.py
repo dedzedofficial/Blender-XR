@@ -1,5 +1,6 @@
 """v0.7.5 asset audit, precision settings and starter rig regression checks."""
 import sys
+import struct
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bpy
@@ -31,6 +32,15 @@ def run():
         # Every mapped texture must ship both the original SVG and its generated PNG.
         assert all((icon_dir / (name + ".png")).is_file() for name in expected_icons)
         assert all((source_dir / (name + ".svg")).is_file() for name in expected_icons)
+        # Every packaged icon must be a readable PNG rasterized at the current
+        # high-resolution target, not an empty placeholder or stale 64px texture.
+        for name in expected_icons:
+            png = icon_dir / (name + ".png")
+            with png.open("rb") as handle:
+                header = handle.read(24)
+            assert header[:8] == b"\\x89PNG\\r\\n\\x1a\\n", name
+            width, height = struct.unpack(">II", header[16:24])
+            assert (width, height) == (128, 128), (name, width, height)
         # Rigging actions deliberately use Blender's armature, modifier, weight and pose icons.
         assert drawing._ICON_BY_ACTION["RIG_CREATE"] == "armature_data"
         assert drawing._ICON_BY_ACTION["RIG_BIND"] == "mod_armature"
