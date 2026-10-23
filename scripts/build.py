@@ -47,7 +47,7 @@ assert python_version==version, f'manifest {version} != Python {python_version}'
 assert (SOURCE/'README.md').read_text().startswith('# Mesh XR v'+version+'\n')
 init_text=(SOURCE/'__init__.py').read_text()
 assert "'name': 'Mesh XR'" in init_text
-assert "bl_label='Mesh XR v'+VERSION_TEXT" in init_text
+assert "bl_label='Blender XR v'+VERSION_TEXT" in init_text
 assert "bl_category='Mesh XR'" in init_text
 assert "material_uv.BXR_PT_materials_v060.bl_category='Mesh XR'" in init_text
 assert "material_uv.BXR_PT_uv_v060.bl_category='Mesh XR'" in init_text
