@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Rasterize the bundled Blender UI SVG artwork into transparent GPU-ready PNGs.
+"""Rasterize bundled Blender UI SVG artwork into transparent GPU-ready PNGs.
+
+The SVGs remain the source of truth. 128px textures improve sampling in
+world-space XR menus while remaining small enough for the icon cache.
 
 Run from the repository root after installing CairoSVG:
     python -m pip install cairosvg
@@ -12,7 +15,7 @@ import cairosvg
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "blender_xr" / "icons_src"
 OUTPUT = ROOT / "blender_xr" / "icons"
-SIZE = 64
+SIZE = 128
 
 
 def main():
