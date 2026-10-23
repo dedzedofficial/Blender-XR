@@ -114,7 +114,7 @@ for source_path in icon_sources:
     assert png_path.is_file(), f'Missing generated icon texture for {source_path.name}'
     with png_path.open('rb') as handle:
         header=handle.read(24)
-    assert header[:8]==b'\\x89PNG\\r\\n\\x1a\\n', f'Invalid PNG texture: {png_path.name}'
+    assert header[:8]==b'\x89PNG\r\n\x1a\n', f'Invalid PNG texture: {png_path.name}'
     width,height=struct.unpack('>II',header[16:24])
     assert (width,height)==(256,256), f'{png_path.name} is {width}x{height}, expected 256x256'
 with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED) as archive:
