@@ -92,7 +92,6 @@ _ICON_BY_ACTION = {
     'MOD_THICK_DOWN': 'transform_scale', 'MOD_TOGGLE': 'modifier',
     'MOD_REMOVE': 'delete',
 }
-}
 _IMAGE_SHADER = None
 
 
