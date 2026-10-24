@@ -331,6 +331,7 @@ class BXR_OT_bind_auto_weights(bpy.types.Operator):
     bl_label = 'Bind with Automatic Weights'
     bl_description = 'Parent the selected mesh to the selected armature using Blender automatic weights'
     bl_options = {'REGISTER', 'UNDO'}
+    binding_type = 'ARMATURE_AUTO'
 
     @classmethod
     def poll(cls, context):
@@ -374,13 +375,16 @@ class BXR_OT_bind_auto_weights(bpy.types.Operator):
             for obj in meshes:
                 obj.select_set(True)
             context.view_layer.objects.active = armature
-            result = bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+            result = bpy.ops.object.parent_set(type=self.binding_type)
             if 'FINISHED' not in result:
                 raise RuntimeError('Blender cancelled automatic weight binding')
             unbound = [obj.name for obj in meshes if obj.parent != armature]
             if unbound:
                 raise RuntimeError('Blender did not bind: ' + ', '.join(unbound))
-            self.report({'INFO'}, 'Automatic weights assigned. Test deformation and correct weights before export.')
+            self.report({'INFO'},
+                        'Empty bone groups ready: select the mesh and paint weights manually.'
+                        if self.binding_type == 'ARMATURE_NAME'
+                        else 'Automatic weights assigned. Test deformation and correct weights before export.')
             return {'FINISHED'}
         except Exception as exc:
             # Restore object relationships and remove newly-created groups if the
@@ -400,6 +404,14 @@ class BXR_OT_bind_auto_weights(bpy.types.Operator):
             _restore_selection(context, selected_before, active_before)
             self.report({'ERROR'}, 'Automatic weights failed: ' + str(exc))
             return {'CANCELLED'}
+
+class BXR_OT_bind_empty_weights(BXR_OT_bind_auto_weights):
+    """Same guarded binding and rollback path, but without automatic weights."""
+    bl_idname = 'blender_xr.bind_empty_weights'
+    bl_label = 'Bind with Empty Groups'
+    bl_description = 'Create bone-named vertex groups with zero weights for manual weight painting'
+    binding_type = 'ARMATURE_NAME'
+
 
 class BXR_OT_weight_cleanup(bpy.types.Operator):
     bl_idname = 'blender_xr.weight_cleanup'
@@ -537,9 +549,18 @@ class BXR_PT_workflow(bpy.types.Panel):
         row.operator('wm.search_menu', text='Search Tools', icon='VIEWZOOM')
         layout.separator()
         layout.label(text='Rigging / weight painting', icon='ARMATURE_DATA')
-        layout.operator('blender_xr.create_basic_rig', icon='ARMATURE_DATA')
-        layout.label(text='Select mesh + armature; armature active', icon='INFO')
-        layout.operator('blender_xr.bind_auto_weights', icon='CONSTRAINT_BONE')
+        layout.operator('blender_xr.create_basic_rig', text='Create Armature', icon='ARMATURE_DATA')
+        if obj and obj.type == 'ARMATURE':
+            if obj.mode == 'OBJECT':
+                layout.operator('blender_xr.edit_bones', text='Edit Bones', icon='EDITMODE_HLT')
+            if obj.mode in {'OBJECT', 'EDIT'}:
+                layout.operator('blender_xr.add_bone', text='Add Bone', icon='BONE_DATA')
+            if obj.mode == 'EDIT':
+                layout.operator('blender_xr.finish_bones', text='Finish Editing', icon='CHECKMARK')
+        layout.label(text='Bind: select mesh + armature, armature active', icon='INFO')
+        row = layout.row(align=True)
+        row.operator('blender_xr.bind_empty_weights', text='Empty Groups', icon='GROUP_VERTEX')
+        row.operator('blender_xr.bind_auto_weights', text='Auto Weights', icon='CONSTRAINT_BONE')
         layout.operator('blender_xr.weight_cleanup', icon='GROUP_VERTEX')
         if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' and obj.vertex_groups:
             layout.operator('blender_xr.weight_paint', icon='WPAINT_HLT')
@@ -553,6 +574,7 @@ class BXR_PT_workflow(bpy.types.Panel):
 
 
 CLASSES = (
-    BXR_OT_asset_audit, BXR_OT_create_basic_rig, BXR_OT_bind_auto_weights,
-    BXR_OT_weight_cleanup, BXR_OT_pose_test, BXR_OT_weight_paint, BXR_PT_workflow,
+    BXR_OT_asset_audit, BXR_OT_create_basic_rig, BXR_OT_edit_bones,
+    BXR_OT_add_bone, BXR_OT_finish_bones, BXR_OT_bind_auto_weights,
+    BXR_OT_bind_empty_weights, BXR_OT_weight_cleanup, BXR_OT_pose_test, BXR_OT_weight_paint, BXR_PT_workflow,
 )
