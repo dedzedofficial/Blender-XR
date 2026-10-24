@@ -33,6 +33,7 @@ _ICON_BY_ACTION = {
     'RIG_AUDIT': 'mesh_data',
     # Armature and weights have dedicated Blender symbols, not a generic tool icon.
     'RIG_MENU': 'armature_data', 'RIG_CREATE': 'armature_data',
+    'RIG_ADD_BONE': 'bone_data', 'RIG_BIND_EMPTY': 'mod_armature',
     'RIG_BIND': 'mod_armature', 'RIG_WEIGHT': 'mod_vertex_weight',
     'RIG_CLEAN': 'mod_vertex_weight', 'RIG_POSE': 'pose_hlt',
     # Materials, shader, image and texture operations.
@@ -293,7 +294,8 @@ class Menu:
                 'ADD_MENU':'SHAPES', 'MATERIAL_MENU':'MATERIALS', 'NAV_MENU':'TRAVEL',
                 'RIG_MENU':'RIGGING', 'DELETE_OBJECT':'DELETE OBJ',
                 'DELETE_GEOM':'DELETE GEO', 'LOOP_CUT_MENU':'LOOP CUT',
-                'RIG_CREATE':'CREATE RIG', 'RIG_BIND':'BIND WEIGHTS',
+                'RIG_CREATE':'ARMATURE', 'RIG_ADD_BONE':'ADD BONE',
+                'RIG_BIND_EMPTY':'EMPTY GROUPS', 'RIG_BIND':'AUTO WEIGHTS',
                 'RIG_WEIGHT':'WEIGHT PAINT', 'RIG_CLEAN':'CLEAN WEIGHTS',
                 'RIG_POSE':'POSE TEST', 'RIG_AUDIT':'AUDIT MESH',
             }
