@@ -65,7 +65,7 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_ui_v076.py
-      - name: v0.7.5 asset audit and rigging tests
+      - name: v0.7.6 freeform armature and weight painting tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v075_features.py
