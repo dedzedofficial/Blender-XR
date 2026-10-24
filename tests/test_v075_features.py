@@ -20,7 +20,7 @@ def run():
                 'RIG_POSE', 'RIG_AUDIT'} <= {
                     action for _label, action in menus.PAGES['RIGGING']}
         assert 'RIGGING' in v065.CORE_PAGES
-        assert 'DEFAULT_CLOSED' not in getattr(v075_features.BXR_PT_workflow, 'bl_options', set())
+        assert 'DEFAULT_CLOSED' in getattr(v075_features.BXR_PT_workflow, 'bl_options', set()), 'Compact UI keeps the advanced workflow folded'
         assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
                 'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
         assert drawing.button_rect(0)[2] >= 0.19
