@@ -563,10 +563,13 @@ class BXR_PT_workflow(bpy.types.Panel):
                 layout.operator('blender_xr.add_bone', text='Add Bone', icon='BONE_DATA')
             if obj.mode == 'EDIT':
                 layout.operator('blender_xr.finish_bones', text='Finish Editing', icon='CHECKMARK')
-        layout.label(text='Bind: select mesh + armature, armature active', icon='INFO')
+        layout.label(text='Rig and mesh pairing works without Shift-select', icon='INFO')
         row = layout.row(align=True)
-        row.operator('blender_xr.bind_empty_weights', text='Empty Groups', icon='GROUP_VERTEX')
-        row.operator('blender_xr.bind_auto_weights', text='Auto Weights', icon='CONSTRAINT_BONE')
+        row.operator('blender_xr.select_armature', text='Select Rig', icon='ARMATURE_DATA')
+        row.operator('blender_xr.select_mesh', text='Select Mesh', icon='MESH_DATA')
+        row = layout.row(align=True)
+        row.operator('blender_xr.bind_paired', text='Empty Groups', icon='GROUP_VERTEX').binding = 'EMPTY'
+        row.operator('blender_xr.bind_paired', text='Auto Weights', icon='CONSTRAINT_BONE').binding = 'AUTO'
         layout.operator('blender_xr.weight_cleanup', icon='GROUP_VERTEX')
         if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' and obj.vertex_groups:
             layout.operator('blender_xr.weight_paint', icon='WPAINT_HLT')
