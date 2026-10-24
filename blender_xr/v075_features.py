@@ -191,6 +191,8 @@ class BXR_OT_create_basic_rig(bpy.types.Operator):
             context.collection.objects.link(arm_obj)
             arm_obj.location = middle
             arm_obj.show_in_front = True
+            if mesh_obj:
+                arm_obj['mesh_xr_target_mesh'] = mesh_obj.name
             bpy.ops.object.select_all(action='DESELECT')
             arm_obj.select_set(True)
             context.view_layer.objects.active = arm_obj
