@@ -9,7 +9,7 @@ commands; Mesh XR provides a compact headset and sidebar front end.
 import math
 
 import bpy
-from bpy.props import EnumProperty
+from bpy.props import StringProperty
 from mathutils import Vector
 
 from . import menus, v075_features
@@ -312,7 +312,7 @@ class BXR_OT_bone_action(bpy.types.Operator):
     bl_label = 'Armature Edit Tool'
     bl_description = 'Apply a native Blender Edit Bone operation in the active armature'
     bl_options = {'REGISTER', 'UNDO'}
-    action: EnumProperty(items=BONE_ACTION_ITEMS)
+    action: StringProperty(name='Edit Bone Action')
 
     @classmethod
     def poll(cls, context):
