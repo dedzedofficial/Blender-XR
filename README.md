@@ -1,10 +1,19 @@
-# Mesh XR v0.7.5
+# Mesh XR v0.7.6
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
 Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand carries a compact tool menu while the other points, selects, edits, transforms, places primitives, manages materials and textures, edits UVs, and moves around the scene.
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Blender Extensions](https://extensions.blender.org/add-ons/blender-xr/) · [Report Issues](https://github.com/dedzedofficial/Blender-XR/issues) · [Icon Guide](ICON_GUIDE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Testing](TESTING.md)
+
+## v0.7.6 preview — icon-first desktop interface
+
+- Seven small Blender-icon workspaces in the 3D View **Blender XR** sidebar: Session, Model, Material, UV, Travel, Project and Help.
+- Session start/stop and compact status feedback stay at the top while the selected workspace changes.
+- Advanced material, UV and asset/rigging sections are now collapsed contextual subpanels.
+- Blender's native icons and tooltips replace much of the sidebar's lengthy explanatory text.
+- The controller-driven VR modeling systems from 0.7.5 remain available. This preview still requires hands-on testing before release.
+- The PR build creates an installable `mesh-xr-v0.7.6.zip` test artifact. Do not use the repository source archive as the extension installer.
 
 ## v0.7.5 development highlights
 
