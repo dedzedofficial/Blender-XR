@@ -2,6 +2,13 @@
 
 ## v0.7.6 — compact desktop UI test
 
+- [x] Replace the restrictive humanoid starter-rig template with a freeform armature, including selected wide and flat meshes.
+- [x] Add desktop Add Bone / Edit Bones / Finish Bones actions using standard Blender armature edit mode.
+- [x] Add manual weight painting through Bind Empty Groups while keeping Automatic Weights available.
+- [x] Make the basic rig and bone-add operations available from headset menu with the existing icon-based UI.
+- [ ] Test armature placement, bone editing, and manual weight painting with real workflows before calling v0.7.6 complete.
+
+
 - [x] Native Blender icon-first workspace selector in the main 3D View sidebar.
 - [x] Preserve existing operators and group advanced panels beneath a single entry point.
 - [x] Isolate new sidebar layout and add Blender-side smoke regression coverage.
