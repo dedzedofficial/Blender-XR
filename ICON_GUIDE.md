@@ -1,5 +1,9 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
+## v0.7.6 one Select action / controller transforms
+
+Use **Select** wherever the workflow exposes selection: it selects objects in Object Mode, vertices/edges/faces in Mesh Edit Mode, bones in Armature Edit Mode, and pose bones in Pose Mode. Selecting overlapping rigs and meshes toggles between the objects without separate mesh/armature selection buttons. **Grip** grabs and translates the pointed object or selected elements; choose **Move**, **Scale** or **Rotate** and hold Trigger for their corresponding controller transforms. The new Pose Bones menu includes these actions. The Edit Bone Tools page retains Head/Tail transforms. Multi-object / multi-element selection uses Blender's ordinary selection state and the existing additive controller gesture.
+
 ## v0.7.6 rig / mesh / vertex group icon workflow
 
 The VR Rigging page has **Select Rig** (bone icon) and **Select Mesh** (mesh icon). Creating a rig remembers the current mesh; binding uses this relationship, not only Blender's currently selected objects. Once bound, Weight Paint opens icon controls for Paint, Erase, Previous Group, Next Group, Weight Strength +/- and Brush Radius +/- and Done. Group changes operate on the Blender vertex group data, and brush actions write actual Blender weights. Grip + Trigger in Object Mode adds to selection without discarding the first object.
