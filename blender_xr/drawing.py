@@ -33,7 +33,7 @@ _ICON_BY_ACTION = {
     'RIG_AUDIT': 'mesh_data',
     'RIG_SELECT_MESH': 'mesh_data',
     'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
-    'WEIGHT_GROUP_PREV': 'group_vertex', 'WEIGHT_GROUP_NEXT': 'group_vertex',
+    'WEIGHT_GROUP_PREV': 'mod_vertex_weight', 'WEIGHT_GROUP_NEXT': 'mod_vertex_weight',
     'WEIGHT_STRENGTH_DOWN': 'mod_vertex_weight', 'WEIGHT_STRENGTH_UP': 'mod_vertex_weight',
     'WEIGHT_RADIUS_DOWN': 'transform_scale', 'WEIGHT_RADIUS_UP': 'transform_scale',
     'RIG_EXIT_PAINT': 'checkmark', 'RIG_EXIT_POSE': 'checkmark',
