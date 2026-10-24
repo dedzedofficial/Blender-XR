@@ -1,5 +1,9 @@
 # Mesh XR v0.7.6
 
+## 0.7.6 controller armature editing
+
+In the VR Rigging page choose **Select Rig** or point directly at an armature bone in Object Mode. Choose **Edit Bones** to open the dedicated in-headset bone editor. Trigger selects bones; choose Move, Head or Tail to move them with the controller. Selection, topology/parenting, roll and settings submenus expose native Blender bone editing tools. Choose Finish to return to Object Mode. The desktop Model workspace also includes **Edit Bone Tools** and Blender's own complete Edit Armature menu for advanced options. These VR interactions need hardware validation before v0.7.6 acceptance.
+
 ## 0.7.6 freeform rigging
 
 The old `Create Basic Human Rig` action is now **Create Armature**. Any mesh shape is accepted (or select no mesh to create at the 3D cursor). The new armature has one editable bone. Select it, choose **Edit Bones** and add or extrude bones in Blender; **Finish Bones** exits editing. Select the mesh plus the armature, make the armature active, and click **Empty Groups** to bind for manual Weight Paint. **Auto Weights** remains optional. Select the bound mesh and click **Paint**. You can add bones from the headset menu, but precise Edit Bone positioning is in Blender's native desktop armature tools. The old operator ID is retained for compatibility. This stays version 0.7.6 while testing.
