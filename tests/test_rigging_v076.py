@@ -87,6 +87,14 @@ def main():
         session.command(bpy.context, 'WEIGHT_RADIUS_DOWN')
         session.command(bpy.context, 'RIG_EXIT_PAINT')
         assert obj.mode == 'OBJECT'
+        before_weights = {v.index: tuple((item.group, round(item.weight, 4))
+                                         for item in v.groups)
+                          for v in obj.data.vertices}
+        session.command(bpy.context, 'RIG_BIND_EMPTY')
+        assert obj.parent == rig
+        assert before_weights == {v.index: tuple(
+            (item.group, round(item.weight, 4)) for item in v.groups
+        ) for v in obj.data.vertices}, 'Repeated binding destroyed painted weights'
 
         # The mesh/rigger may now switch to Pose and back without manually
         # reconstructing a temporary multi-object selection.
