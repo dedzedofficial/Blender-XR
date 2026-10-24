@@ -10,11 +10,13 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
 v071.patch(runtime.Runtime)
+armature_v076.install_pages()
+armature_v076.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Blender XR'
@@ -334,7 +336,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES
 
 def register():
     for cls in CLASSES:
