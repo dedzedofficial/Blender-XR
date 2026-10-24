@@ -67,7 +67,7 @@ def _session(layout, context, settings, active):
 def _model(layout, context, settings):
     _header(layout, 'Precision', 'MODIFIER')
     col = layout.column(align=True)
-    col.prop(settings, 'step', text='Tool step', icon='TRANSFORM_MOVE')
+    col.prop(settings, 'step', text='Tool step', icon='EMPTY_ARROWS')
     row = col.row(align=True)
     row.prop(settings, 'precision_mode', text='Snap', icon='SNAP_ON', toggle=True)
     row.prop(settings, 'haptic_feedback', text='Haptics', icon='FORCE_HARMONIC', toggle=True)
@@ -148,8 +148,8 @@ def _travel(layout, context, settings):
     row = col.row(align=True)
     row.prop(settings, 'fly_mode', text='Fly', toggle=True, icon='ORIENTATION_VIEW')
     row.prop(settings, 'fast_flight', text='Turbo', toggle=True, icon='FORWARD')
-    col.prop(settings, 'turn_mode', text='Turning', expand=True, icon='TRANSFORM_ROTATE')
-    col.prop(settings, 'turn_angle' if settings.turn_mode == 'SNAP' else 'turn_speed', icon='TRANSFORM_ROTATE')
+    col.prop(settings, 'turn_mode', text='Turning', expand=True, icon='FILE_REFRESH')
+    col.prop(settings, 'turn_angle' if settings.turn_mode == 'SNAP' else 'turn_speed', icon='FILE_REFRESH')
     col.prop(settings, 'grab_air', text='Grab empty space', toggle=True, icon='HAND')
 
 
@@ -186,8 +186,8 @@ def _help(layout):
         ('Trigger: select / use tool', 'RESTRICT_SELECT_OFF'),
         ('Grip + trigger: multi-select', 'ADD'),
         ('Grip: grab object / move viewer', 'ORIENTATION_VIEW'),
-        ('Left stick: move', 'TRANSFORM_MOVE'),
-        ('Right stick: turn / height', 'TRANSFORM_ROTATE'),
+        ('Left stick: move', 'EMPTY_ARROWS'),
+        ('Right stick: turn / height', 'FILE_REFRESH'),
         ('Other trigger: menu / cancel', 'CANCEL'),
     ):
         layout.label(text=label, icon=icon)
