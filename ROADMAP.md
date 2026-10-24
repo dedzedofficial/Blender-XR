@@ -2,6 +2,13 @@
 
 ## v0.7.6 — compact desktop UI test
 
+- [x] Consolidate redundant selection actions into a single context-sensitive Select control.
+- [x] Grab and transform vertices, edges, faces, armatures and bones with controller Grip/Trigger; Move, Scale and Rotate use Blender data.
+- [x] Expose a separate Pose Bones control page with the shared Select/Move/Scale/Rotate workflow.
+- [x] Preserve native mesh edit and Undo/Redo workflows, and audit menu actions for duplicates.
+- [ ] Confirm selection rays, hand-driven scaling and rotation, bone transforms and undo usability in a connected headset.
+
+
 - [x] Keep mesh and armature as a remembered pair through selection changes and rigging/edit/paint modes.
 - [x] Support Select Mesh / Select Rig, automatic empty-group binding, active group initialization and headset-driven paint/erase.
 - [x] Preserve Blender's regular mesh editing workflow beside the armature workflow.
