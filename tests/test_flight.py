@@ -100,7 +100,11 @@ try:
     session=runtime.Runtime.__new__(runtime.Runtime)
     session.axis_move=None;session.axis_drag=None;session.gizmo=None;session.gizmo_hover=None
     session.transaction=session.grab=session.air_grab=None;session.tool='SELECT'
+    print('XR ray mesh switch BEFORE:', bpy.context.active_object.name, a.mode, b.mode,
+          'target:', session.object_hit(bpy.context,Vector((2,0,3)),Vector((0,0,-1))),
+          'face:', mesh.element_hit(a,Vector((2,0,3)),Vector((0,0,-1)), 'FACE'), flush=True)
     session.select(bpy.context,Vector((2,0,3)),Vector((0,0,-1)))
+    print('XR ray mesh switch AFTER:', bpy.context.active_object.name, a.mode, b.mode, session.status, flush=True)
     assert bpy.context.active_object==b and b.mode=='EDIT' and a.mode=='OBJECT'
     assert sum(f.select for f in bmesh.from_edit_mesh(b.data).faces)==1
     session.select(bpy.context,Vector((-2,0,3)),Vector((0,0,-1)))
