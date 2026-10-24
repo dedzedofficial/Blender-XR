@@ -286,6 +286,22 @@ def step_bone_drag(arm, drag, world_location, snap=0):
         bone.tail = drag['tail'] + delta
 
 
+class BXR_OT_select_armature(bpy.types.Operator):
+    bl_idname = 'blender_xr.select_armature'
+    bl_label = 'Select Armature'
+    bl_description = 'Select the rig linked to the current mesh, or the only visible armature'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        try:
+            arm = activate_armature(context)
+            self.report({'INFO'}, 'Selected armature: ' + arm.name)
+            return {'FINISHED'}
+        except (ValueError, RuntimeError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
 class BXR_OT_bone_action(bpy.types.Operator):
     bl_idname = 'blender_xr.bone_action'
     bl_label = 'Armature Edit Tool'
@@ -359,7 +375,13 @@ class BXR_PT_armature_edit(bpy.types.Panel):
                     row.operator('blender_xr.bone_action',
                                  text=action.replace('BONE_', '').replace('_', ' ').title(),
                                  icon=icon_name).action = action
-        layout.label(text='Blender F3 exposes other context tools', icon='VIEWZOOM')
+        if hasattr(bpy.types, 'VIEW3D_MT_edit_armature'):
+            layout.menu('VIEW3D_MT_edit_armature',
+                        text='All Blender Armature Edit Tools', icon='ARMATURE_DATA')
+        if hasattr(bpy.types, 'VIEW3D_MT_select_edit_armature'):
+            layout.menu('VIEW3D_MT_select_edit_armature',
+                        text='All Blender Bone Selection', icon='RESTRICT_SELECT_OFF')
+        layout.label(text='F3 also searches native Blender bone tools', icon='VIEWZOOM')
 
 
 def patch_runtime(Runtime):
@@ -521,4 +543,4 @@ def patch_runtime(Runtime):
     Runtime._v076_armature_patched = True
 
 
-CLASSES = (BXR_OT_bone_action, BXR_PT_armature_edit)
+CLASSES = (BXR_OT_select_armature, BXR_OT_bone_action, BXR_PT_armature_edit)
