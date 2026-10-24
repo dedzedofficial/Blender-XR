@@ -53,6 +53,20 @@ def test():
         bpy.types.UILayout.bl_rna.functions['label'].parameters['icon'].enum_items
     }
     assert valid_icons, "Could not retrieve Blender's native icon identifiers"
+    import ast
+    icon_sources = ('ui_v076.py', 'material_uv.py', 'v075_features.py')
+    requested_icons = {item[3] for item in ui_v076.UI_SECTION_ITEMS}
+    for source_name in icon_sources:
+        code = Path(blender_xr.__file__).parent / source_name
+        for node in ast.walk(ast.parse(code.read_text(encoding='utf-8'))):
+            if not isinstance(node, ast.Call):
+                continue
+            for option in node.keywords:
+                if option.arg == 'icon' and isinstance(option.value, ast.Constant):
+                    if isinstance(option.value.value, str):
+                        requested_icons.add(option.value.value)
+    missing_native_icons = requested_icons.difference(valid_icons)
+    assert not missing_native_icons, 'Invalid native Blender icons: ' + ', '.join(sorted(missing_native_icons))
     for key, label, _description, icon, _order in ui_v076.UI_SECTION_ITEMS:
         assert icon in valid_icons, (key, icon)
     for page, buttons in menus.PAGES.items():
