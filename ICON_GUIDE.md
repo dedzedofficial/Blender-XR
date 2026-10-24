@@ -1,5 +1,9 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
+## v0.7.6 rig / mesh / vertex group icon workflow
+
+The VR Rigging page has **Select Rig** (bone icon) and **Select Mesh** (mesh icon). Creating a rig remembers the current mesh; binding uses this relationship, not only Blender's currently selected objects. Once bound, Weight Paint opens icon controls for Paint, Erase, Previous Group, Next Group, Weight Strength +/- and Brush Radius +/- and Done. Group changes operate on the Blender vertex group data, and brush actions write actual Blender weights. Grip + Trigger in Object Mode adds to selection without discarding the first object.
+
 ## v0.7.6 armature Edit Mode in the headset
 
 **VR Rigging:** Armature, Select Rig, Edit Bones, Add Bone, Empty Groups, Auto Weights, Weight Paint, Clean, Pose, Audit. **Bone Edit:** Select, Move, Head, Tail, Add, Extrude, Duplicate, Delete, Select Tools, Edit Tools, Settings and Finish. These category pages have official Blender-style icons with textual labels. Use **Select Rig** if the controller ray is on a mesh rather than the rig, then **Edit Bones**.
