@@ -85,6 +85,11 @@ BONE_ACTIONS = tuple(EDIT_ACTIONS) + (
     'BONE_CONNECT', 'BONE_DEFORM', 'BONE_LOCK',
     'BONE_ROLL_UP', 'BONE_ROLL_DOWN', 'BONE_EXTRUDE',
 )
+# Keep enum item string objects alive for Blender 4.2, including class reloads.
+# Generating strings in the property definition has caused native crashes
+# during repeated register/unregister cycles in older Blender builds.
+BONE_ACTION_ITEMS = tuple((action, action.replace('_', ' ').title(), '')
+                          for action in BONE_ACTIONS)
 
 
 def install_pages():
@@ -307,8 +312,7 @@ class BXR_OT_bone_action(bpy.types.Operator):
     bl_label = 'Armature Edit Tool'
     bl_description = 'Apply a native Blender Edit Bone operation in the active armature'
     bl_options = {'REGISTER', 'UNDO'}
-    action: EnumProperty(items=[(action, action.replace('_', ' ').title(), '')
-                               for action in BONE_ACTIONS])
+    action: EnumProperty(items=BONE_ACTION_ITEMS)
 
     @classmethod
     def poll(cls, context):
