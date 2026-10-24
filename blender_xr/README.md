@@ -1,4 +1,4 @@
-# Mesh XR v0.7.5
+# Mesh XR v0.7.6
 
 v0.7.5 development adds a PC View Mode toggle to switch the current Blender viewport between the normal desktop view and Blender's live OpenXR session mirror, where supported. The toggle is display-only and does not start or stop VR. It also carries forward the v0.7.1 Object Tools, Geometry Tools, managed modifiers and UV history.
 
