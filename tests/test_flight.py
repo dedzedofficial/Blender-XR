@@ -9,7 +9,7 @@ import bpy
 import bmesh
 from mathutils import Vector, Quaternion, Euler
 import blender_xr
-from blender_xr import runtime, primitives, drawing
+from blender_xr import runtime, primitives, drawing, mesh
 
 blender_xr.register()
 try:
