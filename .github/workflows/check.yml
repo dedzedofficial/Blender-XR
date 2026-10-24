@@ -11,6 +11,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         blender: ["4.2.0", "4.5.0", "5.0.0", "5.2.2"]
     steps:
@@ -56,7 +57,16 @@ jobs:
       - name: Mesh and registration tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
-        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set +e
+          /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+          result=$?
+          if [[ "$result" -ne 0 && -f /tmp/blender.crash.txt ]]; then
+            echo "==== Blender native crash stack ===="
+            cat /tmp/blender.crash.txt
+          fi
+          exit "$result"
       - name: Native Blender launch UI tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
