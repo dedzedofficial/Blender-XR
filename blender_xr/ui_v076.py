@@ -87,12 +87,27 @@ def _model(layout, context, settings):
     layout.separator()
     _header(layout, 'Rigging', 'ARMATURE_DATA')
     col = layout.column(align=True)
-    _operator(col, 'blender_xr.create_basic_rig', 'Create starter rig', 'ARMATURE_DATA')
-    _operator(col, 'blender_xr.bind_auto_weights', 'Automatic weights', 'CONSTRAINT_BONE')
-    _operator(col, 'blender_xr.weight_cleanup', 'Clean weights', 'GROUP_VERTEX')
     row = col.row(align=True)
-    _operator(row, 'blender_xr.weight_paint', 'Paint', 'WPAINT_HLT')
-    _operator(row, 'blender_xr.pose_test', 'Pose', 'POSE_HLT')
+    _operator(row, 'blender_xr.create_basic_rig', 'Armature', 'ARMATURE_DATA')
+    if obj and obj.type == 'ARMATURE':
+        if obj.mode == 'OBJECT':
+            _operator(row, 'blender_xr.edit_bones', 'Edit', 'EDITMODE_HLT')
+        if obj.mode in {'OBJECT', 'EDIT'}:
+            _operator(col, 'blender_xr.add_bone', 'Add Bone', 'BONE_DATA')
+        if obj.mode == 'EDIT':
+            _operator(col, 'blender_xr.finish_bones', 'Finish Bones', 'CHECKMARK')
+    row = col.row(align=True)
+    row.enabled = bool(obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT'
+                       and any(item.type == 'MESH' for item in context.selected_objects))
+    _operator(row, 'blender_xr.bind_empty_weights', 'Empty Groups', 'GROUP_VERTEX')
+    _operator(row, 'blender_xr.bind_auto_weights', 'Auto Weights', 'CONSTRAINT_BONE')
+    row = col.row(align=True)
+    _operator(row, 'blender_xr.weight_cleanup', 'Clean Weights', 'GROUP_VERTEX')
+    if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' and obj.vertex_groups:
+        _operator(row, 'blender_xr.weight_paint', 'Paint', 'WPAINT_HLT')
+    if obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT':
+        _operator(col, 'blender_xr.pose_test', 'Pose', 'POSE_HLT')
+    col.label(text='Edit armature bones; bind mesh; paint weights', icon='INFO')
 
 
 def _material(layout, context, settings):
