@@ -1,5 +1,16 @@
 # Mesh XR testing
 
+## v0.7.6 direct headset armature editing
+
+- In Object Mode aim the controller directly at a visible bone on an armature in front of a mesh; **Select** should activate the armature, not the underlying mesh.
+- In the Rigging page press **Select Rig** if clicking bone geometry is difficult; when multiple rigs exist, select a specific bound mesh first.
+- Choose **Edit Bones**; point to bones and press Trigger in **Select**, or use Move/Head/Tail and hold/release Trigger to adjust them. Confirm selection and transforms appear in Blender's Edit Mode.
+- Use **Select Tools** to select all/none/inverse/linked/parent/child/mirror, and hide/reveal. Use **Edit Tools** for subdivide, symmetrize, parenting, roll, delete, fill and other operations; **Settings** toggles connected/deform/lock and names.
+- Choose **Finish** to return to Object Mode. Test empty-group binding, Weight Paint and pose as before; test re-entering armature edit mode.
+- On desktop open the Model workspace, select the rig, choose Edit Armature, then expand **Edit Bone Tools** and the **All Blender Armature Edit Tools** native menu.
+- Ensure none of the mesh Edit Mode workflows lose their menu actions, selection or undo. Some native operations require valid selections and may be unavailable in certain contexts.
+- Hardware XR ray, dragging, visibility and menu hit-testing must be signed off by a tester; automation alone is not enough.
+
 ## v0.7.6 freeform rigging regression checklist
 
 - Create Armature on a wide cube, a planar mesh and no selected object. None should produce an upright humanoid error.
