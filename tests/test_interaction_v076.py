@@ -7,7 +7,7 @@ import bpy
 import bmesh
 from mathutils import Quaternion, Vector
 from blender_xr import interaction_v076 as interaction
-from blender_xr import menus, selection
+from blender_xr import menus, selection, mesh as mesh_core
 import blender_xr
 
 Q = Quaternion((1, 0, 0, 0))
@@ -58,6 +58,13 @@ def test():
         interaction.update_transform(bpy.context, gesture,
                                      origin + Vector((.27, 0, 0)), Q)
         assert abs(vert.co.x - (original_co.x + .27)) < 1e-5
+        history = mesh_core.History()
+        interaction._push_transform_history(type('Session', (), {'history': history})(),
+                                            bpy.context, gesture)
+        assert history.undo and history.undo[-1][0] == 'XR_VERTS'
+        assert history.step(True) and abs(vert.co.x - original_co.x) < 1e-5
+        assert history.step(False) and abs(vert.co.x - original_co.x - .27) < 1e-5
+        history.clear()
         interaction.restore_transform(bpy.context, gesture)
         assert (vert.co - original_co).length < 1e-6
         gesture = interaction.begin_transform(
@@ -148,6 +155,15 @@ def test():
         interaction.update_transform(
             bpy.context, gesture, Vector((1,.2,0)), Q)
         assert (pose.matrix.translation - old_pose.translation).length > .1
+        history = mesh_core.History()
+        interaction._push_transform_history(type('Session', (), {'history': history})(),
+                                            bpy.context, gesture)
+        assert history.undo and history.undo[-1][0] == 'XR_POSE'
+        assert history.step(True)
+        assert (pose.matrix.translation - old_pose.translation).length < 1e-4
+        assert history.step(False)
+        assert (pose.matrix.translation - old_pose.translation).length > .1
+        history.clear()
         interaction.restore_transform(bpy.context, gesture)
         bpy.ops.object.mode_set(mode='OBJECT')
         print('PASS 0.7.6 unified Select and controller mesh, object, armature, pose transforms')
