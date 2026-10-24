@@ -579,11 +579,11 @@ class BXR_PT_materials_v060(bpy.types.Panel):
             row.operator('blender_xr.material_action', text='Assign Selected Faces', icon='MATERIAL').action = 'ASSIGN'
             row.operator('blender_xr.material_action', text='Select Slot Faces', icon='RESTRICT_SELECT_OFF').action = 'SELECT_FACES'
         layout.separator()
-        layout.prop(settings, 'object_color', text='Base Color')
-        layout.prop(settings, 'material_metallic')
-        layout.prop(settings, 'material_roughness')
-        layout.prop(settings, 'material_alpha')
-        layout.prop(settings, 'material_emission')
+        layout.prop(settings, 'object_color', text='Base Color', icon='COLOR')
+        layout.prop(settings, 'material_metallic', icon='MATERIAL')
+        layout.prop(settings, 'material_roughness', icon='SHADING_SOLID')
+        layout.prop(settings, 'material_alpha', icon='IMAGE_ALPHA')
+        layout.prop(settings, 'material_emission', icon='LIGHT')
         row = layout.row(align=True)
         row.operator('blender_xr.material_action', text='Read Active', icon='FILE_REFRESH').action = 'SYNC'
         row.operator('blender_xr.material_action', text='Apply Properties', icon='CHECKMARK').action = 'APPLY_PROPS'
@@ -617,7 +617,7 @@ class BXR_PT_uv_v060(bpy.types.Panel):
         obj = context.view_layer.objects.active
         layout.label(text=uv_tools.summary(obj), icon='UV')
         if not obj or obj.type != 'MESH' or obj.mode != 'EDIT':
-            layout.label(text='Enter mesh Edit Mode and select faces')
+            layout.label(text='Enter mesh Edit Mode and select faces', icon='INFO')
             return
         row = layout.row(align=True)
         row.operator('blender_xr.uv_action', text='Unwrap', icon='UV').action = 'UNWRAP'
@@ -644,7 +644,7 @@ class BXR_PT_uv_v060(bpy.types.Panel):
         row = layout.row(align=True)
         row.operator('blender_xr.uv_action', text='Reset UVs', icon='LOOP_BACK').action = 'RESET'
         row.operator('blender_xr.uv_action', text='Pack Islands', icon='UV').action = 'PACK'
-        layout.prop(context.scene.blender_xr, 'uv_step')
+        layout.prop(context.scene.blender_xr, 'uv_step', icon='UV')
 
 
 CLASSES = (
