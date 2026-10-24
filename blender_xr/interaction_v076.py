@@ -106,10 +106,11 @@ def select_context(session, context, origin, direction, additive=False, old_hit=
             session.status = 'AIM AT POSE BONE'
             return None
         for bone in obj.data.bones:
-            if not additive:
+            if not additive and hasattr(bone, 'select'):
                 bone.select = False
         bone = obj.data.bones.get(hit[3])
-        bone.select = True
+        if hasattr(bone, 'select'):
+            bone.select = True
         obj.data.bones.active = bone
         session.status = 'POSE BONE ' + bone.name
         return hit
@@ -455,7 +456,7 @@ def patch_runtime(Runtime):
         # Grip directly grabs a vertex/edge/face, bone, pose bone, or whole
         # armature/object using the *same* Select tool. No context-specific
         # selection buttons and no need to enter a second edit panel.
-        if (state is not None and getattr(context, 'view_layer', None) is not None
+        if (state is not None and hasattr(context, 'temp_override')
                 and bpy.types.XrSessionState.is_running(context)
                 and getattr(self, 'navigation_initialized', False)
                 and not self.transaction and not self.grab and
