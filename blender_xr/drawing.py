@@ -264,13 +264,28 @@ class Menu:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             icon_name = _ICON_BY_ACTION.get(action)
+            # PANEL cells are reserved for the three H/S/L sliders, not buttons.
+            # All actionable buttons get an icon even when PNG/GPU loading fails.
+            has_icon = action != 'PANEL'
             icon_texture = icon_textures.texture_for(icon_name) if icon_name else None
-            has_icon = icon_texture is not None
-            if has_icon:
+            icon_drawn = False
+            if has_icon and icon_texture is not None:
                 ix, iy, iw, ih = bx + 0.006, by + 0.008, 0.029, 0.029
                 corners = [self.world(ix, iy, 0.0015), self.world(ix+iw, iy, 0.0015),
                            self.world(ix+iw, iy+ih, 0.0015), self.world(ix, iy+ih, 0.0015)]
-                _draw_icon_texture(icon_texture, corners)
+                try:
+                    _draw_icon_texture(icon_texture, corners)
+                    icon_drawn = True
+                except (RuntimeError, ValueError, TypeError):
+                    # An unsupported GPU/shader combination must not leave
+                    # controller menu buttons visually empty.
+                    pass
+            if has_icon and not icon_drawn:
+                from .v065 import _line_icon
+                vertices = _line_icon(action, bx + 0.006, by + 0.008, 0.029, 0.029)
+                draw_batch(shader, 'LINES',
+                           [self.world(px, py, 0.0015) for px, py in vertices],
+                           (0.9, 0.95, 1.0, 1.0))
             friendly = {
                 'MODE_MENU':'MODE', 'MODE_OBJECT':'OBJECT', 'MODE_EDIT':'EDIT',
                 'SELECT_VERT':'VERTEX', 'SELECT_EDGE':'EDGE', 'SELECT_FACE':'FACE',
