@@ -1,5 +1,15 @@
 # Mesh XR testing
 
+## v0.7.6 end-to-end VR rigging and paint integration
+
+1. Select a mesh, create a rig, then use **Select Mesh** and **Select Rig** repeatedly. These must succeed even when the armature bones sit within the mesh surface.
+2. Edit the bones, finish, and choose **Empty Groups** without selecting mesh+rig again. It should find the paired mesh and activate the first bone-named vertex group.
+3. Choose **Weight Paint** from the headset. While pointing at the mesh, press/hold the dominant Trigger to paint the selected native group. Check group previous/next, brush radius/strength and Erase.
+4. Use Done to exit Weight Paint, then Pose to test deformation, press Pose again to return to Object Mode, and return to Mesh Edit Mode.
+5. Check controller Grip+Trigger adds a second Object Mode selection without clearing the first. The underlying mesh Edit Mode tool behavior should remain unchanged.
+6. Try a low-polygon mesh with sparse vertices; the brush should still affect the nearest vertex when its ray strikes a polygon.
+7. Record headset-specific pointer/brush inaccuracies for further v0.7.6 testing. Automated tests cover Blender data and modes, but cannot prove VR ergonomics.
+
 ## v0.7.6 direct headset armature editing
 
 - In Object Mode aim the controller directly at a visible bone on an armature in front of a mesh; **Select** should activate the armature, not the underlying mesh.
