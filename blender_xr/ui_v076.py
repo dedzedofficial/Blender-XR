@@ -88,10 +88,11 @@ def _model(layout, context, settings):
     _header(layout, 'Rigging', 'ARMATURE_DATA')
     col = layout.column(align=True)
     row = col.row(align=True)
-    _operator(row, 'blender_xr.create_basic_rig', 'Armature', 'ARMATURE_DATA')
+    _operator(row, 'blender_xr.create_basic_rig', 'New', 'ARMATURE_DATA')
+    _operator(row, 'blender_xr.select_armature', 'Select Rig', 'RESTRICT_SELECT_OFF')
     if obj and obj.type == 'ARMATURE':
         if obj.mode == 'OBJECT':
-            _operator(row, 'blender_xr.edit_bones', 'Edit', 'EDITMODE_HLT')
+            _operator(col, 'blender_xr.edit_bones', 'Edit Armature', 'EDITMODE_HLT')
         if obj.mode in {'OBJECT', 'EDIT'}:
             _operator(col, 'blender_xr.add_bone', 'Add Bone', 'BONE_DATA')
         if obj.mode == 'EDIT':
@@ -107,7 +108,8 @@ def _model(layout, context, settings):
         _operator(row, 'blender_xr.weight_paint', 'Paint', 'WPAINT_HLT')
     if obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT':
         _operator(col, 'blender_xr.pose_test', 'Pose', 'POSE_HLT')
-    col.label(text='Edit armature bones; bind mesh; paint weights', icon='INFO')
+    col.label(text='Point at rig bones to select in VR', icon='INFO')
+    col.label(text='Edit Mode tools appear below', icon='ARMATURE_DATA')
 
 
 def _material(layout, context, settings):
