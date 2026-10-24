@@ -113,6 +113,20 @@ def select_mesh(context):
     context.view_layer.objects.active = target
     return target
 
+def ensure_deform_groups(mesh, arm):
+    """Extend, never replace existing paint when bones are added to a rig."""
+    for bone in arm.data.bones:
+        if bone.use_deform and mesh.vertex_groups.get(bone.name) is None:
+            mesh.vertex_groups.new(name=bone.name)
+    return active_group(mesh)
+
+
+def already_bound(mesh, arm):
+    return (mesh.parent == arm
+            and any(mod.type == 'ARMATURE' and mod.object == arm
+                    for mod in mesh.modifiers))
+
+
 def active_group(obj):
     if not obj.vertex_groups:
         raise ValueError('Mesh has no vertex groups; use Empty Groups to bind it')
@@ -215,11 +229,15 @@ class BXR_OT_bind_paired(bpy.types.Operator):
                    else armature_v076.activate_armature(context))
             mesh = mesh_for_rig(context, arm)
             paired_selection(context, arm, mesh)
+            if already_bound(mesh, arm):
+                ensure_deform_groups(mesh, arm)
+                self.report({'INFO'}, 'Already bound; existing painted weights preserved')
+                return {'FINISHED'}
             result = (bpy.ops.blender_xr.bind_empty_weights() if self.binding == 'EMPTY'
                       else bpy.ops.blender_xr.bind_auto_weights())
             if 'FINISHED' not in result:
                 raise ValueError('Binding failed; inspect the Blender operator report')
-            active_group(mesh)
+            ensure_deform_groups(mesh, arm)
             self.report({'INFO'}, 'Bound ' + mesh.name + ' to ' + arm.name)
             return {'FINISHED'}
         except (ValueError, RuntimeError) as exc:
@@ -318,9 +336,13 @@ def patch_runtime(Runtime):
                    else armature_v076.activate_armature(context))
             target = mesh_for_rig(context, arm)
             paired_selection(context, arm, target)
+            if already_bound(target, arm):
+                ensure_deform_groups(target, arm)
+                self.status = 'ALREADY BOUND / PAINTED WEIGHTS PRESERVED'
+                return
             result = original_command(self, context, action)
             arm['mesh_xr_target_mesh'] = target.name
-            active_group(target)
+            ensure_deform_groups(target, arm)
             self.status = 'BOUND ' + target.name.upper() + ' / GROUP ' + active_group(target).name.upper()
             return result
         if action == 'RIG_WEIGHT':
