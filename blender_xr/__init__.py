@@ -343,7 +343,13 @@ def register():
         if bpy.app.version < (4, 3, 0):
             print('Mesh XR registration:', cls.__name__, flush=True)
         bpy.utils.register_class(cls)
+        if bpy.app.version < (4, 3, 0):
+            print('Mesh XR registered:', cls.__name__, flush=True)
+    if bpy.app.version < (4, 3, 0):
+        print('Mesh XR registration: attaching Scene property', flush=True)
     bpy.types.Scene.blender_xr=PointerProperty(type=BXR_Settings)
+    if bpy.app.version < (4, 3, 0):
+        print('Mesh XR registration: Scene property attached', flush=True)
     bpy.types.VIEW3D_MT_view.append(draw_view_menu)
     bpy.app.handlers.xr_session_start_pre.append(runtime.session_pre)
     bpy.app.handlers.load_pre.append(load_pre)
