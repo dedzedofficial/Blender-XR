@@ -2,6 +2,17 @@
 
 ## v0.7.6 — icon-first sidebar and usability test (unreleased)
 
+### Rigging, object selection and native weight groups (VR usability repair)
+
+- Fixed the selection-state dead end: selecting an armature used to deselect the mesh, leaving Bind Empty Groups/Auto Weights unable to find it. Mesh XR now remembers the mesh paired with each rig and allows Select Rig / Select Mesh without manual desktop Shift-select.
+- On rig creation the originating mesh is remembered; the relationship survives Edit Bones, Object Mode, Weight Paint and Pose Mode changes. Grip+Trigger also extends Object Mode selection like Blender multiselect.
+- From the headset Rigging menu, Bind Empty Groups/Auto Weights resolve both objects automatically. Select Rig can discover newly created unbound rigs even when their bones lie within the mesh.
+- Entering Weight Paint ensures a valid active vertex group; if a rig exists but no groups have been created yet, entering Weight Paint first binds empty groups for manual painting.
+- Added a true controller-ray weight brush (native vertex-group writes), paint/erase, previous/next group, brush strength and radius with icon-led headset controls. On sparse low-poly meshes, the nearest vertex is painted if none fall inside the brush circle.
+- Added explicit exit for weight painting and Pose Mode toggle. Existing mesh Object/Edit workflows are preserved and covered by an integrated Blender regression.
+- Still **0.7.6**; draft PR and real headset acceptance are required before release.
+
+
 ### Armature edit-mode VR interaction (test candidate)
 
 - Fixed controller selection of armatures: Blender's scene ray-cast hits mesh surfaces but not bones, so Mesh XR now ray-picks visible armature bones directly. Armatures displayed in front of skinned meshes remain selectable.
