@@ -548,4 +548,8 @@ def patch_runtime(Runtime):
     Runtime._v076_armature_patched = True
 
 
-CLASSES = (BXR_OT_select_armature, BXR_OT_bone_action, BXR_PT_armature_edit)
+# Blender 4.2 crashes when nested panels are re-registered during addon reload.
+# Keep the same tools inline in the Model workspace on that older version.
+CLASSES = (BXR_OT_select_armature, BXR_OT_bone_action) + (
+    (BXR_PT_armature_edit,) if bpy.app.version >= (4, 3, 0) else ()
+)
