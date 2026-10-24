@@ -47,7 +47,7 @@ def test():
 
         edit = armature_v076.pick_edit_bone(bpy.context, origin, direction)
         assert edit and edit[0].name == 'Bone'
-        assert arm.data.edit_bones.active is edit[0]
+        assert arm.data.edit_bones.active.name == edit[0].name
         assert armature_v076.perform_edit_action(bpy.context, 'BONE_SEL_NONE')
         assert not any(item.select for item in arm.data.edit_bones)
         assert armature_v076.perform_edit_action(bpy.context, 'BONE_SEL_ALL')
