@@ -2,6 +2,9 @@
 
 ## v0.7.6 preview acceptance checks
 
+**Icon completion criteria:** all seven desktop workspaces, their advanced subpanels and every actionable in-headset page must show a symbol. Test both with texture images working normally and (where practical) when individual texture loading fails, to verify vector fallback. Hover and active highlighting must never paint over the icons. The six intentionally blank HSL slider cells are permitted, because they are slider overlays rather than menu buttons. Keep this at v0.7.6 and draft-only until the checks pass on real OpenXR hardware.
+
+
 Install the **mesh-xr-v0.7.6.zip** produced by the draft pull request's `preview-package` Actions job (not the GitHub repository source ZIP). In Blender's 3D View sidebar open **Blender XR**.
 
 - Visit all seven native-icon workspaces at narrow and wide sidebar sizes; check hover tooltips and keyboard navigation.
