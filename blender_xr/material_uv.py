@@ -630,17 +630,17 @@ class BXR_PT_uv_v060(bpy.types.Panel):
         row.operator('blender_xr.uv_action', text='Clear Seams', icon='REMOVE').action = 'CLEAR'
         step = context.scene.blender_xr.uv_step
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='U -', icon='TRANSFORM_MOVE'); op.action = 'MOVE_U'; op.value = -step
-        op = row.operator('blender_xr.uv_action', text='U +', icon='TRANSFORM_MOVE'); op.action = 'MOVE_U'; op.value = step
+        op = row.operator('blender_xr.uv_action', text='U -', icon='EMPTY_ARROWS'); op.action = 'MOVE_U'; op.value = -step
+        op = row.operator('blender_xr.uv_action', text='U +', icon='EMPTY_ARROWS'); op.action = 'MOVE_U'; op.value = step
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='V -', icon='TRANSFORM_MOVE'); op.action = 'MOVE_V'; op.value = -step
-        op = row.operator('blender_xr.uv_action', text='V +', icon='TRANSFORM_MOVE'); op.action = 'MOVE_V'; op.value = step
+        op = row.operator('blender_xr.uv_action', text='V -', icon='EMPTY_ARROWS'); op.action = 'MOVE_V'; op.value = -step
+        op = row.operator('blender_xr.uv_action', text='V +', icon='EMPTY_ARROWS'); op.action = 'MOVE_V'; op.value = step
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='Rotate -15', icon='TRANSFORM_ROTATE'); op.action = 'ROTATE'; op.value = -15
-        op = row.operator('blender_xr.uv_action', text='Rotate +15', icon='TRANSFORM_ROTATE'); op.action = 'ROTATE'; op.value = 15
+        op = row.operator('blender_xr.uv_action', text='Rotate -15', icon='FILE_REFRESH'); op.action = 'ROTATE'; op.value = -15
+        op = row.operator('blender_xr.uv_action', text='Rotate +15', icon='FILE_REFRESH'); op.action = 'ROTATE'; op.value = 15
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='Scale 90%', icon='TRANSFORM_SCALE'); op.action = 'SCALE'; op.value = 0.9
-        op = row.operator('blender_xr.uv_action', text='Scale 110%', icon='TRANSFORM_SCALE'); op.action = 'SCALE'; op.value = 1.1
+        op = row.operator('blender_xr.uv_action', text='Scale 90%', icon='FULLSCREEN_ENTER'); op.action = 'SCALE'; op.value = 0.9
+        op = row.operator('blender_xr.uv_action', text='Scale 110%', icon='FULLSCREEN_ENTER'); op.action = 'SCALE'; op.value = 1.1
         row = layout.row(align=True)
         row.operator('blender_xr.uv_action', text='Reset UVs', icon='LOOP_BACK').action = 'RESET'
         row.operator('blender_xr.uv_action', text='Pack Islands', icon='UV').action = 'PACK'
