@@ -1,5 +1,11 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
+## v0.7.6 armature Edit Mode in the headset
+
+**VR Rigging:** Armature, Select Rig, Edit Bones, Add Bone, Empty Groups, Auto Weights, Weight Paint, Clean, Pose, Audit. **Bone Edit:** Select, Move, Head, Tail, Add, Extrude, Duplicate, Delete, Select Tools, Edit Tools, Settings and Finish. These category pages have official Blender-style icons with textual labels. Use **Select Rig** if the controller ray is on a mesh rather than the rig, then **Edit Bones**.
+
+**Point-and-edit:** The dominant controller ray now detects bone segments (not just meshes). Point and press Trigger in Select mode, or choose Move/Head/Tail and hold Trigger to move the selected part, releasing to apply. Undo and more nuanced Blender Edit Bone functions remain available from Blender's own desktop Edit Armature menu. Native operations may refuse invalid selections.
+
 ## v0.7.6 freeform rigging icons
 
 On the desktop Model workspace use **Armature**, **Edit**, **Add Bone**, **Finish Bones**, **Empty Groups**, **Auto Weights** and **Paint**. The VR Rigging page also has **Armature**, **Add Bone** and **Empty Groups** using Blender's armature/bone/modifier symbols. Bone transforms and precise editing use Blender's standard desktop Armature Edit Mode; the headset Add Bone action creates an editable bone but does not implement VR bone gizmos.
