@@ -501,6 +501,13 @@ class BXR_OT_weight_paint(bpy.types.Operator):
         try:
             if not obj.vertex_groups:
                 raise ValueError('Mesh has no vertex groups yet. Bind it to an armature first.')
+            # Empty vertex groups exist after ARMATURE_NAME binding, but no
+            # active group may have been selected. Native Blender weight tools
+            # need one; select a real bone group before switching modes.
+            if obj.vertex_groups.active is None:
+                obj.vertex_groups.active_index = 0
+            if obj.vertex_groups.active is None:
+                raise ValueError('Choose a vertex group to paint')
             result = bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
             if 'FINISHED' not in result:
                 raise RuntimeError('Blender could not enter Weight Paint mode')
