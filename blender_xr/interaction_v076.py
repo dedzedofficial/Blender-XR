@@ -455,7 +455,8 @@ def patch_runtime(Runtime):
         # Grip directly grabs a vertex/edge/face, bone, pose bone, or whole
         # armature/object using the *same* Select tool. No context-specific
         # selection buttons and no need to enter a second edit panel.
-        if (state is not None and bpy.types.XrSessionState.is_running(context)
+        if (state is not None and getattr(context, 'view_layer', None) is not None
+                and bpy.types.XrSessionState.is_running(context)
                 and getattr(self, 'navigation_initialized', False)
                 and not self.transaction and not self.grab and
                 not self.axis_move and not self.air_grab):
