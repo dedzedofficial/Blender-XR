@@ -165,6 +165,22 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
         changes += 1
         if changes >= 256:
             break
+    if not changes:
+        # Low-poly meshes can have no vertex inside a narrow brush circle.
+        # If the ray hit a visible polygon, paint the nearest vertex rather
+        # than silently doing nothing (especially common for Quest assets).
+        nearest = tree.find(local_point)
+        if nearest:
+            _co, index, _dist = nearest
+            try:
+                weight = group.weight(index)
+            except RuntimeError:
+                weight = 0.0
+            influence = min(1.0, strength * 0.5)
+            result = (weight * (1.0 - influence) if erase
+                      else weight + (1.0 - weight) * influence)
+            group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
+            changes = 1
     return changes
 
 class BXR_OT_select_mesh(bpy.types.Operator):
