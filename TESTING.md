@@ -1,5 +1,14 @@
 # Mesh XR testing
 
+## v0.7.6 freeform rigging regression checklist
+
+- Create Armature on a wide cube, a planar mesh and no selected object. None should produce an upright humanoid error.
+- From Model → Rigging, add bones, enter native armature Edit Mode, move/extrude/parent bones and finish editing.
+- Select the mesh and armature (armature active). **Empty Groups** should create a bone group per deforming bone with no weights; Paint should enter Blender Weight Paint on the mesh.
+- Paint weights, pose the armature to test deformation, and check Clean Weights does not destroy the rig.
+- Run the original Auto Weights action separately to confirm it remains available.
+- In VR, verify Create Armature, Add Bone and Empty Groups icons work, and confirm that precise bone positioning in Blender's native Edit Mode is clearly documented.
+
 ## v0.7.6 preview acceptance checks
 
 **Icon completion criteria:** all seven desktop workspaces, their advanced subpanels and every actionable in-headset page must show a symbol. Test both with texture images working normally and (where practical) when individual texture loading fails, to verify vector fallback. Hover and active highlighting must never paint over the icons. The six intentionally blank HSL slider cells are permitted, because they are slider overlays rather than menu buttons. Keep this at v0.7.6 and draft-only until the checks pass on real OpenXR hardware.
