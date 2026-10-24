@@ -201,21 +201,10 @@ def _patch_menu_draw():
         original_draw(self, shader, tool, hover, step, status, settings, selection, select_mode)
         if self.page not in CORE_PAGES or not self.ready or not self.visible:
             return
-        mode_actions={'SELECT_VERT':'VERT','SELECT_EDGE':'EDGE','SELECT_FACE':'FACE'}
-        tool_alias={'MOVE_FACE':'MOVE_EDIT','SCALE_FACE':'SCALE_EDIT'}
-        for i,(_label,action) in enumerate(self.buttons):
-            bx,by,w,h=drawing.button_rect(i)
-            active=(action==tool or action==tool_alias.get(tool) or mode_actions.get(action)==select_mode)
-            if action=='MODE_OBJECT':
-                obj=bpy.context.view_layer.objects.active; active=bool(obj and obj.mode=='OBJECT')
-            elif action=='MODE_EDIT':
-                obj=bpy.context.view_layer.objects.active; active=bool(obj and obj.mode=='EDIT')
-            color=(0.025,0.35,0.35,1) if active else (0.06,0.12,0.18,1)
-            if action==hover: color=(0.12,0.42,0.55,1)
-            drawing.draw_batch(shader,'TRIS',[self.world(px,py,0.0025) for px,py in drawing.rectangle_points(bx,by,w,h)],color)
-            # Keep world-space controls text-first. Blender's native icon IDs
-            # are used in desktop panels; homemade glyphs overlaid on labels
-            # made headset controls visually collide.
+        # original_draw paints the hover/selection background BEFORE native icon
+        # textures and text. Do not draw opaque rectangles here afterwards:
+        # that overwrote the icons on the Object/Edit/More/Rigging pages.
+        # The only overlay left is the help strip above the entire menu.
         tip=getattr(self,'tooltip_action',None)
         if tip and tip==hover and tip in TOOLTIPS:
             title,desc=TOOLTIPS[tip]
