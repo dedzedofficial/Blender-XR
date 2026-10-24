@@ -59,13 +59,16 @@ assert "precision_mode" in init_text, 'precision mode setting must be present'
 assert "triangle_budget" in init_text, 'asset triangle budget setting must be present'
 assert "haptic_feedback" in init_text, 'optional haptic feedback setting must be present'
 assert "('haptic', 'VIBRATION', '/output/haptic')" in (SOURCE/'actions.py').read_text(), 'OpenXR haptic output action must be present'
-assert "mirror_xr_session" in init_text, 'PC View Mode must use Blender native XR mirroring'
-assert "Show VR View on PC" in init_text, 'PC View Mode toggle must be visible in the desktop panel'
+ui_text=(SOURCE/'ui_v076.py').read_text()
+assert 'ui_v076.draw_panel' in init_text, '0.7.6 panel must use compact workspace renderer'
+assert 'UI_SECTION_ITEMS' in ui_text and 'icon_only=True' in ui_text, 'icon-led workspace selector is missing'
+assert "mirror_xr_session" in ui_text, 'PC View Mode must use Blender native XR mirroring'
+assert "Show VR View on PC" in ui_text, 'PC View Mode toggle must be visible in the desktop panel'
 assert 'material_uv.CLASSES' in init_text
 assert 'Patreon' not in init_text
 assert "updates=layout.box()" not in init_text
 
-for required in ('material_uv.py','uv_tools.py','v060.py','v071.py','v075_features.py','steamvr_hand_bridge.py'):
+for required in ('ui_v076.py','material_uv.py','uv_tools.py','v060.py','v071.py','v075_features.py','steamvr_hand_bridge.py'):
     assert (SOURCE/required).is_file(), required+' is required for the v0.6 package'
 menus_text=(SOURCE/'menus.py').read_text()
 assert "('MATERIALS','MATERIAL_MENU')" in menus_text
