@@ -2,6 +2,16 @@
 
 ## v0.7.6 — icon-first sidebar and usability test (unreleased)
 
+### Armature edit-mode VR interaction (test candidate)
+
+- Fixed controller selection of armatures: Blender's scene ray-cast hits mesh surfaces but not bones, so Mesh XR now ray-picks visible armature bones directly. Armatures displayed in front of skinned meshes remain selectable.
+- Added a direct **Select Rig** button in the desktop Model workspace and VR Rigging page. It chooses the armature linked to the active mesh, or the only visible rig; it refuses to guess when multiple rigs are ambiguous.
+- Added **Edit Bones** / **Finish Bones** in the headset, a bone-selection ray, controller-driven move of a bone or its head/tail, and organized pages for selecting, editing, naming, parenting, roll and visibility.
+- Kept Blender's native Edit Armature and bone Select menus available inside the desktop Mesh XR panel, including operations not exposed by the compact headset pages.
+- Added an armature-specific Blender regression suite to protect mesh selection and object editing from unintended changes; real headset device acceptance remains required.
+- Still **v0.7.6**, draft PR only, no merge.
+
+
 ### Normal armature and manual weight painting (test revision)
 
 - Replaced the upright-humanoid-only starter rig with a normal Blender armature containing one editable bone, sized around any selected mesh regardless of its orientation, aspect ratio or thickness; an armature can also be created without a mesh at the 3D cursor.
