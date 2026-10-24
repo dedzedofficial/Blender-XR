@@ -400,7 +400,8 @@ def patch_runtime(Runtime):
         if bone is not None:
             _, _, obj, _name, point, _part = bone
             # Bone overlays are displayed in front of the skinned mesh.
-            if surface is None or bone[0] <= (surface[1] - Vector(origin)).length + 0.15:
+            if (surface is None or obj.show_in_front or
+                    bone[0] <= (surface[1] - Vector(origin)).length + 0.15):
                 return obj, point
         return surface
 
