@@ -141,7 +141,7 @@ def _uv(layout, context, settings):
     layout.label(text='Advanced UV controls in panel below', icon='INFO')
 
 
-def _travel(layout, settings):
+def _travel(layout, context, settings):
     _header(layout, 'Movement', 'ORIENTATION_VIEW')
     col = layout.column(align=True)
     col.prop(settings, 'move_speed', text='Speed')
