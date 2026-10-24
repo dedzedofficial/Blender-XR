@@ -483,6 +483,11 @@ def patch_runtime(Runtime):
         obj = context.view_layer.objects.active
         tool = self.tool
         if tool in TRANSFORMS and obj and obj.mode in {'OBJECT','EDIT','POSE'}:
+            if obj.type == 'MESH' and obj.mode == 'EDIT' and tool in {'MOVE','SCALE','ROTATE'}:
+                hit_other = self.object_hit(context, origin, direction)
+                if hit_other and hit_other[0] != obj:
+                    return old_select(self, context, origin, direction,
+                                      additive=additive)
             if getattr(self, '_xr_gesture', None):
                 raise ValueError('Release the current transform first')
             if obj.mode == 'OBJECT':
