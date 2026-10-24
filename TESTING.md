@@ -1,3 +1,26 @@
+# Mesh XR testing
+
+## v0.7.6 preview acceptance checks
+
+Install the **mesh-xr-v0.7.6.zip** produced by the draft pull request's `preview-package` Actions job (not the GitHub repository source ZIP). In Blender's 3D View sidebar open **Blender XR**.
+
+- Visit all seven native-icon workspaces at narrow and wide sidebar sizes; check hover tooltips and keyboard navigation.
+- Start and stop a headset session, change controller/hand settings while stopped, toggle the PC headset mirror while running, and recover from tracking loss.
+- Test object/Edit geometry operations, snap, precision and two-hand scaling using real controllers.
+- In Model, audit a mesh; create a starter armature; bind and clean weights; test Paint/Pose modes.
+- In Material, edit color/shading and expand Materials + Textures to exercise slots, images and presets.
+- In UV Edit Mode, unwrap and transform UVs; confirm advanced UV tools only show in the UV workspace.
+- In Travel, check movement, turn settings, turbo, flight and grab-air.
+- In Project, save a new and existing .blend and confirm live scene statistics.
+- With SteamVR and supported controllers, verify the external skeletal bridge and haptic feedback.
+- Report reproducible failures with Blender version, headset/runtime, steps, logs and screenshots.
+
+Automated command: `blender --background --factory-startup --python-exit-code 1 --python tests/test_ui_v076.py`.
+
+CI must pass in Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, and headset testing must be reviewed before merging this preview into main.
+
+---
+
 # Mesh XR validation
 
 Mesh XR uses automated Blender regression tests plus manual headset/runtime checks. Background Blender can validate geometry, data, UI registration and package behavior, but it cannot prove stereo readability, physical controller feel or runtime-specific tracking behavior.
