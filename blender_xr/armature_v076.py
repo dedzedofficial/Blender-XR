@@ -330,7 +330,7 @@ class BXR_PT_armature_edit(bpy.types.Panel):
     bl_label = 'Edit Bone Tools'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Mesh XR'
+    bl_category = 'Blender XR'
     bl_parent_id = 'BXR_PT_panel'
 
     @classmethod
