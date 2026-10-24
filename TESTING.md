@@ -1,5 +1,16 @@
 # Mesh XR testing
 
+## v0.7.6 single-Select / controller transform acceptance
+
+- In **Object Mode**, point Select at a mesh, then at its armature bone. On a rig drawn over the mesh, repeated Select clicks should let you target either one. **Grip** grabs the currently aimed object; no separate Select Rig / Select Mesh menu buttons exist.
+- In **Mesh Edit Mode**, change Vertex/Edge/Face mode, point at the desired element and press Select. Pick loose vertices/edges that a face ray cannot hit. Point at a selected element, hold Grip, move the controller, and release to apply the change.
+- In **Move/Scale/Rotate** mode, hold Trigger while moving and/or rotating the controller. Verify full-object transformations and selection transforms, with correct pivot and no surprise mesh topology changes.
+- In **Armature Edit Mode**, test Select / Move / Scale / Rotate on individual and multiple edit bones; test the Head and Tail tools on the Edit Tools page. Then Finish Editing and test the whole armature as an Object.
+- In **Pose Mode**, verify that the headset Pose Bones menu offers Select, Move, Scale, Rotate and Finish Pose, with the rig and mesh still paired afterwards.
+- After each transformation, use VR Undo then Redo; check that geometry, bone transformations and the active mode remain coherent. Cancel must restore the previous shape.
+- Open the old Blender mesh modelling menus and confirm Inset, Extrude, Bevel, Loop Cut, Delete, Merge and materials remain accessible. No duplicated Select Rig / Select Mesh buttons should appear.
+- **Automated smoke tests do not validate tracked-hand accuracy, headset latency or UX**. Sign off the physical Quest/SteamVR session separately before declaring 0.7.6 complete.
+
 ## v0.7.6 end-to-end VR rigging and paint integration
 
 1. Select a mesh, create a rig, then use **Select Mesh** and **Select Rig** repeatedly. These must succeed even when the armature bones sit within the mesh surface.
