@@ -32,6 +32,8 @@ _ICON_BY_ACTION = {
     'RECALC': 'mesh_data', 'FLIP_NORMALS': 'mesh_data',
     'RIG_AUDIT': 'mesh_data',
     'RIG_SELECT_MESH': 'mesh_data',
+    'ROTATE_EDIT': 'transform_rotate',
+    'BONE_SCALE': 'transform_scale', 'BONE_ROTATE': 'transform_rotate',
     'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
     'WEIGHT_GROUP_PREV': 'mod_vertex_weight', 'WEIGHT_GROUP_NEXT': 'mod_vertex_weight',
     'WEIGHT_STRENGTH_DOWN': 'mod_vertex_weight', 'WEIGHT_STRENGTH_UP': 'mod_vertex_weight',
