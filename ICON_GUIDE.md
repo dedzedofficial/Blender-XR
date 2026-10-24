@@ -1,6 +1,15 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
-Mesh XR v0.7.5 renders Blender UI icon artwork as transparent PNG textures in its world-space headset menu. The icons are paired with short text labels so controls remain understandable, including where Blender has no exact matching icon and the closest official Blender symbol is used. The desktop sidebar continues to use Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
+## v0.7.6 icon coverage test
+
+The Blender desktop sidebar has seven native-icon workspaces: **Session**, **Model**, **Material**, **UV**, **Travel**, **Project** and **Help**. Each workspace's commands and settings now have meaningful Blender icons. The Advanced Materials, UV Mapping and Workflow subpanels also use native icons. The active workspace is displayed as an icon tab with a descriptive tooltip, avoiding dependence on long English labels.
+
+The in-headset menu uses Blender artwork packaged as transparent PNGs. A compatibility fix prevents older hover highlighting from covering buttons. If Blender cannot load a PNG texture or create the GPU image shader, a procedural line icon remains visible. The intentionally blank HSL slider cells are not actions and are excluded from icon coverage.
+
+The `tests/test_ui_v076.py` regression runs within Blender to check actual Blender icon identifiers, all seven workspaces, nested advanced panels, and that every active headset menu action has a corresponding packaged PNG. **The version remains 0.7.6 until tester acceptance; this does not certify headset graphics on all devices.**
+
+
+Mesh XR v0.7.6 renders Blender UI icon artwork as transparent PNG textures in its world-space headset menu. The icons are paired with short text labels so controls remain understandable, including where Blender has no exact matching icon and the closest official Blender symbol is used. The desktop sidebar continues to use Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
 
 The original SVG artwork is preserved in `blender_xr/icons_src/`; `tools/build_icon_textures.py` rasterizes it to 256×256 transparent PNGs in `blender_xr/icons/`. The branch's GitHub Actions workflow rebuilds these textures when the source artwork changes. The VR draw handler caches each loaded Blender image and GPU texture rather than decoding the PNG on every frame.
 
