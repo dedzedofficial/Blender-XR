@@ -434,11 +434,17 @@ def install_pages():
         ('SCALE', 'BONE_SCALE'), ('ROTATE', 'BONE_ROTATE')] + operations[2:]
     assert len(operations) == 12
     menus.PAGES['ARMATURE_EDIT'] = tuple(operations)
+    menus.PAGES['POSE_EDIT'] = (
+        ('SELECT', 'SELECT'), ('MOVE', 'BONE_MOVE'),
+        ('SCALE', 'BONE_SCALE'), ('ROTATE', 'BONE_ROTATE'),
+        ('FINISH POSE', 'RIG_EXIT_POSE'),
+    )
+    menus.TITLES['POSE_EDIT'] = 'POSE BONES'
     edit_operations = list(menus.PAGES['ARMATURE_OPERATIONS'])
     edit_operations[-1:-1] = [('HEAD', 'BONE_MOVE_HEAD'),
                              ('TAIL', 'BONE_MOVE_TAIL')]
     menus.PAGES['ARMATURE_OPERATIONS'] = tuple(edit_operations)
-    for page in ('TOOLS','EDIT','EDIT_MORE','ARMATURE_EDIT','RIGGING','WEIGHT_PAINT'):
+    for page in ('TOOLS','EDIT','EDIT_MORE','ARMATURE_EDIT','POSE_EDIT','RIGGING','WEIGHT_PAINT'):
         actions = [action for _, action in menus.PAGES[page]]
         if len(actions) != len(set(actions)):
             raise RuntimeError('Duplicate XR menu action in ' + page)
@@ -464,6 +470,21 @@ def patch_runtime(Runtime):
             self.tool = 'SELECT'
             self.status = 'SELECT MESH / ARMATURE / BONE'
             return
+        if action == 'RIG_POSE':
+            result = old_command(self, context, action)
+            active = context.view_layer.objects.active
+            if active and active.type == 'ARMATURE' and active.mode == 'POSE':
+                self.menu.page = 'POSE_EDIT'
+                self.tool = 'SELECT'
+            return result
+        if action == 'BACK' and self.menu.page == 'POSE_EDIT':
+            return old_command(self, context, 'RIG_EXIT_POSE')
+        if action == 'BONE_MOVE':
+            obj = context.view_layer.objects.active
+            if obj and obj.type == 'ARMATURE' and obj.mode == 'POSE':
+                self.tool = 'BONE_MOVE'
+                self.status = 'POSE BONE MOVE'
+                return
         if action in {'ROTATE','ROTATE_EDIT','BONE_SCALE','BONE_ROTATE'}:
             obj = context.view_layer.objects.active
             if obj is None:
