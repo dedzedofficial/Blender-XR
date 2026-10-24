@@ -294,6 +294,123 @@ def restore_transform(context, drag):
     context.view_layer.update()
 
 
+def _current_coords(obj, drag):
+    kind = drag['kind']
+    if kind == 'OBJECT':
+        return obj.matrix_world.copy()
+    if kind == 'MESH':
+        bm = bmesh.from_edit_mesh(obj.data)
+        bm.verts.ensure_lookup_table()
+        return {i: bm.verts[i].co.copy() for i in drag['before']
+                if i < len(bm.verts) and bm.verts[i].is_valid}
+    if kind == 'BONE':
+        return {name: (obj.data.edit_bones[name].head.copy(),
+                       obj.data.edit_bones[name].tail.copy(),
+                       float(obj.data.edit_bones[name].roll))
+                for name in drag['before'] if name in obj.data.edit_bones}
+    return {name: obj.pose.bones[name].matrix.copy()
+            for name in drag['before'] if name in obj.pose.bones}
+
+
+def _changed(before, after, kind):
+    if before.keys() != after.keys() if kind != 'OBJECT' else False:
+        return True
+    if kind == 'OBJECT':
+        return any(abs(before[i][j] - after[i][j]) > 1e-7
+                   for i in range(4) for j in range(4))
+    if kind in {'MESH', 'POSE'}:
+        return any((before[name] - after[name]).length > 1e-7 if kind == 'MESH'
+                   else any(abs(before[name][i][j] - after[name][i][j]) > 1e-7
+                            for i in range(4) for j in range(4))
+                   for name in before)
+    return any((before[name][0] - after[name][0]).length > 1e-7 or
+               (before[name][1] - after[name][1]).length > 1e-7 or
+               abs(before[name][2] - after[name][2]) > 1e-7
+               for name in before)
+
+
+def _push_transform_history(session, context, drag):
+    obj = bpy.data.objects.get(drag['object'])
+    if obj is None or obj.mode != drag['mode']:
+        return
+    after = _current_coords(obj, drag)
+    if not _changed(drag['before'], after, drag['kind']):
+        return
+    kind = {'OBJECT': 'OBJECT', 'MESH': 'XR_VERTS', 'BONE': 'XR_BONES',
+            'POSE': 'XR_POSE'}[drag['kind']]
+    entry = (kind, obj.name, obj.data.name if kind != 'OBJECT' else None,
+             drag['before'], after)
+    if hasattr(session, 'history') and session.history is not None:
+        session.history.push(entry)
+    elif getattr(context, 'area', None) and context.area.type == 'VIEW_3D':
+        try:
+            bpy.ops.ed.undo_push(message='Mesh XR Controller Transform')
+        except (RuntimeError, AttributeError):
+            pass
+
+
+def _apply_history_entry(entry, backwards):
+    kind, obj_name, data_name, before, after = entry
+    obj = bpy.data.objects.get(obj_name)
+    if obj is None or obj.data.name != data_name:
+        raise ValueError('Transformed object or its data has changed')
+    data = before if backwards else after
+    if kind == 'XR_VERTS':
+        if obj.type != 'MESH' or obj.mode != 'EDIT':
+            raise ValueError('Enter Mesh Edit Mode before undoing vertex changes')
+        bm = bmesh.from_edit_mesh(obj.data)
+        bm.verts.ensure_lookup_table()
+        if any(i >= len(bm.verts) for i in data):
+            raise ValueError('Mesh topology changed; cannot restore these vertex indices')
+        for i, co in data.items():
+            bm.verts[i].co = co
+        bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
+    elif kind == 'XR_BONES':
+        if obj.type != 'ARMATURE' or obj.mode != 'EDIT':
+            raise ValueError('Enter Armature Edit Mode to undo bone changes')
+        for name, (head, tail, roll) in data.items():
+            bone = obj.data.edit_bones.get(name)
+            if not bone:
+                raise ValueError('The edited bone was removed: ' + name)
+            bone.head = head
+            bone.tail = tail
+            bone.roll = roll
+    elif kind == 'XR_POSE':
+        if obj.type != 'ARMATURE' or obj.mode != 'POSE':
+            raise ValueError('Enter Pose Mode to undo pose changes')
+        for name, matrix in data.items():
+            bone = obj.pose.bones.get(name)
+            if not bone:
+                raise ValueError('The posed bone was removed: ' + name)
+            bone.matrix = matrix
+    bpy.context.view_layer.update()
+
+
+def patch_history():
+    if getattr(mesh.History, '_v076_controller_transform_history', False):
+        return
+    original_step = mesh.History.step
+    original_release = mesh.History.release
+    types = {'XR_VERTS', 'XR_BONES', 'XR_POSE'}
+
+    def step(self, backwards=True):
+        source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
+        if not source or source[-1][0] not in types:
+            return original_step(self, backwards)
+        entry = source[-1]
+        _apply_history_entry(entry, backwards)
+        dest.append(source.pop())
+        return True
+
+    def release(entry):
+        if entry[0] not in types:
+            return original_release(entry)
+
+    mesh.History.step = step
+    mesh.History.release = staticmethod(release)
+    mesh.History._v076_controller_transform_history = True
+
+
 def install_pages():
     from . import menus
     # Preserve all other Blender tools; make rotations accessible by controller.
@@ -335,6 +452,7 @@ def install_pages():
 def patch_runtime(Runtime):
     if getattr(Runtime, '_v076_unified_interaction', False):
         return
+    patch_history()
     old_tick = Runtime.tick
     old_select = Runtime.select
     old_command = Runtime.command
@@ -449,11 +567,7 @@ def patch_runtime(Runtime):
             else:
                 self._xr_gesture = None
                 (self.trigger if source == 'trigger' else self.grip).update(0.0)
-                if bpy.context.area and bpy.context.area.type == 'VIEW_3D':
-                    try:
-                        bpy.ops.ed.undo_push(message='Mesh XR Controller Transform')
-                    except (RuntimeError, AttributeError):
-                        pass
+                _push_transform_history(self, context, gesture)
                 runtime.haptic_pulse(context, self.settings, self.dom)
                 self.status = 'TRANSFORM APPLIED'
             return
