@@ -162,7 +162,7 @@ def _bone_entries(arm, kind):
         return {b.name: (b.head.copy(), b.tail.copy(), float(b.roll))
                 for b in selected}
     collection = arm.pose.bones
-    selected = [b for b in collection if b.bone.select]
+    selected = [b for b in collection if getattr(b.bone, 'select', False)]
     if not selected and arm.data.bones.active:
         selected = [collection[arm.data.bones.active.name]]
     return {b.name: b.matrix.copy() for b in selected}
@@ -521,6 +521,21 @@ def patch_runtime(Runtime):
             self.status = tool + ' / HOLD TRIGGER AND MOVE CONTROLLER'
             return
         if tool == 'SELECT':
+            if obj and obj.type == 'MESH' and obj.mode == 'EDIT':
+                picked = ray_element(obj, origin, direction, selection.mode(context))
+                target = self.object_hit(context, origin, direction)
+                # Preserve Blender's existing edit-object switch semantics.
+                # A controller aimed at another mesh must be able to make that
+                # mesh active, not get trapped in the current edit cage.
+                if picked and (not target or target[0] == obj or
+                               (picked[1] - origin).length <=
+                               (target[1] - origin).length):
+                    mesh.select_element(obj, selection.mode(context),
+                                        picked[0], additive)
+                    self.status = 'SELECTED ' + selection.mode(context)
+                    return
+                return old_select(self, context, origin, direction,
+                                  additive=additive)
             return select_context(self, context, origin, direction,
                                   additive=additive, old_hit=self.object_hit)
         return old_select(self, context, origin, direction, additive=additive)
