@@ -5,11 +5,10 @@ Keep existing operators and XR controls: this module only organises their UI.
 Blender owns the icon assets, localization and the hover tooltips.
 """
 import textwrap
-from types import SimpleNamespace
 
 import bpy
 
-from . import armature_v076, materials, preferences, runtime, statistics
+from . import materials, preferences, runtime, statistics
 
 
 UI_SECTION_ITEMS = [
@@ -111,13 +110,7 @@ def _model(layout, context, settings):
         _operator(col, 'blender_xr.pose_test', 'Pose', 'POSE_HLT')
     col.label(text='Point at rig bones to select in VR', icon='INFO')
     col.label(text='Edit Mode tools appear below', icon='ARMATURE_DATA')
-    if (obj and obj.type == 'ARMATURE' and obj.mode == 'EDIT'
-            and bpy.app.version < (4, 3, 0)):
-        # Inline equivalent of the child panel for Blender 4.2.
-        advanced = layout.box()
-        advanced.label(text='Edit Bone Tools', icon='BONE_DATA')
-        armature_v076.BXR_PT_armature_edit.draw(
-            SimpleNamespace(layout=advanced), context)
+
 
 
 def _material(layout, context, settings):
