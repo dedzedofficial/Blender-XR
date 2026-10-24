@@ -52,7 +52,7 @@ def test():
         item.identifier for item in
         bpy.types.UILayout.bl_rna.functions['label'].parameters['icon'].enum_items
     }
-    assert valid_icons, 'Could not retrieve Blender's native icon identifiers'
+    assert valid_icons, "Could not retrieve Blender's native icon identifiers"
     for key, label, _description, icon, _order in ui_v076.UI_SECTION_ITEMS:
         assert icon in valid_icons, (key, icon)
     for page, buttons in menus.PAGES.items():
