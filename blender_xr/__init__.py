@@ -8,10 +8,9 @@ bl_info = {
     'category': '3D View',
 }
 import bpy
-import textwrap
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, v05, v052, v056, v060, v071, v075_features
+from . import material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -20,6 +19,10 @@ v071.patch(runtime.Runtime)
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Blender XR'
 material_uv.BXR_PT_uv_v060.bl_category='Blender XR'
+material_uv.BXR_PT_materials_v060.bl_parent_id='BXR_PT_panel'
+material_uv.BXR_PT_uv_v060.bl_parent_id='BXR_PT_panel'
+v075_features.BXR_PT_workflow.bl_category='Blender XR'
+v075_features.BXR_PT_workflow.bl_options={'DEFAULT_CLOSED'}
 material_uv.BXR_OT_material_action.bl_label='Mesh XR Material Action'
 material_uv.BXR_OT_uv_action.bl_label='Mesh XR UV Action'
 
@@ -29,6 +32,8 @@ def _persist_setting(self, context):
 
 
 class BXR_Settings(bpy.types.PropertyGroup):
+    ui_section: EnumProperty(name='Workspace', items=ui_v076.UI_SECTION_ITEMS, default='SESSION',
+        description='Compact Mesh XR workspace (Blender icons show tooltips on hover)')
     dominant_hand: EnumProperty(name='Dominant hand',items=[
         ('RIGHT','Right','Right edits, left holds the menu'),
         ('LEFT','Left','Left edits, right holds the menu')],default='RIGHT',update=_persist_setting)
@@ -312,134 +317,8 @@ class BXR_PT_panel(bpy.types.Panel):
     bl_region_type='UI'
     bl_category='Blender XR'
 
-    def draw(self,context):
-        layout=self.layout
-        settings=context.scene.blender_xr
-        preferences.ensure(settings, context)
-        active=runtime.CURRENT is not None
-
-        session_box=layout.box()
-        session_box.label(text='VR Session',icon='XRAY')
-        hand=session_box.row(align=True)
-        hand.enabled=not active
-        hand.prop(settings,'dominant_hand',expand=True)
-        session_box.label(text='Menu stays on the other hand',icon='HAND')
-        session_box.operator('blender_xr.stop' if active else 'blender_xr.session',
-                             text='Stop VR' if active else 'Start VR',
-                             icon='PAUSE' if active else 'PLAY')
-        for line in textwrap.wrap(settings.status,44):
-            session_box.label(text=line,icon='INFO' if line==settings.status else 'NONE')
-
-        # Blender exposes the active XR compositor mirror on each 3D View.
-        # Keep this as a display-only toggle: it must never start/stop the XR session.
-        view_box=layout.box()
-        view_box.label(text='PC View Mode',icon='WINDOW')
-        view_space=context.space_data
-        if hasattr(view_space,'mirror_xr_session'):
-            mirror_row=view_box.row(align=True)
-            mirror_row.enabled=active and bpy.types.XrSessionState.is_running(context)
-            mirror_row.prop(view_space,'mirror_xr_session',
-                            text='Show VR View on PC',toggle=True,icon='XRAY')
-            if active and bpy.types.XrSessionState.is_running(context):
-                view_box.label(text='Off: normal desktop view  |  On: live headset mirror')
-            else:
-                view_box.label(text='Start VR to enable the live headset mirror',icon='INFO')
-        else:
-            view_box.label(text='This Blender build does not expose XR view mirroring',icon='ERROR')
-
-        setup=layout.box()
-        setup.label(text='Controller Setup',icon='SETTINGS')
-        col=setup.column(align=True)
-        col.enabled=not active
-        col.prop(settings,'controller_family')
-        col.prop(settings,'input_source')
-        if settings.input_source=='CONTROLLERS':
-            col.prop(settings,'finger_touch')
-        else:
-            col.prop(settings,'bridge_port')
-            col.label(text='SteamVR skeletal input required')
-            if active and runtime.CURRENT.bridge:
-                setup.operator('blender_xr.bridge_command',text='Copy Hand Bridge Command',icon='COPYDOWN')
-
-        modeling=layout.box()
-        modeling.label(text='Modeling',icon='MESH_CUBE')
-        grid=modeling.grid_flow(columns=2,align=True)
-        grid.prop(settings,'step')
-        grid.prop(settings,'precision_mode',text='Precision Snap',toggle=True,icon='SNAP_ON')
-        modeling.prop(settings,'haptic_feedback',toggle=True,icon='FORCE_HARMONIC')
-        grid.prop(settings,'bevel_segments')
-        grid.prop(settings,'primitive_size')
-        grid.prop(settings,'placement_distance')
-        modeling.label(text='Vertex / edge / face editing',icon='MODIFIER')
-
-        appearance=layout.box()
-        appearance.label(text='Materials',icon='MATERIAL')
-        active_obj=context.view_layer.objects.active
-        material_name,slot,total=materials.active_material_summary(active_obj)
-        if active_obj and active_obj.type=='MESH':
-            if total:
-                appearance.label(text='Material: '+material_name+'   Slot '+str(slot)+'/'+str(total))
-            else:
-                appearance.label(text='Material: None')
-            if active_obj.mode=='EDIT':
-                selected_faces=materials.selected_face_count(active_obj)
-                appearance.label(text='Selected faces: '+str(selected_faces))
-        appearance.prop(settings,'object_color',text='Color')
-        appearance.label(text='Click the color swatch for the hue wheel')
-        button_text='Assign to Selected Faces' if active_obj and active_obj.type=='MESH' and active_obj.mode=='EDIT' else 'Apply to Object'
-        appearance.operator('blender_xr.apply_color',text=button_text,icon='COLOR')
-        shade=appearance.row(align=True)
-        smooth=shade.operator('blender_xr.shade',text='Shade Smooth',icon='SHADING_RENDERED')
-        smooth.mode='SMOOTH'
-        flat=shade.operator('blender_xr.shade',text='Shade Flat',icon='SHADING_SOLID')
-        flat.mode='FLAT'
-        appearance.label(text='Advanced material, texture and UV tools are in the panels below.')
-
-        statistics_box=layout.box()
-        statistics_box.prop(settings,'show_statistics',text='Scene Statistics',toggle=True,icon='INFO')
-        if settings.show_statistics:
-            stats=statistics.scene_stats(context)
-            row=statistics_box.row(align=True)
-            row.label(text='Objects: '+str(stats['objects']))
-            row.label(text='Selected: '+str(stats['selected']))
-            row=statistics_box.row(align=True)
-            row.label(text='Meshes: '+str(stats['meshes']))
-            row.label(text='Materials: '+str(stats['materials']))
-            row=statistics_box.row(align=True)
-            row.label(text='Verts: '+str(stats['vertices']))
-            row.label(text='Edges: '+str(stats['edges']))
-            row=statistics_box.row(align=True)
-            row.label(text='Faces: '+str(stats['faces']))
-            row.label(text='Triangles: '+str(stats['triangles']))
-            if stats['active']:
-                current=stats['active']
-                statistics_box.separator()
-                statistics_box.label(text='Active: '+current['name'],icon='OBJECT_DATA')
-                statistics_box.label(text='V '+str(current['vertices'])+'  E '+str(current['edges'])+
-                                          '  F '+str(current['faces'])+'  T '+str(current['triangles']))
-
-        movement=layout.box()
-        movement.label(text='Movement',icon='ORIENTATION_VIEW')
-        movement.prop(settings,'move_speed')
-        row=movement.row(align=True)
-        row.prop(settings,'fly_mode',toggle=True)
-        row.prop(settings,'fast_flight',toggle=True)
-        movement.prop(settings,'turn_mode',expand=True)
-        movement.prop(settings,'turn_angle' if settings.turn_mode=='SNAP' else 'turn_speed')
-        movement.prop(settings,'grab_air')
-
-        project_box=layout.box()
-        project_box.label(text='Project',icon='FILE_BLEND')
-        project_box.prop(settings,'save_path')
-        project_box.operator('blender_xr.save',icon='FILE_TICK')
-
-        help_box=layout.box()
-        help_box.label(text='Quick Controls',icon='QUESTION')
-        help_box.label(text='Trigger: select / use tool')
-        help_box.label(text='Grip + trigger: add/remove selection')
-        help_box.label(text='Grip: grab object or empty space')
-        help_box.label(text='Left stick: move  |  Right stick: turn / height')
-        help_box.label(text='Other trigger: menu / cancel')
+    def draw(self, context):
+        ui_v076.draw_panel(self, context)
 
 
 @persistent
