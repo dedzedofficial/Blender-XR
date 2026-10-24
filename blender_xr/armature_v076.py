@@ -421,6 +421,11 @@ def patch_runtime(Runtime):
 
     def object_hit(self, context, origin, direction):
         surface = old_hit(self, context, origin, direction)
+        active = context.view_layer.objects.active
+        if active and active.type == 'MESH' and active.mode == 'WEIGHT_PAINT':
+            # In Paint mode, the pointer must hit mesh polygons instead of
+            # jumping forward to an overlaid armature bone.
+            return surface
         bone = ray_pick_bone(context, origin, direction)
         if bone is not None:
             _, _, obj, _name, point, _part = bone
