@@ -490,6 +490,11 @@ class BXR_PT_workflow(bpy.types.Panel):
     bl_category = 'Mesh XR'
     bl_parent_id = 'BXR_PT_panel'
 
+    @classmethod
+    def poll(cls, context):
+        settings = getattr(context.scene, 'blender_xr', None)
+        return settings is not None and settings.ui_section == 'MODEL'
+
     def draw(self, context):
         layout = self.layout
         obj = context.view_layer.objects.active
