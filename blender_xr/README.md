@@ -1,5 +1,9 @@
 # Mesh XR v0.7.6
 
+## 0.7.6 paired rigging and controller weight painting
+
+The Rigging page includes **Select Rig** and **Select Mesh**. Mesh XR remembers which mesh belongs to the rig even before parenting; Bind Empty Groups and Auto Weights therefore work without manually reselecting both. Select Mesh opens the actual mesh, Select Rig returns to the armature, and Grip+Trigger adds another Object Mode selection. Enter Weight Paint to select the first available vertex group (automatically creating empty groups if the mesh is not yet bound); the headset displays Paint, Erase, Previous/Next Group, Strength +/- and Brush Size +/-. Aim at the model and hold the dominant Trigger to apply or erase native Blender vertex-group weights. Done returns to Object Mode, while Pose tests the deforming skeleton. These interactions coexist with existing standard mesh Object/Edit controls. **Test on headset** before release.
+
 ## 0.7.6 controller armature editing
 
 In the VR Rigging page choose **Select Rig** or point directly at an armature bone in Object Mode. Choose **Edit Bones** to open the dedicated in-headset bone editor. Trigger selects bones; choose Move, Head or Tail to move them with the controller. Selection, topology/parenting, roll and settings submenus expose native Blender bone editing tools. Choose Finish to return to Object Mode. The desktop Model workspace also includes **Edit Bone Tools** and Blender's own complete Edit Armature menu for advanced options. These VR interactions need hardware validation before v0.7.6 acceptance.
