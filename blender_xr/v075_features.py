@@ -499,14 +499,14 @@ class BXR_PT_workflow(bpy.types.Panel):
         layout = self.layout
         obj = context.view_layer.objects.active
         layout.label(text='Asset readiness', icon='CHECKMARK')
-        layout.prop(context.scene.blender_xr, 'triangle_budget')
+        layout.prop(context.scene.blender_xr, 'triangle_budget', icon='MESH_DATA')
         row = layout.row(align=True)
         row.operator('blender_xr.asset_audit', icon='VIEWZOOM')
         row.operator('wm.search_menu', text='Search Tools', icon='VIEWZOOM')
         layout.separator()
         layout.label(text='Rigging / weight painting', icon='ARMATURE_DATA')
         layout.operator('blender_xr.create_basic_rig', icon='ARMATURE_DATA')
-        layout.label(text='To bind: select mesh + armature, make armature active')
+        layout.label(text='Select mesh + armature; armature active', icon='INFO')
         layout.operator('blender_xr.bind_auto_weights', icon='CONSTRAINT_BONE')
         layout.operator('blender_xr.weight_cleanup', icon='GROUP_VERTEX')
         if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' and obj.vertex_groups:
@@ -515,9 +515,9 @@ class BXR_PT_workflow(bpy.types.Panel):
             layout.operator('blender_xr.pose_test', icon='POSE_HLT')
         layout.separator()
         layout.label(text='Controller modelling', icon='HAND')
-        layout.label(text='Use Grip to grab/move objects; point and drag gizmos for axis precision.')
-        layout.label(text='Edit Mode supports face selection and controller-driven move/scale/extrude.')
-        layout.label(text='Use the PC View Mode toggle above to teach or observe the live XR view.')
+        layout.label(text='Grip: grab / move objects', icon='HAND')
+        layout.label(text='Edit: select, move, scale, extrude', icon='EDITMODE_HLT')
+        layout.label(text='PC mirror: Session workspace', icon='WINDOW')
 
 
 CLASSES = (
