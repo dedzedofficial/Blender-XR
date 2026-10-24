@@ -417,14 +417,12 @@ def install_pages():
     tools = [('', 'ROTATE') if act == 'DELETE_OBJECT' else (label, act)
              for label, act in menus.PAGES['TOOLS']]
     menus.PAGES['TOOLS'] = tuple(tools)
-    edits = [('', 'ROTATE_EDIT') if act == 'INSET' else (label, act)
-             for label, act in menus.PAGES['EDIT']]
+    edits = list(menus.PAGES['EDIT'])
+    if not any(action == 'ROTATE_EDIT' for _, action in edits):
+        # Retain Inset and all twelve existing edit actions; the extra
+        # icon cell supports controller rotation without removing a tool.
+        edits.append(('', 'ROTATE_EDIT'))
     menus.PAGES['EDIT'] = tuple(edits)
-    # Inset remains reachable through advanced editing rather than discarded.
-    more = list(menus.PAGES['EDIT_MORE'])
-    if not any(action == 'INSET' for _, action in more):
-        more.insert(-1, ('INSET', 'INSET'))
-    menus.PAGES['EDIT_MORE'] = tuple(more)
     operations = list(menus.PAGES['ARMATURE_EDIT'])
     operations = [(label, 'SELECT') if action == 'BONE_SELECT' else (label, action)
                   for label, action in operations]
