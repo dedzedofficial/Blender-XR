@@ -167,6 +167,71 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
             break
     return changes
 
+class BXR_OT_select_mesh(bpy.types.Operator):
+    bl_idname = 'blender_xr.select_mesh'
+    bl_label = 'Select Rigging Mesh'
+    bl_description = 'Activate the mesh paired with the active armature'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        try:
+            target = select_mesh(context)
+            active_group(target) if target.vertex_groups else None
+            self.report({'INFO'}, 'Mesh selected: ' + target.name)
+            return {'FINISHED'}
+        except (ValueError, RuntimeError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_bind_paired(bpy.types.Operator):
+    bl_idname = 'blender_xr.bind_paired'
+    bl_label = 'Bind Rig and Mesh'
+    bl_description = 'Select the paired armature and mesh, then bind in Blender'
+    bl_options = {'REGISTER', 'UNDO'}
+    binding: bpy.props.StringProperty(default='EMPTY')
+
+    def execute(self, context):
+        try:
+            ensure_object_mode(context)
+            current = context.view_layer.objects.active
+            arm = (current if _valid(context, current, 'ARMATURE')
+                   else armature_v076.activate_armature(context))
+            mesh = mesh_for_rig(context, arm)
+            paired_selection(context, arm, mesh)
+            result = (bpy.ops.blender_xr.bind_empty_weights() if self.binding == 'EMPTY'
+                      else bpy.ops.blender_xr.bind_auto_weights())
+            if 'FINISHED' not in result:
+                raise ValueError('Binding failed; inspect the Blender operator report')
+            active_group(mesh)
+            self.report({'INFO'}, 'Bound ' + mesh.name + ' to ' + arm.name)
+            return {'FINISHED'}
+        except (ValueError, RuntimeError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_select_weight_group(bpy.types.Operator):
+    bl_idname = 'blender_xr.select_weight_group'
+    bl_label = 'Select Vertex Group'
+    bl_options = {'REGISTER', 'UNDO'}
+    direction: bpy.props.IntProperty(default=1)
+
+    def execute(self, context):
+        try:
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'MESH':
+                obj = select_mesh(context)
+            active_group(obj)
+            obj.vertex_groups.active_index = (
+                obj.vertex_groups.active_index + self.direction) % len(obj.vertex_groups)
+            self.report({'INFO'}, 'Vertex group: ' + active_group(obj).name)
+            return {'FINISHED'}
+        except (ValueError, RuntimeError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
 def patch_runtime(Runtime):
     if getattr(Runtime, '_v076_rigging_paired', False):
         return
@@ -200,7 +265,15 @@ def patch_runtime(Runtime):
                 arm['mesh_xr_target_mesh'] = mesh.name
             self.status = 'ADDED ' + selected.name.upper()
             return
-        return original_select(self, context, origin, direction, additive=additive)
+        # When selecting a rig by pointing at a bone, keep the mesh paired:
+        # unlike conventional object picking, binding needs both objects.
+        prior_mesh = obj if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' else None
+        result = original_select(self, context, origin, direction, additive=additive)
+        active = context.view_layer.objects.active
+        if prior_mesh and active and active.type == 'ARMATURE':
+            active['mesh_xr_target_mesh'] = prior_mesh.name
+            prior_mesh.select_set(True)
+        return result
 
     def command(self, context, action):
         if action == 'RIG_CREATE':
@@ -308,6 +381,9 @@ def patch_runtime(Runtime):
             self.status = action.replace('_', ' ') + ' / ' + target.name.upper()
             return result
         if action == 'RIG_POSE':
+            active = context.view_layer.objects.active
+            if active and active.type == 'ARMATURE' and active.mode == 'POSE':
+                return command(self, context, 'RIG_EXIT_POSE')
             ensure_object_mode(context)
             current = context.view_layer.objects.active
             if not _valid(context, current, 'ARMATURE'):
@@ -367,3 +443,6 @@ def patch_runtime(Runtime):
     Runtime.begin_tool = begin_tool
     Runtime.tick = tick
     Runtime._v076_rigging_paired = True
+
+
+CLASSES = (BXR_OT_select_mesh, BXR_OT_bind_paired, BXR_OT_select_weight_group)
