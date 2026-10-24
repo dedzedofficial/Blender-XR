@@ -1,5 +1,9 @@
 # Mesh XR v0.7.6
 
+## 0.7.6 Blender-style controller selection and transforms
+
+The former Select Mesh and Select Rig actions have been consolidated into **Select**. Aim at a visible armature bone or mesh in Object Mode; repeated selection over an overlapped rig/mesh switches the target. In Mesh Edit Mode, Select points/edges/faces directly, including nearby loose elements. Hold the controller's **Grip** to grab and move selected geometry or an object; choose **Move**, **Scale**, or **Rotate** then hold **Trigger** to transform with controller motion. Bone editing and Pose Mode use the same context-based select and transform gestures. All controller transforms have VR-local Undo/Redo support. The old modelling tools remain accessible, and an automated menu audit checks for duplicate actions. Hardware testing remains required for v0.7.6 acceptance.
+
 ## 0.7.6 paired rigging and controller weight painting
 
 The Rigging page includes **Select Rig** and **Select Mesh**. Mesh XR remembers which mesh belongs to the rig even before parenting; Bind Empty Groups and Auto Weights therefore work without manually reselecting both. Select Mesh opens the actual mesh, Select Rig returns to the armature, and Grip+Trigger adds another Object Mode selection. Enter Weight Paint to select the first available vertex group (automatically creating empty groups if the mesh is not yet bound); the headset displays Paint, Erase, Previous/Next Group, Strength +/- and Brush Size +/-. Aim at the model and hold the dominant Trigger to apply or erase native Blender vertex-group weights. Done returns to Object Mode, while Pose tests the deforming skeleton. These interactions coexist with existing standard mesh Object/Edit controls. **Test on headset** before release.
