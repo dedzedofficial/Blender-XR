@@ -10,13 +10,15 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
 v071.patch(runtime.Runtime)
 armature_v076.install_pages()
 armature_v076.patch_runtime(runtime.Runtime)
+rigging_v076.install_pages()
+rigging_v076.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Blender XR'
@@ -49,6 +51,12 @@ class BXR_Settings(bpy.types.PropertyGroup):
     finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
         description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
+    weight_brush_strength: FloatProperty(name='Weight Strength', default=0.35, min=0.01, max=1.0,
+        description='Strength of the VR vertex group brush')
+    weight_brush_radius: FloatProperty(name='Weight Brush Size', default=0.18, min=0.01, max=3.0,
+        description='World-space radius of the VR vertex group brush')
+    weight_erase: BoolProperty(name='Erase Weights', default=False,
+        description='Reduce weights with the VR brush rather than add them')
     triangle_budget: IntProperty(name='Triangle Budget', default=70000, min=0, max=100000000,
         description='Target triangle budget used by the read-only asset readiness audit',
         update=_persist_setting)
@@ -336,7 +344,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES
 
 def register():
     for cls in CLASSES:
