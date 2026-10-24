@@ -820,7 +820,9 @@ class Runtime:
                 self.command(context,self.hover)
             elif self.gizmo_hover:
                 self.begin_axis(context,origin,direction,self.gizmo_hover)
-            elif self.tool in {'SELECT','MOVE','SCALE','MOVE_FACE','SCALE_FACE'}:
+            elif self.tool in {'SELECT','MOVE','SCALE','ROTATE','MOVE_FACE','SCALE_FACE',
+                                 'ROTATE_EDIT','BONE_MOVE','BONE_MOVE_HEAD','BONE_MOVE_TAIL',
+                                 'BONE_SCALE','BONE_ROTATE'}:
                 self.select(context,origin,direction,additive=self.grip.down)
             elif self.tool == 'PLACE':
                 self.spawn(context)
