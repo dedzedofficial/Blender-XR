@@ -1,5 +1,16 @@
 # Mesh XR roadmap
 
+## v0.7.6 — compact desktop UI test
+
+- [x] Native Blender icon-first workspace selector in the main 3D View sidebar.
+- [x] Preserve existing operators and group advanced panels beneath a single entry point.
+- [x] Isolate new sidebar layout and add Blender-side smoke regression coverage.
+- [ ] Run the Blender CI compatibility matrix against the 0.7.6 test branch.
+- [ ] Validate VR headset, controller profiles, mirror and optional SteamVR hand bridge on physical equipment.
+- [ ] Incorporate tester feedback before considering merge into `main`.
+
+Release boundary: the later v0.7, v0.8, v0.9 and v1.0 roadmap sections are targets, **not** already implemented features. Do not mark them shipped without tests.
+
 Mesh XR is a free controller-first OpenXR modeling extension for Blender by Ded Zed. This roadmap describes scoped goals rather than promises of full Blender parity. Shipped release history is kept in [CHANGELOG.md](CHANGELOG.md); this file tracks completed milestones and future direction.
 
 ## v0.7.5 — workflow expansion (development)
