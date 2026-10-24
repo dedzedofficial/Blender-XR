@@ -1,5 +1,12 @@
 # Mesh XR v0.7.6
 
+## 0.7.6 UI preview
+
+In the 3D View, open the **Blender XR** sidebar. The compact native-icon selector switches between Session, Model, Material, UV, Travel, Project and Help. Start/Stop VR and a short status remain visible above it. Advanced material, UV and workflow sections are collapsed subpanels shown only with their matching workspace. Every button keeps its underlying Blender operator and descriptive hover tooltip.
+
+The test ZIP is built from the draft pull request as `mesh-xr-v0.7.6.zip`. This is not a headset-hardware-verified release.
+
+
 v0.7.5 development adds a PC View Mode toggle to switch the current Blender viewport between the normal desktop view and Blender's live OpenXR session mirror, where supported. The toggle is display-only and does not start or stop VR. It also carries forward the v0.7.1 Object Tools, Geometry Tools, managed modifiers and UV history.
 
 Mesh XR is a free OpenXR-based VR mesh-modeling extension for Blender by Ded Zed.
