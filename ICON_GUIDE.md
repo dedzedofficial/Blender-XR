@@ -1,5 +1,9 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
+## v0.7.6 freeform rigging icons
+
+On the desktop Model workspace use **Armature**, **Edit**, **Add Bone**, **Finish Bones**, **Empty Groups**, **Auto Weights** and **Paint**. The VR Rigging page also has **Armature**, **Add Bone** and **Empty Groups** using Blender's armature/bone/modifier symbols. Bone transforms and precise editing use Blender's standard desktop Armature Edit Mode; the headset Add Bone action creates an editable bone but does not implement VR bone gizmos.
+
 ## v0.7.6 icon coverage test
 
 The Blender desktop sidebar has seven native-icon workspaces: **Session**, **Model**, **Material**, **UV**, **Travel**, **Project** and **Help**. Each workspace's commands and settings now have meaningful Blender icons. The Advanced Materials, UV Mapping and Workflow subpanels also use native icons. The active workspace is displayed as an icon tab with a descriptive tooltip, avoiding dependence on long English labels.
