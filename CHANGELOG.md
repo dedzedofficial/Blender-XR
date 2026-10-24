@@ -2,6 +2,14 @@
 
 ## v0.7.6 — icon-first sidebar and usability test (unreleased)
 
+### Complete icon coverage candidate (same 0.7.6 version)
+
+- Fixed an inherited XR menu layer painting opaque backgrounds over the newly drawn controller icons on core pages.
+- Added Blender-native icons to remaining controls in all seven desktop workspaces, plus advanced Materials, UV and Workflow subpanels.
+- Added a vector icon fallback whenever a VR menu's PNG or GPU texture is unavailable; HSL slider cells are intentionally not buttons.
+- Expanded Blender regression checks to validate every visible desktop control icon, native Blender icon name, active XR menu mapping and packaged icon PNG.
+- Keep the version at **0.7.6** and the pull request in draft until headset and user acceptance tests are complete.
+
 - Reorganised the Blender XR sidebar into seven compact icon-led workspaces, using native Blender icons and hover tooltips.
 - Kept session start/stop and status visible above the workspace selector.
 - Grouped advanced Materials, UV and Workflow panels as collapsed children of the main panel, preserving their operators.
