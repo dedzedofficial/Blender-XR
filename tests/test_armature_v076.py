@@ -84,7 +84,7 @@ def test():
             for label, action in buttons:
                 assert drawing._ICON_BY_ACTION.get(action), (page, action)
         assert armature_v076.PAGES_RETURN['ARMATURE_OPERATIONS'] == 'ARMATURE_EDIT'
-        assert 'RIG_SELECT_ARMATURE' in [action for _, action in menus.PAGES['RIGGING']]
+        assert [action for _, action in menus.PAGES['RIGGING']].count('SELECT') == 1
 
         # Reproduce the original complaint: an active mesh and one rig can
         # recover the armature, even when there is no editable bone selected.
