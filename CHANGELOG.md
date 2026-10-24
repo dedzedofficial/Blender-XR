@@ -2,6 +2,18 @@
 
 ## v0.7.6 — icon-first sidebar and usability test (unreleased)
 
+### Context-sensitive controller selection and transforms
+
+- Removed the redundant **Select Rig** and **Select Mesh** menu buttons. A single **Select** action detects meshes, vertices, edges, faces, armatures, edit bones and pose bones according to Blender's native mode. Repeated selection over overlapping mesh/bone targets cycles between the two without separate buttons.
+- Controller ray proximity now picks loose or small vertices/edges even if the ray did not intersect a polygon.
+- **Grip** grabs the pointed geometry or whole object and moves it with the controller; selected vertices, edges and faces preserve grouped selections. In the Move / Scale / Rotate tools, holding **Trigger** applies the appropriate transform while moving the controller.
+- Extended transformations to freeform armatures in Object Mode, bones in Armature Edit Mode, and pose bones in Pose Mode. Added dedicated **Rotate** tools and a compact **Pose Bones** menu with Select, Move, Scale, Rotate and Exit.
+- Native mesh Edit Mode face/extrude/inset/bevel and mesh-to-mesh switching remain available. Removed overlapping UI commands without dropping previous edit operations.
+- Controller vertex, bone and pose transforms participate in Mesh XR's VR-local Undo/Redo history. Cancel restores original geometry.
+- Added four-version Blender compatibility tests covering controller transform mathematics, history, menu icon mappings and duplicate action checks.
+- Version stays **0.7.6**, PR stays draft, physical OpenXR usability testing is still required.
+
+
 ### Rigging, object selection and native weight groups (VR usability repair)
 
 - Fixed the selection-state dead end: selecting an armature used to deselect the mesh, leaving Bind Empty Groups/Auto Weights unable to find it. Mesh XR now remembers the mesh paired with each rig and allows Select Rig / Select Mesh without manual desktop Shift-select.
