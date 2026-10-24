@@ -340,6 +340,8 @@ CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR
 
 def register():
     for cls in CLASSES:
+        if bpy.app.version < (4, 3, 0):
+            print('Mesh XR registration:', cls.__name__, flush=True)
         bpy.utils.register_class(cls)
     bpy.types.Scene.blender_xr=PointerProperty(type=BXR_Settings)
     bpy.types.VIEW3D_MT_view.append(draw_view_menu)
