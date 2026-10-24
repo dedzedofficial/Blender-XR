@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import bpy
 import blender_xr
-from blender_xr import material_uv, ui_v076, v075_features, version
+from blender_xr import drawing, material_uv, menus, ui_v076, v065, v075_features, version
 
 
 class FakeLayout:
@@ -47,6 +47,27 @@ def test():
     assert len(ui_v076.UI_SECTION_ITEMS) == 7
     assert len({item[0] for item in ui_v076.UI_SECTION_ITEMS}) == 7
     assert all(item[3] for item in ui_v076.UI_SECTION_ITEMS), 'Every workspace requires a Blender icon'
+    # Blender validates the actual icon vocabulary, not just nonempty strings.
+    valid_icons = {
+        item.identifier for item in
+        bpy.types.UILayout.bl_rna.functions['label'].parameters['icon'].enum_items
+    }
+    assert valid_icons, 'Could not retrieve Blender's native icon identifiers'
+    for key, label, _description, icon, _order in ui_v076.UI_SECTION_ITEMS:
+        assert icon in valid_icons, (key, icon)
+    for page, buttons in menus.PAGES.items():
+        assert buttons, 'Empty VR page: ' + page
+        for _label, action in buttons:
+            if action == 'PANEL':
+                assert page == 'MATERIAL_ADJUST', 'Blank slots are only allowed for HSL sliders'
+                continue
+            assert drawing._ICON_BY_ACTION.get(action), (page, action)
+            source = drawing._ICON_BY_ACTION[action]
+            icon_file = Path(drawing.__file__).parent / 'icons' / (source + '.png')
+            assert icon_file.is_file(), (page, action, source)
+    # The core overlay must not repaint button backgrounds on top of textures.
+    import inspect
+    assert "0.0025" not in inspect.getsource(v065._patch_menu_draw)
     assert blender_xr.BXR_PT_panel.bl_idname == 'BXR_PT_panel'
     assert material_uv.BXR_PT_materials_v060.bl_parent_id == 'BXR_PT_panel'
     assert material_uv.BXR_PT_uv_v060.bl_parent_id == 'BXR_PT_panel'
@@ -75,6 +96,38 @@ def test():
                     assert any(item[0] == 'operator' and item[1] == expected_operator
                                for item in fake.calls), section
                 assert any(item[0] == 'label' for item in fake.calls), section
+                for call in fake.calls:
+                    if call[0] == 'operator':
+                        assert call[2].get('icon') in valid_icons, (section, call)
+                    elif call[0] == 'prop':
+                        if call[1] == 'ui_section':
+                            assert call[2].get('icon_only') is True
+                        else:
+                            assert call[2].get('icon') in valid_icons, (section, call)
+                    elif call[0] == 'label' and call[1]:
+                        assert call[2] in valid_icons, (section, call)
+            # Check nested advanced panels, not just the seven top-level pages.
+            bpy.ops.object.mode_set(mode='OBJECT') if bpy.context.object and bpy.context.object.mode != 'OBJECT' else None
+            bpy.ops.mesh.primitive_cube_add()
+            obj = bpy.context.object
+            for panel_type in (material_uv.BXR_PT_materials_v060, v075_features.BXR_PT_workflow):
+                fake = FakeLayout()
+                panel_type.draw(SimpleNamespace(layout=fake), bpy.context)
+                for call in fake.calls:
+                    if call[0] == 'operator':
+                        assert call[2].get('icon') in valid_icons, (panel_type.__name__, call)
+                    elif call[0] == 'prop':
+                        assert call[2].get('icon') in valid_icons, (panel_type.__name__, call)
+            bpy.ops.object.mode_set(mode='EDIT')
+            fake = FakeLayout()
+            material_uv.BXR_PT_uv_v060.draw(SimpleNamespace(layout=fake), bpy.context)
+            for call in fake.calls:
+                if call[0] == 'operator':
+                    assert call[2].get('icon') in valid_icons, ('UV', call)
+                elif call[0] == 'prop':
+                    assert call[2].get('icon') in valid_icons, ('UV', call)
+            bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.data.objects.remove(obj, do_unlink=True)
         finally:
             settings.ui_section = 'SESSION'
     finally:
