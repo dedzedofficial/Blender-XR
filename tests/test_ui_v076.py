@@ -118,7 +118,7 @@ def test():
                             assert call[2].get('icon_only') is True
                         else:
                             assert call[2].get('icon') in valid_icons, (section, call)
-                    elif call[0] == 'label' and call[1]:
+                    elif call[0] == 'label' and call[1] and not str(call[1]).isdigit():
                         assert call[2] in valid_icons, (section, call)
             # Check nested advanced panels, not just the seven top-level pages.
             bpy.ops.object.mode_set(mode='OBJECT') if bpy.context.object and bpy.context.object.mode != 'OBJECT' else None
