@@ -273,8 +273,8 @@ class Runtime:
             return
         if action == 'RIG_CREATE':
             obj = context.view_layer.objects.active
-            if not obj or obj.type != 'MESH' or obj.mode != 'OBJECT':
-                raise ValueError('Select a humanoid mesh in Object Mode first')
+            if context.mode != 'OBJECT':
+                raise ValueError('Use Object Mode before creating an armature')
             before = set(context.view_layer.objects)
             result = bpy.ops.blender_xr.create_basic_rig()
             if 'FINISHED' not in result:
@@ -286,13 +286,29 @@ class Runtime:
             armature = rigs[-1]
             for candidate in context.selected_objects:
                 candidate.select_set(False)
-            obj.select_set(True)
+            if obj and obj.type == 'MESH':
+                obj.select_set(True)
             armature.select_set(True)
             context.view_layer.objects.active = armature
             self.menu.page = 'RIGGING'
-            self.status = 'RIG CREATED / REVIEW BONES THEN BIND'
+            self.status = 'ARMATURE READY / ADD BONES OR BIND'
             return
-        if action == 'RIG_BIND':
+        if action == 'RIG_ADD_BONE':
+            armature = context.view_layer.objects.active
+            if not armature or armature.type != 'ARMATURE':
+                armature = next((candidate for candidate in context.selected_objects
+                                 if candidate.type == 'ARMATURE'), None)
+            if not armature:
+                raise ValueError('Select an armature before adding a bone')
+            if armature.mode != 'OBJECT':
+                raise ValueError('Bone creation from VR requires Object Mode')
+            context.view_layer.objects.active = armature
+            result = bpy.ops.blender_xr.add_bone()
+            if 'FINISHED' not in result:
+                raise ValueError('Add Bone failed; see Blender operator report')
+            self.status = 'BONE ADDED / EDIT POSITION ON DESKTOP'
+            return
+        if action in {'RIG_BIND', 'RIG_BIND_EMPTY'}:
             armature = context.view_layer.objects.active
             if not armature or armature.type != 'ARMATURE':
                 armature = next((candidate for candidate in context.selected_objects
@@ -307,11 +323,15 @@ class Runtime:
             for candidate in meshes:
                 candidate.select_set(True)
             context.view_layer.objects.active = armature
-            result = bpy.ops.blender_xr.bind_auto_weights()
+            result = (bpy.ops.blender_xr.bind_empty_weights()
+                      if action == 'RIG_BIND_EMPTY'
+                      else bpy.ops.blender_xr.bind_auto_weights())
             if 'FINISHED' not in result:
-                raise ValueError('Automatic weight binding failed; check the Blender report')
+                raise ValueError('Armature binding failed; check the Blender report')
             self.menu.page = 'RIGGING'
-            self.status = 'WEIGHTS BOUND / TEST THE POSE'
+            self.status = ('EMPTY GROUPS READY / PAINT WEIGHTS'
+                           if action == 'RIG_BIND_EMPTY'
+                           else 'AUTO WEIGHTS BOUND / TEST POSE')
             return
         if action == 'RIG_WEIGHT':
             obj = context.view_layer.objects.active
