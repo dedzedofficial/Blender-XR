@@ -1,5 +1,14 @@
 # Mesh XR changelog
 
+## v0.7.6 — icon-first sidebar and usability test (unreleased)
+
+- Reorganised the Blender XR sidebar into seven compact icon-led workspaces, using native Blender icons and hover tooltips.
+- Kept session start/stop and status visible above the workspace selector.
+- Grouped advanced Materials, UV and Workflow panels as collapsed children of the main panel, preserving their operators.
+- Centralised the new desktop UI in `ui_v076.py`, without replacing the controller-driven XR runtime.
+- Added workspace smoke tests, packaging checks and a pull-request-only test installer artifact.
+- This is a test build: physical headset, controller, haptics and mirror verification is still outstanding, and the future roadmap remains future work.
+
 This file records shipped user-facing changes. Planned work belongs in [ROADMAP.md](ROADMAP.md).
 
 ## v0.7.5 — PC View Mode (development)
