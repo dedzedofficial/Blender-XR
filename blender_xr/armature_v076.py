@@ -180,6 +180,9 @@ def activate_armature(context):
                 candidates.append(obj.parent)
             candidates.extend(mod.object for mod in obj.modifiers
                               if mod.type == 'ARMATURE' and mod.object is not None)
+            candidates.extend(candidate for candidate in context.view_layer.objects
+                              if candidate.type == 'ARMATURE'
+                              and candidate.get('mesh_xr_target_mesh') == obj.name)
         candidates.extend(candidate for candidate in context.selected_objects
                           if candidate.type == 'ARMATURE')
         if not candidates:
@@ -187,17 +190,34 @@ def activate_armature(context):
                        if candidate.type == 'ARMATURE' and candidate.visible_get()]
             if len(visible) == 1:
                 candidates = visible
+            elif obj and obj.type == 'MESH' and visible:
+                # A newly-created, unbound rig is often inside the mesh and
+                # impossible to ray-select. Prefer the closest rig to its
+                # bounding box, provided the choice is unambiguous.
+                center = obj.matrix_world @ (
+                    sum((Vector(v) for v in obj.bound_box), Vector()) / 8.0)
+                ranked = sorted((arm.matrix_world.translation - center).length
+                                for arm in visible)
+                if len(ranked) == 1 or ranked[0] + 0.01 < ranked[1]:
+                    candidates = [min(visible,
+                                      key=lambda rig:
+                                      (rig.matrix_world.translation - center).length)]
         unique = {item.name: item for item in candidates}
         if len(unique) != 1:
-            raise ValueError('Select a rig, or use a bound mesh with exactly one rig')
+            raise ValueError('Cannot choose a rig: use a bound mesh or select one rig')
         arm = next(iter(unique.values()))
     if arm.mode not in {'OBJECT', 'EDIT'}:
         raise ValueError('Leave Pose Mode before editing armature bones')
     if obj and obj.mode != 'OBJECT' and obj != arm:
         bpy.ops.object.mode_set(mode='OBJECT')
+    paired_mesh = obj if obj and obj.type == 'MESH' else None
+    if paired_mesh:
+        arm['mesh_xr_target_mesh'] = paired_mesh.name
     for selected in context.selected_objects:
         selected.select_set(False)
     arm.select_set(True)
+    if paired_mesh and arm.mode == 'OBJECT':
+        paired_mesh.select_set(True)
     context.view_layer.objects.active = arm
     return arm
 
