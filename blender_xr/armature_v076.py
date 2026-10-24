@@ -19,7 +19,7 @@ from . import menus, v075_features
 # and controller guide unobstructed.
 ARMATURE_PAGES = {
     'ARMATURE_EDIT': (
-        ('SELECT','BONE_SELECT'), ('MOVE','BONE_MOVE'),
+        ('SELECT','SELECT'), ('MOVE','BONE_MOVE'),
         ('HEAD','BONE_MOVE_HEAD'), ('TAIL','BONE_MOVE_TAIL'),
         ('ADD','RIG_ADD_BONE'), ('EXTRUDE','BONE_EXTRUDE'),
         ('DUPLICATE','BONE_DUPLICATE'), ('DELETE','BONE_DELETE'),
