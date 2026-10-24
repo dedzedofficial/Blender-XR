@@ -2,6 +2,9 @@
 
 ## 0.7.6 UI preview
 
+All workspaces, nested desktop panels and actionable headset menus are now intended to show icons. Core-menu icon occlusion is fixed and controller menus use line-symbol fallbacks if a packaged icon cannot render. The current build is a tester candidate; keep version 0.7.6 until manual headset checks pass.
+
+
 In the 3D View, open the **Blender XR** sidebar. The compact native-icon selector switches between Session, Model, Material, UV, Travel, Project and Help. Start/Stop VR and a short status remain visible above it. Advanced material, UV and workflow sections are collapsed subpanels shown only with their matching workspace. Every button keeps its underlying Blender operator and descriptive hover tooltip.
 
 The test ZIP is built from the draft pull request as `mesh-xr-v0.7.6.zip`. This is not a headset-hardware-verified release.
