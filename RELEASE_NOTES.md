@@ -1,5 +1,10 @@
 # Mesh XR v0.7.6 — preview for testing
 
+## Rigging revised for freeform models
+
+Creating a rig no longer assumes a humanoid mesh that is taller than it is wide. **Create Armature** adds a normal Blender armature with one bone near the selected mesh, or at the cursor if no mesh is active. Use **Edit Bones / Add Bone / Finish Bones** in the Model workspace to construct and position bones with Blender's native tools. Select mesh and armature (armature active) and choose **Empty Groups** to create bone vertex groups, then select the mesh and **Paint** to paint weights. **Auto Weights** is still available but optional. VR can create a rig, extend the bone chain and bind empty groups; positioning bones precisely uses the desktop Blender Armature Edit Mode. All changes remain v0.7.6.
+
+
 **Status: draft / unmerged.** This test update prioritises a minimal native Blender sidebar, discoverable icons, and preservation of the 0.7.5 systems.
 
 ## Interface changes
