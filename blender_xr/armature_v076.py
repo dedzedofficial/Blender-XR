@@ -211,6 +211,11 @@ def activate_armature(context):
     if obj and obj.mode != 'OBJECT' and obj != arm:
         bpy.ops.object.mode_set(mode='OBJECT')
     paired_mesh = obj if obj and obj.type == 'MESH' else None
+    if paired_mesh is None:
+        meshes = [candidate for candidate in context.selected_objects
+                  if candidate.type == 'MESH' and candidate.visible_get()]
+        if len(meshes) == 1:
+            paired_mesh = meshes[0]
     if paired_mesh:
         arm['mesh_xr_target_mesh'] = paired_mesh.name
     for selected in context.selected_objects:
