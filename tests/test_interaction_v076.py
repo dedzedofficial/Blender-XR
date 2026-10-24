@@ -139,7 +139,9 @@ def test():
         bpy.ops.object.mode_set(mode='OBJECT')
         bpy.ops.object.mode_set(mode='POSE')
         pose = arm.pose.bones[0]
-        pose.bone.select = True
+        if hasattr(pose.bone, 'select'):
+            pose.bone.select = True
+        arm.data.bones.active = pose.bone
         old_pose = pose.matrix.copy()
         gesture = interaction.begin_transform(
             bpy.context, 'BONE_MOVE', Vector((1,0,0)), Q)
