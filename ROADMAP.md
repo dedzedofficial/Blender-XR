@@ -2,6 +2,12 @@
 
 ## v0.7.6 — compact desktop UI test
 
+- [x] Keep mesh and armature as a remembered pair through selection changes and rigging/edit/paint modes.
+- [x] Support Select Mesh / Select Rig, automatic empty-group binding, active group initialization and headset-driven paint/erase.
+- [x] Preserve Blender's regular mesh editing workflow beside the armature workflow.
+- [ ] Verify the new selection, brush strokes and bone editing on physical headset hardware.
+
+
 - [x] Replace the restrictive humanoid starter-rig template with a freeform armature, including selected wide and flat meshes.
 - [x] Add desktop Add Bone / Edit Bones / Finish Bones actions using standard Blender armature edit mode.
 - [x] Add manual weight painting through Bind Empty Groups while keeping Automatic Weights available.
