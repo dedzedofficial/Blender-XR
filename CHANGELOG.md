@@ -2,6 +2,15 @@
 
 ## v0.7.6 — icon-first sidebar and usability test (unreleased)
 
+### Normal armature and manual weight painting (test revision)
+
+- Replaced the upright-humanoid-only starter rig with a normal Blender armature containing one editable bone, sized around any selected mesh regardless of its orientation, aspect ratio or thickness; an armature can also be created without a mesh at the 3D cursor.
+- Added Add Bone, Edit Bones and Finish Bones controls to the desktop rigging workspace. Blender's native Armature Edit Mode handles positioning, extruding, parenting, mirroring and renaming bones.
+- Added Bind Empty Groups so artists can hand-paint vertex-group weights without automatic weight calculations. Automatic Weights remains optional.
+- Added Add Bone and Empty Groups actions to the VR rigging menu, using existing Blender icon textures. Desktop Edit Mode is needed for precise bone positioning.
+- Expanded regression tests for wide, flat and empty-scene armature creation, new bones, empty vertex groups and Weight Paint entry. The version stays **0.7.6**; no merge to main pending headset testing.
+
+
 ### Complete icon coverage candidate (same 0.7.6 version)
 
 - Fixed an inherited XR menu layer painting opaque backgrounds over the newly drawn controller icons on core pages.
