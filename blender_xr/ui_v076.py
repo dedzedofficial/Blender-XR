@@ -89,8 +89,7 @@ def _model(layout, context, settings):
     col = layout.column(align=True)
     row = col.row(align=True)
     _operator(row, 'blender_xr.create_basic_rig', 'New', 'ARMATURE_DATA')
-    _operator(row, 'blender_xr.select_armature', 'Select Rig', 'RESTRICT_SELECT_OFF')
-    _operator(col, 'blender_xr.select_mesh', 'Select Mesh', 'MESH_DATA')
+    col.label(text='Use Select to pick meshes, rigs or bones in VR', icon='RESTRICT_SELECT_OFF')
     if obj and obj.type == 'ARMATURE':
         if obj.mode == 'OBJECT':
             _operator(col, 'blender_xr.edit_bones', 'Edit Armature', 'EDITMODE_HLT')
