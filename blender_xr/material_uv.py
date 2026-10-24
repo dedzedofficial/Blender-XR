@@ -552,6 +552,11 @@ class BXR_PT_materials_v060(bpy.types.Panel):
     bl_category = 'Blender XR'
     bl_options = {'DEFAULT_CLOSED'}
 
+    @classmethod
+    def poll(cls, context):
+        settings = getattr(context.scene, 'blender_xr', None)
+        return settings is not None and settings.ui_section == 'MATERIAL'
+
     def draw(self, context):
         layout = self.layout
         settings = context.scene.blender_xr
@@ -559,20 +564,20 @@ class BXR_PT_materials_v060(bpy.types.Panel):
         name, slot, total = materials.active_material_summary(obj)
         layout.label(text='Active: {}  Slot {}/{}'.format(name, slot, total), icon='MATERIAL')
         row = layout.row(align=True)
-        row.operator('blender_xr.material_action', text='New').action = 'NEW'
-        row.operator('blender_xr.material_action', text='Duplicate').action = 'DUPLICATE'
-        row.operator('blender_xr.material_action', text='Delete').action = 'DELETE'
+        row.operator('blender_xr.material_action', text='New', icon='ADD').action = 'NEW'
+        row.operator('blender_xr.material_action', text='Duplicate', icon='DUPLICATE').action = 'DUPLICATE'
+        row.operator('blender_xr.material_action', text='Delete', icon='REMOVE').action = 'DELETE'
         layout.operator('blender_xr.material_rename', text='Rename Material', icon='GREASEPENCIL')
         row = layout.row(align=True)
-        row.operator('blender_xr.material_action', text='Prev Slot').action = 'SLOT_PREV'
-        row.operator('blender_xr.material_action', text='Next Slot').action = 'SLOT_NEXT'
+        row.operator('blender_xr.material_action', text='Prev Slot', icon='TRIA_LEFT').action = 'SLOT_PREV'
+        row.operator('blender_xr.material_action', text='Next Slot', icon='TRIA_RIGHT').action = 'SLOT_NEXT'
         row = layout.row(align=True)
-        row.operator('blender_xr.material_action', text='Add Slot').action = 'SLOT_ADD'
-        row.operator('blender_xr.material_action', text='Remove Slot').action = 'SLOT_REMOVE'
+        row.operator('blender_xr.material_action', text='Add Slot', icon='ADD').action = 'SLOT_ADD'
+        row.operator('blender_xr.material_action', text='Remove Slot', icon='REMOVE').action = 'SLOT_REMOVE'
         if obj and obj.type == 'MESH' and obj.mode == 'EDIT':
             row = layout.row(align=True)
-            row.operator('blender_xr.material_action', text='Assign Selected Faces').action = 'ASSIGN'
-            row.operator('blender_xr.material_action', text='Select Slot Faces').action = 'SELECT_FACES'
+            row.operator('blender_xr.material_action', text='Assign Selected Faces', icon='MATERIAL').action = 'ASSIGN'
+            row.operator('blender_xr.material_action', text='Select Slot Faces', icon='RESTRICT_SELECT_OFF').action = 'SELECT_FACES'
         layout.separator()
         layout.prop(settings, 'object_color', text='Base Color')
         layout.prop(settings, 'material_metallic')
@@ -580,17 +585,17 @@ class BXR_PT_materials_v060(bpy.types.Panel):
         layout.prop(settings, 'material_alpha')
         layout.prop(settings, 'material_emission')
         row = layout.row(align=True)
-        row.operator('blender_xr.material_action', text='Read Active').action = 'SYNC'
-        row.operator('blender_xr.material_action', text='Apply Properties').action = 'APPLY_PROPS'
+        row.operator('blender_xr.material_action', text='Read Active', icon='FILE_REFRESH').action = 'SYNC'
+        row.operator('blender_xr.material_action', text='Apply Properties', icon='CHECKMARK').action = 'APPLY_PROPS'
         layout.separator()
         layout.label(text='Texture: ' + (settings.texture_name or 'None'), icon='IMAGE_DATA')
         row = layout.row(align=True)
-        row.operator('blender_xr.texture_load', text='Load Image')
-        row.operator('blender_xr.material_action', text='Clear').action = 'CLEAR_TEXTURE'
+        row.operator('blender_xr.texture_load', text='Load Image', icon='FILE_FOLDER')
+        row.operator('blender_xr.material_action', text='Clear', icon='X').action = 'CLEAR_TEXTURE'
         row = layout.row(align=True)
-        row.operator('blender_xr.material_action', text='Checker').action = 'CHECKER'
-        row.operator('blender_xr.material_action', text='Direction').action = 'DIRECTION'
-        row.operator('blender_xr.material_action', text='Color Grid').action = 'GRID'
+        row.operator('blender_xr.material_action', text='Checker', icon='TEXTURE').action = 'CHECKER'
+        row.operator('blender_xr.material_action', text='Direction', icon='ORIENTATION_VIEW').action = 'DIRECTION'
+        row.operator('blender_xr.material_action', text='Color Grid', icon='COLOR').action = 'GRID'
         layout.operator('blender_xr.material_action', text='Toggle Material Preview', icon='SHADING_TEXTURE').action = 'PREVIEW'
 
 
@@ -602,6 +607,11 @@ class BXR_PT_uv_v060(bpy.types.Panel):
     bl_category = 'Blender XR'
     bl_options = {'DEFAULT_CLOSED'}
 
+    @classmethod
+    def poll(cls, context):
+        settings = getattr(context.scene, 'blender_xr', None)
+        return settings is not None and settings.ui_section == 'UV'
+
     def draw(self, context):
         layout = self.layout
         obj = context.view_layer.objects.active
@@ -610,30 +620,30 @@ class BXR_PT_uv_v060(bpy.types.Panel):
             layout.label(text='Enter mesh Edit Mode and select faces')
             return
         row = layout.row(align=True)
-        row.operator('blender_xr.uv_action', text='Unwrap').action = 'UNWRAP'
-        row.operator('blender_xr.uv_action', text='Smart').action = 'SMART'
+        row.operator('blender_xr.uv_action', text='Unwrap', icon='UV').action = 'UNWRAP'
+        row.operator('blender_xr.uv_action', text='Smart', icon='MODIFIER').action = 'SMART'
         row = layout.row(align=True)
-        row.operator('blender_xr.uv_action', text='Cube').action = 'CUBE'
-        row.operator('blender_xr.uv_action', text='Planar').action = 'PLANAR'
+        row.operator('blender_xr.uv_action', text='Cube', icon='MESH_CUBE').action = 'CUBE'
+        row.operator('blender_xr.uv_action', text='Planar', icon='MESH_PLANE').action = 'PLANAR'
         row = layout.row(align=True)
-        row.operator('blender_xr.uv_action', text='Mark Seams').action = 'MARK'
-        row.operator('blender_xr.uv_action', text='Clear Seams').action = 'CLEAR'
+        row.operator('blender_xr.uv_action', text='Mark Seams', icon='ADD').action = 'MARK'
+        row.operator('blender_xr.uv_action', text='Clear Seams', icon='REMOVE').action = 'CLEAR'
         step = context.scene.blender_xr.uv_step
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='U -'); op.action = 'MOVE_U'; op.value = -step
-        op = row.operator('blender_xr.uv_action', text='U +'); op.action = 'MOVE_U'; op.value = step
+        op = row.operator('blender_xr.uv_action', text='U -', icon='TRANSFORM_MOVE'); op.action = 'MOVE_U'; op.value = -step
+        op = row.operator('blender_xr.uv_action', text='U +', icon='TRANSFORM_MOVE'); op.action = 'MOVE_U'; op.value = step
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='V -'); op.action = 'MOVE_V'; op.value = -step
-        op = row.operator('blender_xr.uv_action', text='V +'); op.action = 'MOVE_V'; op.value = step
+        op = row.operator('blender_xr.uv_action', text='V -', icon='TRANSFORM_MOVE'); op.action = 'MOVE_V'; op.value = -step
+        op = row.operator('blender_xr.uv_action', text='V +', icon='TRANSFORM_MOVE'); op.action = 'MOVE_V'; op.value = step
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='Rotate -15'); op.action = 'ROTATE'; op.value = -15
-        op = row.operator('blender_xr.uv_action', text='Rotate +15'); op.action = 'ROTATE'; op.value = 15
+        op = row.operator('blender_xr.uv_action', text='Rotate -15', icon='TRANSFORM_ROTATE'); op.action = 'ROTATE'; op.value = -15
+        op = row.operator('blender_xr.uv_action', text='Rotate +15', icon='TRANSFORM_ROTATE'); op.action = 'ROTATE'; op.value = 15
         row = layout.row(align=True)
-        op = row.operator('blender_xr.uv_action', text='Scale 90%'); op.action = 'SCALE'; op.value = 0.9
-        op = row.operator('blender_xr.uv_action', text='Scale 110%'); op.action = 'SCALE'; op.value = 1.1
+        op = row.operator('blender_xr.uv_action', text='Scale 90%', icon='TRANSFORM_SCALE'); op.action = 'SCALE'; op.value = 0.9
+        op = row.operator('blender_xr.uv_action', text='Scale 110%', icon='TRANSFORM_SCALE'); op.action = 'SCALE'; op.value = 1.1
         row = layout.row(align=True)
-        row.operator('blender_xr.uv_action', text='Reset UVs').action = 'RESET'
-        row.operator('blender_xr.uv_action', text='Pack Islands').action = 'PACK'
+        row.operator('blender_xr.uv_action', text='Reset UVs', icon='LOOP_BACK').action = 'RESET'
+        row.operator('blender_xr.uv_action', text='Pack Islands', icon='UV').action = 'PACK'
         layout.prop(context.scene.blender_xr, 'uv_step')
 
 
