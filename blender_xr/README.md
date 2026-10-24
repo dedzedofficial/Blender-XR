@@ -1,5 +1,9 @@
 # Mesh XR v0.7.6
 
+## 0.7.6 freeform rigging
+
+The old `Create Basic Human Rig` action is now **Create Armature**. Any mesh shape is accepted (or select no mesh to create at the 3D cursor). The new armature has one editable bone. Select it, choose **Edit Bones** and add or extrude bones in Blender; **Finish Bones** exits editing. Select the mesh plus the armature, make the armature active, and click **Empty Groups** to bind for manual Weight Paint. **Auto Weights** remains optional. Select the bound mesh and click **Paint**. You can add bones from the headset menu, but precise Edit Bone positioning is in Blender's native desktop armature tools. The old operator ID is retained for compatibility. This stays version 0.7.6 while testing.
+
 ## 0.7.6 UI preview
 
 All workspaces, nested desktop panels and actionable headset menus are now intended to show icons. Core-menu icon occlusion is fixed and controller menus use line-symbol fallbacks if a packaged icon cannot render. The current build is a tester candidate; keep version 0.7.6 until manual headset checks pass.
