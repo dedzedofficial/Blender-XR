@@ -112,7 +112,7 @@ def test():
         interaction.update_transform(
             bpy.context, gesture, Vector((1,0,0)),
             Quaternion((.9238795325, 0, 0, .3826834324)))
-        assert (arm.matrix_world - arm_before).magnitude > .2
+        assert sum((arm.matrix_world[i][j] - arm_before[i][j]) ** 2 for i in range(4) for j in range(4)) > .04
         interaction.restore_transform(bpy.context, gesture)
         assert 'FINISHED' in bpy.ops.blender_xr.edit_bones()
         bone = arm.data.edit_bones[0]
