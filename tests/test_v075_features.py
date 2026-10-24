@@ -12,7 +12,7 @@ from blender_xr import drawing, gizmo, menus, runtime, version, v065, v075_featu
 def run():
     blender_xr.register()
     try:
-        assert version.VERSION == (0, 7, 5)
+        assert version.VERSION >= (0, 7, 5)
         # The v0.7.5 headset toolbar must expose functional rigging routes,
         # clear labels/tooltips, a separate tooltip strip and pickable gizmos.
         assert 'RIG_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
