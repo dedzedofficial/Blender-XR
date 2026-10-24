@@ -423,20 +423,23 @@ def install_pages():
     # Inset remains reachable through advanced editing rather than discarded.
     more = list(menus.PAGES['EDIT_MORE'])
     if not any(action == 'INSET' for _, action in more):
-        more = [(label, 'INSET') if action == 'LESS' else (label, action)
-                for label, action in more]
+        more.insert(-1, ('INSET', 'INSET'))
     menus.PAGES['EDIT_MORE'] = tuple(more)
     operations = list(menus.PAGES['ARMATURE_EDIT'])
     operations = [(label, 'SELECT') if action == 'BONE_SELECT' else (label, action)
                   for label, action in operations]
-    # Remove tail-specific item from compact first page (still accessible by
-    # hovering endpoints in Select), in favour of Scale and Rotate.
-    operations = [(label, action) for label, action in operations if action == 'SELECT'
-                  or action != 'BONE_MOVE_TAIL']
-    operations = operations[:4] + [('SCALE','BONE_SCALE'), ('ROTATE','BONE_ROTATE')] + operations[4:]
-    if len(operations) > 12:
-        operations = operations[:11] + [('FINISH','RIG_EDIT_TOGGLE')]
+    # Every tool stays reachable; head and tail move to the Edit Tools page
+    # instead of silently dropping Settings from the twelve-button front page.
+    operations = [(label, action) for label, action in operations
+                  if action not in {'BONE_MOVE_HEAD', 'BONE_MOVE_TAIL'}]
+    operations = operations[:2] + [
+        ('SCALE', 'BONE_SCALE'), ('ROTATE', 'BONE_ROTATE')] + operations[2:]
+    assert len(operations) == 12
     menus.PAGES['ARMATURE_EDIT'] = tuple(operations)
+    edit_operations = list(menus.PAGES['ARMATURE_OPERATIONS'])
+    edit_operations[-1:-1] = [('HEAD', 'BONE_MOVE_HEAD'),
+                             ('TAIL', 'BONE_MOVE_TAIL')]
+    menus.PAGES['ARMATURE_OPERATIONS'] = tuple(edit_operations)
     for page in ('TOOLS','EDIT','EDIT_MORE','ARMATURE_EDIT','RIGGING','WEIGHT_PAINT'):
         actions = [action for _, action in menus.PAGES[page]]
         if len(actions) != len(set(actions)):
