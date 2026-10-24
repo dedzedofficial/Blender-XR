@@ -20,7 +20,7 @@ def test():
         for page, items in menus.PAGES.items():
             actions = [action for _label, action in items if action != 'PANEL']
             assert len(actions) == len(set(actions)), (page, actions)
-        for page in ('TOOLS', 'RIGGING', 'ARMATURE_EDIT'):
+        for page in ('TOOLS', 'RIGGING', 'ARMATURE_EDIT', 'POSE_EDIT'):
             assert [action for _, action in menus.PAGES[page]].count('SELECT') == 1
         for page, items in menus.PAGES.items():
             assert not any(action in {'RIG_SELECT_MESH', 'RIG_SELECT_ARMATURE'}
@@ -31,6 +31,8 @@ def test():
             assert any(action == a for _, action in menus.PAGES['EDIT'])
         for a in ('BONE_MOVE', 'BONE_SCALE', 'BONE_ROTATE'):
             assert any(action == a for _, action in menus.PAGES['ARMATURE_EDIT'])
+            assert any(action == a for _, action in menus.PAGES['POSE_EDIT'])
+        assert [action for _, action in menus.PAGES['POSE_EDIT']].count('RIG_EXIT_POSE') == 1
 
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
