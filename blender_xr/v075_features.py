@@ -148,138 +148,77 @@ class BXR_OT_asset_audit(bpy.types.Operator):
 
 
 class BXR_OT_create_basic_rig(bpy.types.Operator):
+    """Retain the old operator ID for saved shortcuts; use a plain armature now."""
     bl_idname = 'blender_xr.create_basic_rig'
-    bl_label = 'Create Basic Human Rig'
-    bl_description = 'Create a starter humanoid armature fitted to an upright mesh bounding box; review bone placement before binding'
+    bl_label = 'Create Armature'
+    bl_description = 'Create a regular Blender armature with one editable bone; no humanoid shape required'
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
         obj = context.view_layer.objects.active
-        return obj is not None and obj.type == 'MESH' and obj.mode == 'OBJECT'
+        return (obj is None or obj.mode == 'OBJECT') and context.mode == 'OBJECT'
 
     def execute(self, context):
         selected_before, active_before = _selection_snapshot(context)
         arm_obj = None
         arm_data = None
         try:
-            obj = active_mesh(context)
-            if obj.mode != 'OBJECT':
-                raise ValueError('Switch to Object Mode first')
-            bounds = [Vector(corner) for corner in obj.bound_box]
-            min_v = Vector(tuple(min(v[i] for v in bounds) for i in range(3)))
-            max_v = Vector(tuple(max(v[i] for v in bounds) for i in range(3)))
-            height = max_v.z - min_v.z
-            width = max_v.x - min_v.x
-            depth = max_v.y - min_v.y
-            if height <= 1e-6 or width <= 1e-6 or depth <= 1e-6:
-                raise ValueError('Mesh needs non-zero dimensions on all axes')
-            if height < width * 1.15:
-                raise ValueError('This starter rig expects an upright humanoid mesh taller than it is wide')
-            center_x = (min_v.x + max_v.x) * 0.5
-            center_y = (min_v.y + max_v.y) * 0.5
-            z0, z1 = min_v.z, max_v.z
-            w = width * 0.5
-            # A deliberately simple starter rig. Bone placement is a proportion-based
-            # guide only; users should inspect and adjust it before automatic binding.
-            points = {
-                'root': (center_x, center_y, z0 + height * 0.08),
-                'pelvis': (center_x, center_y, z0 + height * 0.48),
-                'spine': (center_x, center_y, z0 + height * 0.62),
-                'chest': (center_x, center_y, z0 + height * 0.73),
-                'neck': (center_x, center_y, z0 + height * 0.82),
-                'head': (center_x, center_y, z0 + height * 0.96),
-                'shoulder.L': (center_x - w * 0.62, center_y, z0 + height * 0.74),
-                'elbow.L': (center_x - w * 1.05, center_y, z0 + height * 0.59),
-                'hand.L': (center_x - w * 1.18, center_y, z0 + height * 0.46),
-                'shoulder.R': (center_x + w * 0.62, center_y, z0 + height * 0.74),
-                'elbow.R': (center_x + w * 1.05, center_y, z0 + height * 0.59),
-                'hand.R': (center_x + w * 1.18, center_y, z0 + height * 0.46),
-                'hip.L': (center_x - w * 0.30, center_y, z0 + height * 0.47),
-                'knee.L': (center_x - w * 0.31, center_y, z0 + height * 0.26),
-                'foot.L': (center_x - w * 0.31, center_y - depth * 0.18, z0 + height * 0.04),
-                'hip.R': (center_x + w * 0.30, center_y, z0 + height * 0.47),
-                'knee.R': (center_x + w * 0.31, center_y, z0 + height * 0.26),
-                'foot.R': (center_x + w * 0.31, center_y - depth * 0.18, z0 + height * 0.04),
-            }
-            links = [
-                ('root','pelvis'), ('pelvis','spine'), ('spine','chest'),
-                ('chest','neck'), ('neck','head'),
-                ('chest','shoulder.L'), ('shoulder.L','elbow.L'), ('elbow.L','hand.L'),
-                ('chest','shoulder.R'), ('shoulder.R','elbow.R'), ('elbow.R','hand.R'),
-                ('pelvis','hip.L'), ('hip.L','knee.L'), ('knee.L','foot.L'),
-                ('pelvis','hip.R'), ('hip.R','knee.R'), ('knee.R','foot.R'),
-            ]
-            # Standard, predictable bone names make the starter rig easier to
-            # inspect, weight-paint, retarget and adapt for common export workflows.
-            points.update({
-                'root_tip': (center_x, center_y, z0 + height * 0.12),
-                'pelvis_base': (center_x, center_y, z0 + height * 0.42),
-                'hand_end.L': (center_x - w * 1.35, center_y, z0 + height * 0.45),
-                'hand_end.R': (center_x + w * 1.35, center_y, z0 + height * 0.45),
-                'ankle.L': (center_x - w * 0.31, center_y, z0 + height * 0.08),
-                'ankle.R': (center_x + w * 0.31, center_y, z0 + height * 0.08),
-            })
-            bone_specs = [
-                ('root', 'root', 'root_tip', None, False),
-                ('pelvis', 'pelvis_base', 'pelvis', 'root', False),
-                ('spine', 'pelvis', 'spine', 'pelvis', True),
-                ('chest', 'spine', 'chest', 'spine', True),
-                ('neck', 'chest', 'neck', 'chest', True),
-                ('head', 'neck', 'head', 'neck', True),
-                ('upper_arm.L', 'shoulder.L', 'elbow.L', 'chest', False),
-                ('forearm.L', 'elbow.L', 'hand.L', 'upper_arm.L', True),
-                ('hand.L', 'hand.L', 'hand_end.L', 'forearm.L', True),
-                ('upper_arm.R', 'shoulder.R', 'elbow.R', 'chest', False),
-                ('forearm.R', 'elbow.R', 'hand.R', 'upper_arm.R', True),
-                ('hand.R', 'hand.R', 'hand_end.R', 'forearm.R', True),
-                ('thigh.L', 'hip.L', 'knee.L', 'pelvis', False),
-                ('shin.L', 'knee.L', 'ankle.L', 'thigh.L', True),
-                ('foot.L', 'ankle.L', 'foot.L', 'shin.L', True),
-                ('thigh.R', 'hip.R', 'knee.R', 'pelvis', False),
-                ('shin.R', 'knee.R', 'ankle.R', 'thigh.R', True),
-                ('foot.R', 'ankle.R', 'foot.R', 'shin.R', True),
-            ]
-            arm_data = bpy.data.armatures.new(obj.name + ' Mesh XR Rig')
-            arm_obj = bpy.data.objects.new(obj.name + ' Mesh XR Rig', arm_data)
+            source = context.view_layer.objects.active
+            mesh_obj = source if source is not None and source.type == 'MESH' else None
+            if mesh_obj and (mesh_obj.library or mesh_obj.data.library):
+                raise ValueError('A linked mesh cannot be edited')
+            # Use world-space mesh bounds. This supports upright, wide, flat,
+            # asymmetrical or rotated meshes without a humanoid assumption.
+            if mesh_obj and mesh_obj.type == 'MESH' and mesh_obj.data.vertices:
+                points = [mesh_obj.matrix_world @ Vector(corner)
+                          for corner in mesh_obj.bound_box]
+                lowest = Vector(tuple(min(p[i] for p in points) for i in range(3)))
+                highest = Vector(tuple(max(p[i] for p in points) for i in range(3)))
+                middle = (lowest + highest) * 0.5
+                sizes = highest - lowest
+                axis = max(range(3), key=lambda i: sizes[i])
+                distance = max(sizes[axis] * 0.5, 0.25)
+            else:
+                middle = context.scene.cursor.location.copy()
+                axis = 2
+                distance = 1.0
+            direction = Vector((1.0 if axis == 0 else 0.0,
+                                1.0 if axis == 1 else 0.0,
+                                1.0 if axis == 2 else 0.0))
+            arm_data = bpy.data.armatures.new('Mesh XR Armature')
+            arm_obj = bpy.data.objects.new('Mesh XR Armature', arm_data)
             context.collection.objects.link(arm_obj)
-            arm_obj.matrix_world = obj.matrix_world.copy()
+            arm_obj.location = middle
+            arm_obj.show_in_front = True
             bpy.ops.object.select_all(action='DESELECT')
             arm_obj.select_set(True)
             context.view_layer.objects.active = arm_obj
             bpy.ops.object.mode_set(mode='EDIT')
-            bones = {}
-            for name, start, end, _parent, _connected in bone_specs:
-                bone = arm_data.edit_bones.new(name)
-                bone.head = points[start]
-                bone.tail = points[end]
-                bones[name] = bone
-            for name, _start, _end, parent_name, connected in bone_specs:
-                bone = bones[name]
-                if parent_name:
-                    bone.parent = bones[parent_name]
-                    bone.use_connect = connected
+            bone = arm_data.edit_bones.new('Bone')
+            bone.head = -direction * (distance * 0.5)
+            bone.tail = direction * (distance * 0.5)
+            arm_data.edit_bones.active = bone
+            bone.select = True
             bpy.ops.object.mode_set(mode='OBJECT')
-            bpy.ops.object.select_all(action='DESELECT')
-            obj.select_set(True)
-            context.view_layer.objects.active = obj
-            self.report({'INFO'}, 'Starter rig created. Inspect bone placement before binding weights.')
+            if mesh_obj:
+                mesh_obj.select_set(True)
+            context.view_layer.objects.active = arm_obj
+            self.report({'INFO'}, 'Armature created. Edit Bones to add, move or extrude bones; then bind and paint weights.')
             return {'FINISHED'}
         except Exception as exc:
-            # If construction failed halfway through, delete the incomplete rig
-            # and return selection/active-object state to where the user started.
             try:
-                active_now = context.view_layer.objects.active
-                if active_now is not None and active_now.mode != 'OBJECT':
+                current = context.view_layer.objects.active
+                if current is not None and current.mode != 'OBJECT':
                     bpy.ops.object.mode_set(mode='OBJECT')
             except (ReferenceError, RuntimeError):
                 pass
             if arm_obj is not None:
                 try:
-                    data_block = arm_obj.data
+                    datablock = arm_obj.data
                     bpy.data.objects.remove(arm_obj, do_unlink=True)
-                    if data_block is not None and data_block.users == 0:
-                        bpy.data.armatures.remove(data_block)
+                    if datablock and datablock.users == 0:
+                        bpy.data.armatures.remove(datablock)
                 except (ReferenceError, RuntimeError, TypeError):
                     pass
             elif arm_data is not None:
@@ -289,9 +228,102 @@ class BXR_OT_create_basic_rig(bpy.types.Operator):
                 except (ReferenceError, RuntimeError, TypeError):
                     pass
             _restore_selection(context, selected_before, active_before)
-            self.report({'ERROR'}, 'Starter rig creation failed: ' + str(exc))
+            self.report({'ERROR'}, 'Armature creation failed: ' + str(exc))
             return {'CANCELLED'}
 
+
+class BXR_OT_edit_bones(bpy.types.Operator):
+    bl_idname = 'blender_xr.edit_bones'
+    bl_label = 'Edit Bones'
+    bl_description = 'Enter Blender Armature Edit Mode to position, extrude, rename and parent bones'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.view_layer.objects.active
+        return obj is not None and obj.type == 'ARMATURE' and obj.mode == 'OBJECT'
+
+    def execute(self, context):
+        try:
+            bpy.ops.object.mode_set(mode='EDIT')
+            return {'FINISHED'}
+        except RuntimeError as exc:
+            self.report({'ERROR'}, 'Cannot edit bones: ' + str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_finish_bones(bpy.types.Operator):
+    bl_idname = 'blender_xr.finish_bones'
+    bl_label = 'Finish Bones'
+    bl_description = 'Leave armature Edit Mode and return to Object Mode'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.view_layer.objects.active
+        return obj is not None and obj.type == 'ARMATURE' and obj.mode == 'EDIT'
+
+    def execute(self, context):
+        try:
+            bpy.ops.object.mode_set(mode='OBJECT')
+            return {'FINISHED'}
+        except RuntimeError as exc:
+            self.report({'ERROR'}, 'Cannot finish editing bones: ' + str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_add_bone(bpy.types.Operator):
+    bl_idname = 'blender_xr.add_bone'
+    bl_label = 'Add Bone'
+    bl_description = 'Add a normal Blender bone; extend the selected bone or add one at the armature origin'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.view_layer.objects.active
+        return obj is not None and obj.type == 'ARMATURE' and obj.mode in {'OBJECT', 'EDIT'}
+
+    def execute(self, context):
+        arm_obj = context.view_layer.objects.active
+        was_object = arm_obj.mode == 'OBJECT'
+        try:
+            if was_object:
+                bpy.ops.object.mode_set(mode='EDIT')
+            bones = arm_obj.data.edit_bones
+            parent = bones.active if bones.active and bones.active.select else None
+            if parent:
+                head = parent.tail.copy()
+                delta = parent.tail - parent.head
+                if delta.length < 0.01:
+                    delta = Vector((0, 0, 0.5))
+            else:
+                head = Vector((0, 0, 0))
+                delta = Vector((0, 0, 0.5))
+            for existing in bones:
+                existing.select = False
+                existing.select_head = False
+                existing.select_tail = False
+            bone = bones.new('Bone')
+            bone.head = head
+            bone.tail = head + delta
+            if parent:
+                bone.parent = parent
+                bone.use_connect = True
+            bone.select = True
+            bone.select_head = True
+            bone.select_tail = True
+            bones.active = bone
+            self.report({'INFO'}, 'Bone created. Select and position it in Blender Armature Edit Mode.')
+            return {'FINISHED'}
+        except Exception as exc:
+            self.report({'ERROR'}, 'Could not add bone: ' + str(exc))
+            return {'CANCELLED'}
+        finally:
+            if was_object and arm_obj.mode == 'EDIT':
+                try:
+                    bpy.ops.object.mode_set(mode='OBJECT')
+                except RuntimeError:
+                    pass
 
 
 class BXR_OT_bind_auto_weights(bpy.types.Operator):
