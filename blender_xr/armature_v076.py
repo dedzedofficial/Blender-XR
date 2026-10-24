@@ -85,11 +85,7 @@ BONE_ACTIONS = tuple(EDIT_ACTIONS) + (
     'BONE_CONNECT', 'BONE_DEFORM', 'BONE_LOCK',
     'BONE_ROLL_UP', 'BONE_ROLL_DOWN', 'BONE_EXTRUDE',
 )
-# Keep enum item string objects alive for Blender 4.2, including class reloads.
-# Generating strings in the property definition has caused native crashes
-# during repeated register/unregister cycles in older Blender builds.
-BONE_ACTION_ITEMS = tuple((action, action.replace('_', ' ').title(), '')
-                          for action in BONE_ACTIONS)
+
 
 
 def install_pages():
@@ -548,8 +544,4 @@ def patch_runtime(Runtime):
     Runtime._v076_armature_patched = True
 
 
-# Blender 4.2 crashes when nested panels are re-registered during addon reload.
-# Keep the same tools inline in the Model workspace on that older version.
-CLASSES = (BXR_OT_select_armature, BXR_OT_bone_action) + (
-    (BXR_PT_armature_edit,) if bpy.app.version >= (4, 3, 0) else ()
-)
+CLASSES = (BXR_OT_select_armature, BXR_OT_bone_action, BXR_PT_armature_edit)
