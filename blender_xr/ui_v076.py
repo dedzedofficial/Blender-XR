@@ -41,15 +41,15 @@ def _session(layout, context, settings, active):
     _header(layout, 'Headset', 'XRAY')
     col = layout.column(align=True)
     col.enabled = not active
-    col.prop(settings, 'dominant_hand', text='Hand')
-    col.prop(settings, 'controller_family', text='Controller')
-    col.prop(settings, 'input_source', text='Input')
+    col.prop(settings, 'dominant_hand', text='Hand', icon='HAND')
+    col.prop(settings, 'controller_family', text='Controller', icon='PREFERENCES')
+    col.prop(settings, 'input_source', text='Input', icon='EVENT_S')
     if settings.input_source == 'STEAMVR_HANDS':
-        col.prop(settings, 'bridge_port', text='Bridge port')
+        col.prop(settings, 'bridge_port', text='Bridge port', icon='CONSOLE')
         if active and getattr(runtime.CURRENT, 'bridge', None):
             _operator(layout, 'blender_xr.bridge_command', 'Copy bridge command', 'COPYDOWN')
     else:
-        col.prop(settings, 'finger_touch', text='Finger shortcuts', toggle=True)
+        col.prop(settings, 'finger_touch', text='Finger shortcuts', toggle=True, icon='HAND')
 
     _header(layout, 'PC View Mode', 'WINDOW')
     view_space = context.space_data
@@ -67,18 +67,18 @@ def _session(layout, context, settings, active):
 def _model(layout, context, settings):
     _header(layout, 'Precision', 'MODIFIER')
     col = layout.column(align=True)
-    col.prop(settings, 'step', text='Tool step')
+    col.prop(settings, 'step', text='Tool step', icon='TRANSFORM_MOVE')
     row = col.row(align=True)
     row.prop(settings, 'precision_mode', text='Snap', icon='SNAP_ON', toggle=True)
     row.prop(settings, 'haptic_feedback', text='Haptics', icon='FORCE_HARMONIC', toggle=True)
-    col.prop(settings, 'bevel_segments', text='Bevel')
+    col.prop(settings, 'bevel_segments', text='Bevel', icon='MOD_BEVEL')
     row = col.row(align=True)
-    row.prop(settings, 'primitive_size', text='Shape')
-    row.prop(settings, 'placement_distance', text='Distance')
+    row.prop(settings, 'primitive_size', text='Shape', icon='MESH_CUBE')
+    row.prop(settings, 'placement_distance', text='Distance', icon='ORIENTATION_VIEW')
 
     layout.separator()
     _header(layout, 'Asset audit', 'CHECKMARK')
-    layout.prop(settings, 'triangle_budget', text='Triangle budget')
+    layout.prop(settings, 'triangle_budget', text='Triangle budget', icon='MESH_DATA')
     obj = context.view_layer.objects.active
     row = layout.row(align=True)
     row.enabled = bool(obj and obj.type == 'MESH' and obj.mode == 'OBJECT')
@@ -103,7 +103,7 @@ def _material(layout, context, settings):
         layout.label(text=f'{name}  ({slot}/{total})', icon='MATERIAL')
     else:
         layout.label(text='Select a mesh', icon='INFO')
-    layout.prop(settings, 'object_color', text='Color')
+    layout.prop(settings, 'object_color', text='Color', icon='COLOR')
     is_mesh = bool(obj and obj.type == 'MESH')
     row = layout.row(align=True)
     row.enabled = is_mesh
@@ -117,7 +117,7 @@ def _material(layout, context, settings):
     row.enabled = is_mesh
     _operator(row, 'blender_xr.material_action', 'New', 'ADD', action='NEW')
     _operator(row, 'blender_xr.material_action', 'Duplicate', 'DUPLICATE', action='DUPLICATE')
-    layout.label(text='More material tools in panel below', icon='INFO')
+    layout.label(text='More tools in Materials + Textures below', icon='INFO')
 
 
 def _uv(layout, context, settings):
@@ -137,37 +137,43 @@ def _uv(layout, context, settings):
     _operator(row, 'blender_xr.uv_action', 'Mark', 'ADD', action='MARK')
     _operator(row, 'blender_xr.uv_action', 'Clear', 'X', action='CLEAR')
     _operator(col, 'blender_xr.uv_action', 'Pack islands', 'UV', action='PACK')
-    layout.prop(settings, 'uv_step', text='UV step')
-    layout.label(text='Advanced UV controls in panel below', icon='INFO')
+    layout.prop(settings, 'uv_step', text='UV step', icon='UV')
+    layout.label(text='More tools in UV Mapping below', icon='INFO')
 
 
 def _travel(layout, context, settings):
     _header(layout, 'Movement', 'ORIENTATION_VIEW')
     col = layout.column(align=True)
-    col.prop(settings, 'move_speed', text='Speed')
+    col.prop(settings, 'move_speed', text='Speed', icon='ORIENTATION_VIEW')
     row = col.row(align=True)
-    row.prop(settings, 'fly_mode', text='Fly', toggle=True)
-    row.prop(settings, 'fast_flight', text='Turbo', toggle=True)
-    col.prop(settings, 'turn_mode', text='Turning', expand=True)
-    col.prop(settings, 'turn_angle' if settings.turn_mode == 'SNAP' else 'turn_speed')
-    col.prop(settings, 'grab_air', text='Grab empty space', toggle=True)
+    row.prop(settings, 'fly_mode', text='Fly', toggle=True, icon='ORIENTATION_VIEW')
+    row.prop(settings, 'fast_flight', text='Turbo', toggle=True, icon='FORWARD')
+    col.prop(settings, 'turn_mode', text='Turning', expand=True, icon='TRANSFORM_ROTATE')
+    col.prop(settings, 'turn_angle' if settings.turn_mode == 'SNAP' else 'turn_speed', icon='TRANSFORM_ROTATE')
+    col.prop(settings, 'grab_air', text='Grab empty space', toggle=True, icon='HAND')
 
 
 def _project(layout, context, settings):
     _header(layout, 'Project', 'FILE_BLEND')
-    layout.prop(settings, 'save_path', text='File')
+    layout.prop(settings, 'save_path', text='File', icon='FILE_BLEND')
     _operator(layout, 'blender_xr.save', 'Save .blend', 'FILE_TICK')
     layout.separator()
     layout.prop(settings, 'show_statistics', text='Statistics', icon='INFO', toggle=True)
     if not settings.show_statistics:
         return
     info = statistics.scene_stats(context)
-    for label, key in (('Objects', 'objects'), ('Selected', 'selected'),
-                       ('Meshes', 'meshes'), ('Materials', 'materials'),
-                       ('Vertices', 'vertices'), ('Edges', 'edges'),
-                       ('Faces', 'faces'), ('Triangles', 'triangles')):
+    for label, key, icon in (
+        ('Objects', 'objects', 'OBJECT_DATA'),
+        ('Selected', 'selected', 'RESTRICT_SELECT_OFF'),
+        ('Meshes', 'meshes', 'MESH_DATA'),
+        ('Materials', 'materials', 'MATERIAL'),
+        ('Vertices', 'vertices', 'VERTEXSEL'),
+        ('Edges', 'edges', 'EDGESEL'),
+        ('Faces', 'faces', 'FACESEL'),
+        ('Triangles', 'triangles', 'MOD_TRIANGULATE'),
+    ):
         row = layout.row(align=True)
-        row.label(text=label)
+        row.label(text=label, icon=icon)
         row.label(text=str(info[key]))
     obj = info.get('active')
     if obj:
