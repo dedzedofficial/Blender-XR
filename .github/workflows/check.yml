@@ -75,6 +75,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_ui_v076.py
+      - name: v0.7.6 paired rigging, group and VR brush integration tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_rigging_v076.py
       - name: v0.7.6 in-headset bone selection and armature edit tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
