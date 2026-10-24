@@ -564,9 +564,7 @@ class BXR_PT_workflow(bpy.types.Panel):
             if obj.mode == 'EDIT':
                 layout.operator('blender_xr.finish_bones', text='Finish Editing', icon='CHECKMARK')
         layout.label(text='Rig and mesh pairing works without Shift-select', icon='INFO')
-        row = layout.row(align=True)
-        row.operator('blender_xr.select_armature', text='Select Rig', icon='ARMATURE_DATA')
-        row.operator('blender_xr.select_mesh', text='Select Mesh', icon='MESH_DATA')
+        layout.label(text='Use Select in the headset to pick mesh or rig', icon='RESTRICT_SELECT_OFF')
         row = layout.row(align=True)
         row.operator('blender_xr.bind_paired', text='Empty Groups', icon='GROUP_VERTEX').binding = 'EMPTY'
         row.operator('blender_xr.bind_paired', text='Auto Weights', icon='CONSTRAINT_BONE').binding = 'AUTO'
