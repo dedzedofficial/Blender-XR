@@ -198,6 +198,8 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
             points = [matrix.translation for matrix in before.values()]
         pivot = obj.matrix_world @ (sum(points, Vector()) / len(points))
     position = Vector(pos)
+    if part is None and tool in {'BONE_MOVE_HEAD', 'BONE_MOVE_TAIL'}:
+        part = 'HEAD' if tool == 'BONE_MOVE_HEAD' else 'TAIL'
     return {
         'object': obj.name, 'kind': kind, 'tool': tool,
         'source': source, 'start': position.copy(),
@@ -366,7 +368,9 @@ def patch_runtime(Runtime):
             if getattr(self, '_xr_gesture', None):
                 raise ValueError('Release the current transform first')
             if obj.mode == 'OBJECT':
-                hit = choose_object(context, origin, direction, self.object_hit)
+                hit = self.object_hit(context, origin, direction)
+                if not hit or hit[0] != obj:
+                    hit = choose_object(context, origin, direction, self.object_hit)
                 if hit:
                     target = hit[0]
                     if not target.select_get():
@@ -490,7 +494,9 @@ def patch_runtime(Runtime):
                         if hit:
                             select_context(self, context, origin, direction)
                     elif obj and obj.mode == 'OBJECT':
-                        picked = choose_object(context, origin, direction, self.object_hit)
+                        # Grab the object under the ray, not the alternate
+                        # overlap-cycling selection (that belongs to Select).
+                        picked = self.object_hit(context, origin, direction)
                         if picked:
                             if picked[0] != obj:
                                 for selected in context.selected_objects:
