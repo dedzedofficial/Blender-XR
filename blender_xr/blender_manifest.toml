@@ -1,6 +1,6 @@
 schema_version = "1.0.0"
 id = "blender_xr"
-version = "0.7.6"
+version = "0.8.0"
 name = "Mesh XR"
 tagline = "Icon-first VR modeling, materials and UV workflows"
 maintainer = "Ded Zed"
