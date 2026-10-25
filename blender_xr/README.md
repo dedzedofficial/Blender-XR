@@ -1,4 +1,14 @@
-# Mesh XR v0.7.6
+# Mesh XR v0.8.0 (alpha development build)
+
+## v0.8 alpha 1 — offhand radial menu and articulated controller hands
+
+- **Radial menu:** hold the **non-dominant Trigger** and point that **same hand's thumbstick** at a tool. Release Trigger to activate, or recenter the stick and release to cancel. Returning to thumbstick centre after highlighting a category opens that submenu while still holding Trigger. The dominant hand stays free for editing.
+- **Navigation safety:** while the radial menu captures input, movement, turning and old trigger selection are suspended. Right-handed users control the menu with their left controller; left-handed users with their right controller.
+- **Hands instead of controller spheres:** light, articulated left/right 3D hands render only in the XR overlay and never create Blender mesh objects. Grip and Trigger drive **estimated** finger curls. Tracking individual physical finger joints is not yet implemented by this hand visual feature.
+- **Fallbacks:** choose **Classic ray menu** and **Native controllers** or **Pointers only** from the Session workspace. The experimental SteamVR finger bridge continues to use classic controls when no thumbstick is available.
+- **Availability:** early alpha, automated Blender tests are required, and physical Quest 3 PC-VR testing is outstanding. Real optical hand tracking and upgraded SteamVR per-joint streaming are future milestones of 0.8.
+
+## Previous v0.7.6 capabilities
 
 ## 0.7.6 native Weight Paint Mode and Blender parenting
 
