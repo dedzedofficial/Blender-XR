@@ -171,8 +171,8 @@ def draw(layout, settings):
     row.prop(settings, 'recovery_enabled', text='Safe recovery', toggle=True, icon='FILE_BACKUP')
     if settings.recovery_enabled:
         col = layout.column(align=True)
-        col.prop(settings, 'recovery_minutes', text='Minutes')
-        col.prop(settings, 'recovery_keep', text='Keep copies')
+        col.prop(settings, 'recovery_minutes', text='Minutes', icon='TIME')
+        col.prop(settings, 'recovery_keep', text='Keep copies', icon='FILE_BACKUP')
     row = layout.row(align=True)
     row.enabled = safe_to_save(bpy.context)
     row.operator('blender_xr.recovery_checkpoint', text='Checkpoint now', icon='FILE_TICK')
