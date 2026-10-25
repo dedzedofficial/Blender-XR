@@ -13,7 +13,7 @@
 3. **Predictable hands.** Trigger selects or operates the active tool; Grip grabs. A deliberate modifier extends selection. A captured gesture cannot also navigate or click the menu.
 4. **Visible and reversible.** Preview the affected target and pivot; clear results/miss messages; consistent undo/redo, cancel, and Save. Never overwrite existing painted weights silently.
 5. **No junk UI.** Context-specific wrist menu, shared global Mode/Undo/Redo/Save, one source-of-truth action registry. No dead buttons, duplicate aliases in menus or obsolete panels.
-6. **Version discipline.** Develop on a v0.8 branch. Preserve the shipped 0.7.6 installation and operator IDs where practical; keep unreleased work out of main until QA.
+6. **Version discipline.** Develop on a v0.8 branch. Preserve the shipped 0.7.6 installation and operator IDs where practical; use pull requests to merge completed, reviewed and CI-validated milestones into `main`.
 7. **No browser or sculpt workspace.** Do not build a VR Asset/File Browser, sculpt mode, or extra selection controls in 0.8. An optional simple in-scene Outliner is not an asset browser.
 
 ## What exists in v0.7.6 (build on, do not rebuild)
@@ -150,7 +150,7 @@ This is a safer, smaller improvement than building a sculpt engine. Put tasks un
 | 0.8-C / beta 1 | Full armature/weight/pose workflow; isolation/X-Ray; eyedropper and direct IK drag | Mesh-to-rig end-to-end scenario plus isolated and read-only weight sampling |
 | 0.8-C2 / beta 2 | Safe Cleanup/Repair; optional controller Curve Draw | Undoable mesh/rig cleanup; editable native Curve strokes if performance gates pass |
 | 0.8-D / RC | Performance, documentation, accessibility, Windows/headset QA | Four-version CI, packaged installer, VR acceptance and no outstanding P0 bugs |
-| 0.8 stable | Merge from the test branch and publish | Approved release checklist and verified installer |
+| 0.8 stable | Final release approval and publish | Completed milestones in `main`, approved release checklist and verified installer |
 
 ## Explicitly out of scope for 0.8 (avoid feature creep)
 
@@ -185,6 +185,6 @@ Run from a new Blender scene, with the headset connected to PC Blender:
 - Maintain backwards-compatible operators and settings where feasible, document migrations otherwise.
 - Keep a feature matrix: implemented + headset-tested / implemented but headset-unverified / planned.
 - A GitHub Actions green check means **Blender automation passes**, not that a feature has been proven usable on actual XR hardware.
-- Each milestone is separately reviewable, tested and reversible; do not merge an entire unstable 0.8 branch directly into main.
+- Each milestone is independently reviewable, tested and reversible; merge completed milestones to `main` through validated pull requests.
 
 The priority order is intentional: **input correctness and performance first; reliable Blender workflows second; targeted VR extras last.** User-selected extras are Isolation/X-Ray, Weight Eyedropper, Direct Posing and Draw Curves, plus non-destructive mesh/rig cleanup. **No asset browser or sculpt mode.**
