@@ -16,9 +16,12 @@ def run():
         # The v0.7.5 headset toolbar must expose functional rigging routes,
         # clear labels/tooltips, a separate tooltip strip and pickable gizmos.
         assert 'RIG_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
-        assert {'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT', 'RIG_CLEAN',
+        assert {'RIG_CREATE', 'PARENT_MENU', 'MODE_WEIGHT_PAINT', 'RIG_CLEAN',
                 'RIG_POSE', 'RIG_AUDIT'} <= {
                     action for _label, action in menus.PAGES['RIGGING']}
+        assert {'PARENT_AUTO', 'PARENT_EMPTY', 'PARENT_ENVELOPE',
+                'PARENT_ARMATURE', 'PARENT_OBJECT', 'PARENT_CLEAR'} <= {
+                    action for _label, action in menus.PAGES['PARENT_RIG']}
         assert 'RIGGING' in v065.CORE_PAGES
         assert 'DEFAULT_CLOSED' in getattr(v075_features.BXR_PT_workflow, 'bl_options', set()), 'Compact UI keeps the advanced workflow folded'
         assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
