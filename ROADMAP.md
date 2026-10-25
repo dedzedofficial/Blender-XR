@@ -174,7 +174,7 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 | Version | Main goal | Ideal direction |
 | --- | --- | --- |
 | **v0.7** | **Object transforms + modifiers** | Numeric transforms, origins, snapping, duplication and a focused set of common modifiers. |
-| **v0.8** | **VR usability + production rigging** | Consolidated controller input, one contextual UI, precision transforms, reliable weight painting, complete mesh → rig → pose workflow and headset QA. [Detailed plan](V0_8_PLAN.md). |
+| **v0.8** | **VR usability + production rigging + selected VR tools** | Consolidated input, precision modelling, native Weight Eyedropper, reversible Isolation/X-Ray, direct IK posing, conditional Curve Draw and non-destructive Cleanup/Repair. **No asset browser or sculpt mode.** [Detailed plan](V0_8_PLAN.md). |
 | **v0.9** | **Deformation + Animation** | Shape keys/blendshapes, corrective deformation, pose presets, basic drivers and practical keyframe animation tools in VR. |
 | **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems and make the complete workflow stable, performant and VR-native, including direct-hand manipulation and Extrude-to-Hand. |
 
@@ -219,16 +219,18 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 
 ## v0.8 — VR-first workflow + rigging completion (proposed)
 
-**Full implementation stages, priorities, acceptance tests and excluded features:** [V0_8_PLAN.md](V0_8_PLAN.md).
+**Full requirements, stages, scope limits and headset acceptance:** [V0_8_PLAN.md](V0_8_PLAN.md). New tools complement existing v0.7.6 features rather than duplicate them.
 
-- [ ] **P0:** One controller-input/action state machine and verified real-headset selection, grab, transform, painting and mode switching.
-- [ ] **P0:** Consistent native Blender object/mesh/bone/pose/weight state and safe Undo/Redo/cancel for every new 0.8 tool.
-- [ ] **P1:** Contextual wrist controls, numeric transforms, axis/pivot orientation and snapping; simple scene hierarchy and contextual feedback without duplicate buttons.
-- [ ] **P1:** Production-ready armature editing, vertex-group manager, smoothing/mirroring/normalization, visible brush heatmap and deformation preview.
-- [ ] **P1:** Essential pose constraints including IK, Copy Rotation and Copy Location.
-- [ ] **P0:** Caching/performance, clean installer, cross-version Blender tests and Quest 3 PC-VR device acceptance.
-
-Existing basics from v0.7.6 (armature creation, parent types, initial Weight Paint Mode, simple paint brush, bone transforms) are **not** new 0.8 features. The work is to finish and harden their combined workflow.
+- [ ] **P0:** Unify controller action routing, context-sensitive Select and all gesture/transform handling; no duplicate selection buttons.
+- [ ] **P0:** Blender-native modes, correct Undo/Redo/cancel, reliable weight strokes, robust session startup/shutdown and physical Quest 3 acceptance.
+- [ ] **P1:** One compact contextual wrist UI, X/Y/Z constraints, precision bubble, snapping, numeric input and box/lasso/brush selection.
+- [ ] **P1:** **Isolation and X-Ray** for targeted meshes, rigs and through-surface selection; independently controlled, reversible and non-destructive.
+- [ ] **P1:** **Weight Eyedropper** for precise read-only weight sampling and brush value matching, plus better group tools, bone-to-group picking, symmetry and weight cleanup.
+- [ ] **P1:** **Direct Posing** with controller-grabbed endpoints, small IK chains, pose reset and live mesh deformation without changing rest bones.
+- [ ] **P1:** **Cleanup/Repair** tools: Merge by Distance, loose/degenerate geometry, normals, non-manifold inspection, broken rig mappings and safe weight cleanup with preview and Undo.
+- [ ] **P2 / conditional:** **Draw Curves in 3D** with controller stroke preview, jitter reduction, editable native Blender splines, thickness/bevel, curve-point edits and optional conversion to mesh. Delay to v0.8.x if core stability/performance gates are not met.
+- [ ] **P0:** Profile OpenXR/Quest 3 PC-VR workloads, cache expensive pick structures, test Blender 4.2/4.5/5.0/5.2 and finish headset-based release QA.
+- [ ] **Excluded:** VR asset browser, sculpt mode, full character animation and automatic full-body posing.
 
 ## v0.9 — deformation + animation
 
