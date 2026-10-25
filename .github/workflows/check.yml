@@ -22,6 +22,7 @@ jobs:
       - name: Finger protocol and profile tests
         run: |
           python tests/test_gestures.py
+          python tests/test_v080_controls.py
           python tests/test_prune.py
       - name: Check Python syntax
         run: python -m compileall -q blender_xr tests
@@ -146,6 +147,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v071.py
+      - name: v0.8 articulated XR hand geometry tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v080_hands.py
       - uses: actions/upload-artifact@v4
         with:
           name: mesh-xr-${{ matrix.blender }}
@@ -169,8 +174,8 @@ jobs:
           python scripts/build.py
       - uses: actions/upload-artifact@v4
         with:
-          name: mesh-xr-v0.7.6-preview-installer
+          name: mesh-xr-v0.8.0-alpha-preview
           path: |
-            dist/mesh-xr-v0.7.6.zip
-            dist/mesh-xr-v0.7.6.zip.sha256
+            dist/mesh-xr-v0.8.0.zip
+            dist/mesh-xr-v0.8.0.zip.sha256
           retention-days: 30
