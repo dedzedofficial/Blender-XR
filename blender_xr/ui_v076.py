@@ -70,6 +70,19 @@ def _session(layout, context, settings, active):
     else:
         layout.label(text='VR requires an active OpenXR runtime', icon='INFO')
 
+    layout.prop(settings, 'show_diagnostics', text='Controller diagnostics', icon='INFO', toggle=True)
+    if settings.show_diagnostics:
+        session = runtime.CURRENT
+        if session:
+            layout.label(text='Dominant: ' + settings.dominant_hand, icon='HAND')
+            layout.label(text='Input: ' + settings.input_source)
+            layout.label(text='Menu: ' + ('active' if getattr(
+                getattr(session, 'radial', None), 'active', False) else 'idle'))
+            bridge = getattr(session, 'bridge', None)
+            if bridge:
+                layout.label(text='Fingers: ' + str(getattr(bridge, 'tracking_levels', []))[:40])
+        else:
+            layout.label(text='VR not running')
     _header(layout, 'PC View Mode', 'WINDOW')
     view_space = context.space_data
     if hasattr(view_space, 'mirror_xr_session'):
