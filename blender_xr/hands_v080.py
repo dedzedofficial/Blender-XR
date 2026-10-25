@@ -79,6 +79,12 @@ def draw(runtime, shader):
         gpu.state.depth_test_set('LESS_EQUAL')
         scale = float(getattr(runtime.settings, 'hand_scale', 1.0))
         vr_scale = float(getattr(state, 'viewer_scale', 1.0))
+        # Calibrate hand overlay in controller-local coordinates, not geometry
+        # or the precise editing ray.
+        calibration = Vector((
+            float(getattr(runtime.settings, 'hand_offset_x', 0.0)),
+            float(getattr(runtime.settings, 'hand_offset_y', 0.0)),
+            float(getattr(runtime.settings, 'hand_offset_z', 0.0))))
         for index in (0, 1):
             try:
                 origin = Vector(state.controller_grip_location_get(runtime.context, index))
@@ -92,7 +98,7 @@ def draw(runtime, shader):
                 individual = skeletal[index] if skeletal is not None else None
                 local_mesh = hand_mesh(grip, trigger, left=index == 0,
                                        finger_curls=individual)
-                points = [origin + rotation @ (point * scale * vr_scale)
+                points = [origin + rotation @ ((point * scale + calibration) * vr_scale)
                           for point in local_mesh]
                 drawing.draw_batch(shader, 'TRIS', points,
                                    (.67, .77, .84, .97))
