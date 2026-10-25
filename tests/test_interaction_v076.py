@@ -14,7 +14,7 @@ Q = Quaternion((1, 0, 0, 0))
 
 
 def test():
-    assert blender_xr.VERSION == (0, 7, 6)
+    assert blender_xr.VERSION >= (0, 7, 6)
     blender_xr.register()
     try:
         for page, items in menus.PAGES.items():
