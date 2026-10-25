@@ -1,5 +1,7 @@
 # Mesh XR v0.8.0
 
+**Cross-platform desktop:** Windows x64/ARM64, Linux x64, macOS Intel/Apple Silicon are declared extension targets. Some platform/Blender combinations cannot start VR; the Session workspace shows status instead of promising incompatible runtime support. See [Platform Compatibility](https://github.com/dedzedofficial/Blender-XR/blob/dev/v0.8.0/PLATFORM_COMPATIBILITY.md). iOS/Quest standalone require separate apps.
+
 ## v0.8 alpha 1 — offhand radial menu and articulated controller hands
 
 - **Radial menu:** hold the **non-dominant Trigger** and point that **same hand's thumbstick** at a tool. Release Trigger to activate, or recenter the stick and release to cancel. Returning to thumbstick centre after highlighting a category opens that submenu while still holding Trigger. The dominant hand stays free for editing.
