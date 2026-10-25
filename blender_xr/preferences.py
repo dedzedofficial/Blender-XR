@@ -9,6 +9,7 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 
 FIELDS = (
     'dominant_hand','controller_family','input_source','finger_touch','bridge_port',
+    'menu_style','hand_display','hand_scale',
     'step','bevel_segments','move_speed','fly_mode','fast_flight','turn_mode',
     'turn_angle','turn_speed','grab_air','primitive_size','placement_distance',
     'show_statistics','precision_mode','haptic_feedback','triangle_budget',
@@ -25,6 +26,9 @@ class BXR_Preferences(bpy.types.AddonPreferences):
     dominant_hand: EnumProperty(name='Dominant hand',items=[('RIGHT','Right',''),('LEFT','Left','')],default='RIGHT')
     controller_family: EnumProperty(name='Controller family',items=[('AUTO','Automatic',''),('META','Meta',''),('VALVE','Valve / SteamVR','')],default='AUTO')
     input_source: EnumProperty(name='Input',items=[('CONTROLLERS','Controllers',''),('STEAMVR_HANDS','Finger bridge','')],default='CONTROLLERS')
+    menu_style: EnumProperty(items=[('RADIAL','Offhand radial',''),('CLASSIC','Classic','')],default='RADIAL')
+    hand_display: EnumProperty(items=[('HANDS','Animated hands',''),('CONTROLLERS','Native controllers',''),('POINTERS','Pointers only','')],default='HANDS')
+    hand_scale: FloatProperty(default=1.0,min=0.65,max=1.5)
     finger_touch: BoolProperty(default=False)
     bridge_port: IntProperty(default=39540,min=1024,max=65535)
     step: FloatProperty(default=0.03,min=0.0001,max=10)
