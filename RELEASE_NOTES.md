@@ -1,28 +1,20 @@
-# Mesh XR v0.7.6 — preview for testing
+# Mesh XR v0.7.6 — merged into main
 
-## Rigging revised for freeform models
+**Compared with v0.7.5, the most recent published release.** Version 0.7.6 was merged into `main` in [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18) on 25 October 2026; this does **not** mean a tagged GitHub / Blender Extensions release has been published.
 
-Creating a rig no longer assumes a humanoid mesh that is taller than it is wide. **Create Armature** adds a normal Blender armature with one bone near the selected mesh, or at the cursor if no mesh is active. Use **Edit Bones / Add Bone / Finish Bones** in the Model workspace to construct and position bones with Blender's native tools. Select mesh and armature (armature active) and choose **Empty Groups** to create bone vertex groups, then select the mesh and **Paint** to paint weights. **Auto Weights** is still available but optional. VR can create a rig, extend the bone chain and bind empty groups; positioning bones precisely uses the desktop Blender Armature Edit Mode. All changes remain v0.7.6.
+## Highlights
 
+- **One Select tool for VR:** pick meshes, vertices, edges, faces, armatures, edit bones and pose bones with native Blender mode awareness; duplicate Select Mesh/Select Rig buttons removed.
+- **Controller manipulation:** Grip to grab and move geometry and objects; Move, Scale and Rotate with Trigger; better picking for loose/small vertices and edges; session-local Undo/Redo for geometry and bone transforms.
+- **Freeform armatures:** create and edit bones without the old humanoid-shape restriction; bone selection and transforms in VR, with native Blender editing operations still available.
+- **Native Weight Paint Mode:** select Weight Paint from the same VR Mode menu as Object/Edit. Paint and Erase actual vertex-group weights with the controller, select groups, adjust brush strength and size, and receive feedback when the ray misses the surface.
+- **Blender parenting methods:** Rigging → Parent supports Automatic Weights, Empty Groups, Envelope Weights, Armature Deform, Object Parent and Clear Parent (Keep Transform), while protecting existing painted weights.
+- **Compact icon-led interface:** seven sidebar workspaces with native Blender icons, hover tooltips, collapsed advanced panels and fallback icon rendering. Existing UV, materials and modelling tools remain.
+- **Compatibility:** successful automated extension packaging and full regression runs on Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2**. See [CI run #40147094901](https://github.com/dedzedofficial/Blender-XR/actions/runs/40147094901).
 
-**Status: draft / unmerged.** This test update prioritises a minimal native Blender sidebar, discoverable icons, and preservation of the 0.7.5 systems.
+For a detailed breakdown, read the [v0.7.6 changelog](CHANGELOG.md). Physical OpenXR headset control feel and painting accuracy require device verification beyond Blender's background tests.
 
-## Interface changes
-
-- A compact seven-workspace navigation bar uses Blender-native icons: Session, Model, Material, UV, Travel, Project and Help.
-- The main panel always shows Start/Stop VR and up to two short status lines.
-- One workspace is shown at a time; other sections are not stacked down the sidebar.
-- The full Materials + Textures, UV Mapping and Workflow panels are retained, collapsed by default, and only shown within their relevant workspace.
-- Common tools have recognisable Blender icons while hover tooltips and short labels remain available to explain actions.
-- All existing stable `blender_xr` operator identifiers, XR runtime patches and preference names are preserved.
-
-## Testing and rollout
-
-- Adds a Blender-side smoke test for each workspace, category/panel grouping and main actions.
-- Retains the older regression matrix across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
-- Pull requests produce a ZIP installer artifact from the actual extension packaging script.
-- OpenXR hardware, tracking, two-hand scaling, haptic output and native headset mirroring require in-headset validation. Automated tests cannot prove these work on every device.
-- Future roadmap features remain separate from the 0.7.6 UI release.
+---
 
 ## v0.7.5 foundations carried forward
 
