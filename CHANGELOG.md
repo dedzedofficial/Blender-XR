@@ -2,6 +2,17 @@
 
 ## v0.7.6 — icon-first sidebar and usability test (unreleased)
 
+### Real Weight Paint Mode and Blender parent-to-armature (test preview)
+
+- Weight Paint is a **first-class mode** in the headset Mode picker beside Object and Edit. Selecting it switches Blender to its actual `WEIGHT_PAINT` mode and opens the dedicated painting toolbar; exiting returns to Object Mode.
+- The brush writes real selected vertex-group weights, refreshes the Blender mesh/view layer, uses a ray hit on the evaluated (including skinned) mesh when possible, and shows explicit **NO SURFACE HIT** feedback instead of failing silently. Paint and Erase are explicit modes, not a toggle that leaves Paint stuck erasing.
+- Rigging now has a compact **Parent** page using the same Blender Ctrl+P types: **Automatic Weights**, **Empty Groups**, **Envelope Weights**, **Armature Deform** and **Object Parent**, plus **Clear Parent (Keep Transform)**. Parent creation respects transforms; repeated parenting doesn't overwrite painted weights.
+- Explicitly selected meshes take precedence over an older remembered mesh/rig pair, and the same Parent controls are exposed in the compact Model and expanded Workflow desktop panels.
+- Entering Weight Paint does **not** silently parent your mesh. A paired rig supplies missing bone groups, or the user can paint an independent vertex group when no rig is selected.
+- Added four-version Blender tests for the native mode picker, painting/erasing, actual parenting and clearing, preserved transforms and selecting a new target mesh.
+- Still **0.7.6** in draft PR #18; physical headset tests remain required.
+
+
 ### Context-sensitive controller selection and transforms
 
 - Removed the redundant **Select Rig** and **Select Mesh** menu buttons. A single **Select** action detects meshes, vertices, edges, faces, armatures, edit bones and pose bones according to Blender's native mode. Repeated selection over overlapping mesh/bone targets cycles between the two without separate buttons.
