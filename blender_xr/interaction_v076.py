@@ -632,7 +632,8 @@ def patch_runtime(Runtime):
                 and not self.transaction and not self.grab and
                 not self.axis_move and not self.air_grab):
             from . import actions
-            grip_held = (self.bridge.read()[self.dom][1] >= .45 if self.bridge
+            sample = self.bridge.read() if self.bridge else None
+            grip_held = (bool(sample and sample[self.dom][1] >= .45) if self.bridge
                          else actions.read(context, 'grab', self.dom)[0] >= .45)
             if grip_held and not self.grip.down:
                 obj = context.view_layer.objects.active
