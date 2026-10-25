@@ -1,5 +1,15 @@
 # Mesh XR testing
 
+## v0.7.6 Weight Paint Mode and Ctrl+P parenting acceptance
+
+- Use the existing **Mode** menu and select **Weight Paint** while a rig or mesh is selected. Verify the Blender viewport actually enters Weight Paint mode and the VR hand menu changes to the Paint/Erase/Group/Strength/Size controls.
+- Point at the mesh (including a posed/deformed mesh) and hold Trigger. Painting should change the active vertex group and visibly show weight colors; the VR status should report affected vertices, or **NO SURFACE HIT** when the ray misses.
+- Test **Erase** reduces existing weight and choosing **Paint** after Erase restores additive painting. Change active bone group and adjust brush strength/size. Use the Object Mode menu or Done to exit.
+- In **Rigging → Parent**, select **Empty Groups** to make manual weights, **Automatic Weights** to populate weights, **Envelopes** to use bone envelopes, **Armature Deform** for unweighted deformation and **Object Parent** to follow the rig without deformation. Clear Parent should keep the mesh world transform.
+- Explicitly select a *different* mesh and the same armature using normal Select / additive selection, then use Parent again. The newly selected mesh must win over any cached pair. Repeating Empty Groups should not wipe existing painted weights.
+- Check that Mode switching and parenting do not remove Object / Edit mesh tools, armature bone editing, Pose mode or existing Undo/Redo.
+- Real OpenXR controller hit testing, visual weight display and frame-rate ergonomics require confirmation on headset before version acceptance.
+
 ## v0.7.6 single-Select / controller transform acceptance
 
 - In **Object Mode**, point Select at a mesh, then at its armature bone. On a rig drawn over the mesh, repeated Select clicks should let you target either one. **Grip** grabs the currently aimed object; no separate Select Rig / Select Mesh menu buttons exist.
