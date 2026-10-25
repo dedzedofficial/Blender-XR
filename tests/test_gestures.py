@@ -73,6 +73,32 @@ class Tests(unittest.TestCase):
         self.assertEqual(bridge.read(), ((1.,0.),(1.,0.)))
         self.assertFalse(bridge.accept(packet(7, hands=[dict(tracked=True, level='estimated', pinch=.1, curl=0)]*2), local))
 
+    def test_v2_individual_finger_curls_and_joint_validation(self):
+        clock = [1.0]
+        bridge = g.HandBridge(0, lambda: clock[0])
+        self.addCleanup(bridge.close)
+        base = dict(tracked=True, level='full', pinch=.065, curl=.3,
+                    fingers=[.1, .2, .3, .4, .5],
+                    joints=[[0., .01, -.03] for _ in range(26)])
+        packet = lambda seq, h: json.dumps(
+            dict(v=2, key=bridge.key, seq=seq, hands=[h, h])).encode()
+        peer = ('127.0.0.1', 1234)
+        assert bridge.accept(packet(0, base), peer)
+        assert bridge.finger_curls == [( .1, .2, .3, .4, .5)] * 2
+        assert len(bridge.joints[0]) == 26
+        assert bridge.tracking_levels == ['full', 'full']
+        assert bridge.read() == ((0., 0.), (0., 0.))
+        bad = dict(base, fingers=[.2] * 4)
+        assert not bridge.accept(packet(1, bad), peer)
+        bad = dict(base, joints=[[float('nan'), 0, 0]] * 26)
+        assert not bridge.accept(packet(1, bad), peer)
+        bad = dict(base, joints=[[0, 0, 0]] * 25)
+        assert not bridge.accept(packet(1, bad), peer)
+        assert bridge.accept(packet(1, base), peer)
+        clock[0] = 1.5
+        assert bridge.read() is None
+        assert bridge.finger_curls == [None, None]
+
     def test_profiles_and_optional_touch(self):
         for family, expected in [('META', {'touch', 'simple'}),
                                  ('VALVE', {'touch','index','vive','simple'}),
@@ -118,6 +144,8 @@ class Tests(unittest.TestCase):
         result = helper.sample(vr,inputs,1)
         self.assertAlmostEqual(result['pinch'], .02)
         self.assertAlmostEqual(result['curl'], .8)
+        self.assertEqual(len(result['joints']), 26)
+        self.assertEqual(result['fingers'], [0., 0., .6, .8, 1.])
         self.assertEqual(result['level'],'partial')
         inputs.getSkeletalTrackingLevel = lambda h:0
         self.assertFalse(helper.sample(vr,inputs,1)['tracked'])
