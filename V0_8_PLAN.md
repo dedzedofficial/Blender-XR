@@ -4,6 +4,9 @@
 **Baseline:** Mesh XR v0.7.6 merged and published on GitHub, 25 October 2026.
 **Mission:** Make Mesh XR feel like Blender operated naturally inside a PC-connected VR headset, with predictable controller interactions and a complete mesh → rig → weight → pose workflow. Add four targeted VR-native features: reversible Isolation/X-Ray, Weight Eyedropper, direct IK-assisted posing and controller-drawn Blender curves.
 
+**New design-first requirement:** Before implementing v0.8 controller or hand-related functionality, review [the full system audit and tracking/radial design](V0_8_SYSTEM_AUDIT_AND_INPUT_PLAN.md). The hand-display, finger tracking and thumbstick-radial-menu work has a **mandatory capability and input-map research gate**. This document is a plan, not an assertion that those integrations work on Quest 3 PC-VR.
+
+
 > v0.7.6 implemented many *individual* actions. v0.8 focuses on making them cooperate reliably under real tracked-controller input. Do not rebuild or duplicate features just to fill a roadmap checkbox.
 
 ## Product rules (non-negotiable)
@@ -24,6 +27,22 @@
 - Seven compact desktop workspaces, existing materials/UV/modifier tools, session-local Undo/Redo and Blender 4.2/4.5/5.0/5.2 automated tests.
 
 **Evidence gap:** A successful headless Blender test does not prove OpenXR controller events, on-headset accuracy, display overlays, haptic feel or frame rate.
+
+## Milestone 0 — New hands, finger tracking and radial menu feasibility (design gate)
+
+The user requested **real 3D hands instead of ball-shaped controller indicators**, better hand/finger tracking and a **thumbstick-operated radial menu**. Investigate and decide the technical approach *before implementing* anything.
+
+- [ ] Validate Blender/OpenXR controller state and visual overlay capabilities across supported Blender versions and the actual Quest 3 PC-VR runtime/connection.
+- [ ] Design a lightweight left/right skinned hand model, optional estimated finger animations from ordinary Touch inputs, and safe controller/dot display fallback.
+- [ ] Measure the SteamVR bridge limitations: its current transport sends only one pinch and aggregate curl per hand, **not** per-joint poses. Prototype a versioned provider plan for per-finger/hand joints with honest estimated/partial/full reporting.
+- [ ] Assess native `XR_EXT_hand_tracking` feasibility: runtime support and safe access to hand joints via an actual supported bridge. Do not claim controller-animation equals optical tracking.
+- [ ] Prototype **NON-DOMINANT Trigger hold → NON-DOMINANT thumbstick selects one radial wedge → release the same Trigger to activate**. The dominant hand stays free for editing. Recenter to cancel; submenus require recentering. Temporarily suspend locomotion/turning on both sticks while the menu is open, support automatic left/right-handed mapping, and consider pinch-operated fallback where physical thumbsticks are absent.
+- [ ] Identify device mapping, gesture overlap, dropped tracking, handedness, joint coordinate and redraw/framerate hazards, with tests and accessibility fallback for the existing ray-driven grid.
+- [ ] Choose hand-mesh visual style, wrist/radial anchoring and input thresholds based on headset experiments before feature implementation.
+
+**Gate:** A documented capability matrix, tracked issue/risk list, approved input map, visual hands prototype feasibility result and an implementation sequence. No v0.8 hand/menu work should proceed on unsupported optical-joint assumptions.
+
+**Detailed audit and proposed solutions:** [V0_8_SYSTEM_AUDIT_AND_INPUT_PLAN.md](V0_8_SYSTEM_AUDIT_AND_INPUT_PLAN.md).
 
 ## Milestone A — Interaction-engine stabilisation (P0, release blocker)
 
@@ -145,12 +164,21 @@ This is a safer, smaller improvement than building a sculpt engine. Put tasks un
 
 | Stage | Deliverable | Must pass to move forward |
 | --- | --- | --- |
+| 0.8-0 / research gate | Input audit, 3D hand design, tracked-joint source probes, thumbstick radial prototype | Feasibility decisions, fallback mapping and physical headset input checklist |
 | 0.8-A / alpha 1 | Single input router, shared Select/Grab and interaction tests | Real Quest 3 selection, transformation, cancellation and mode change work repeatedly |
 | 0.8-B / alpha 2 | Precision transforms and compact menu/outliner | Edit, snap, type exact values, undo and save entirely inside headset |
 | 0.8-C / beta 1 | Full armature/weight/pose workflow; isolation/X-Ray; eyedropper and direct IK drag | Mesh-to-rig end-to-end scenario plus isolated and read-only weight sampling |
 | 0.8-C2 / beta 2 | Safe Cleanup/Repair; optional controller Curve Draw | Undoable mesh/rig cleanup; editable native Curve strokes if performance gates pass |
 | 0.8-D / RC | Performance, documentation, accessibility, Windows/headset QA | Four-version CI, packaged installer, VR acceptance and no outstanding P0 bugs |
 | 0.8 stable | Final release approval and publish | Completed milestones in `main`, approved release checklist and verified installer |
+
+## Rendering and control preferences under consideration
+
+- **Hand visuals:** Animated hands by default on compatible controllers; user can choose Hands / Controllers / Pointers / Hidden. Custom hands are rendered into the XR overlay, not as user-scene objects.
+- **Finger input:** Estimated controller gestures available first; SteamVR partial fingers if actually reported; optical individual joints only after capability and transform-space proof.
+- **Menu:** New radial UI is operated **entirely from the non-dominant hand**: hold its Trigger and tilt its own thumbstick; release to select or recenter to cancel. Automatic hand reversal for left-handed editing. The dominant controller must not be required for menu navigation. Retain the classic ray-button grid for unsupported controllers/accessibility and capture navigation input while the radial is open.
+- **Tracking loss:** No guessed transforms or automatic commit. Cancel/restores editing, show state and require neutral rearm before next action.
+- **Performance:** No full Blender scene objects to represent hands; batched GPU overlay, safe draw-state restoration, low update overhead, measured frame time on Quest 3 PC-VR.
 
 ## Explicitly out of scope for 0.8 (avoid feature creep)
 
