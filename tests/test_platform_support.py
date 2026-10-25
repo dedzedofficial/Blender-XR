@@ -59,11 +59,11 @@ class DesktopSupportTests(unittest.TestCase):
         self.assertFalse(current['vr'])
         self.assertIn('Apple Silicon', current['message'])
 
-    def test_iphone_is_not_a_blender_host(self):
-        r = support.support_info((5, 2, 2), True, 'iOS', 'arm64')
+    def test_unsupported_host_is_rejected(self):
+        r = support.support_info((5, 2, 2), True, 'OtherOS', 'arm64')
         self.assertFalse(r['desktop'])
         self.assertFalse(r['vr'])
-        self.assertIn('iOS', r['message'])
+        self.assertIn('desktop Blender', r['message'])
 
     def test_runtime_requires_headset_not_just_package(self):
         info = support.support_info((5, 2, 2), True, 'Windows', 'AMD64')
