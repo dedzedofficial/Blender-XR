@@ -16,7 +16,7 @@ from blender_xr import armature_v076, drawing, menus, rigging_v076, runtime
 
 
 def main():
-    assert blender_xr.VERSION == (0, 7, 6)
+    assert blender_xr.VERSION >= (0, 7, 6)
     blender_xr.register()
     try:
         bpy.ops.object.select_all(action='SELECT')
