@@ -147,4 +147,20 @@ def draw_inspector(layout, context):
     layout.label(text='Parent: ' + (obj.parent.name if obj.parent else '(none)'), icon='OUTLINER_DATA_EMPTY')
 
 
-CLASSES = (BXR_OT_measure, BXR_OT_export_check, BXR_OT_object_lock)
+class BXR_OT_reset_hand_calibration(bpy.types.Operator):
+    bl_idname = 'blender_xr.reset_hand_calibration'
+    bl_label = 'Reset Hand Calibration'
+    bl_description = 'Restore neutral hand offsets and 100% hand size'
+
+    def execute(self, context):
+        settings = context.scene.blender_xr
+        settings.hand_offset_x = 0.0
+        settings.hand_offset_y = 0.0
+        settings.hand_offset_z = 0.0
+        settings.hand_scale = 1.0
+        self.report({'INFO'}, 'Hand visual calibration reset')
+        return {'FINISHED'}
+
+
+CLASSES = (BXR_OT_measure, BXR_OT_export_check, BXR_OT_object_lock,
+           BXR_OT_reset_hand_calibration)
