@@ -85,8 +85,6 @@ def make_checkpoint(context, *, clock=None):
 
 def tick():
     global _LAST
-    if not bpy.app.timers.is_registered(tick):
-        return None
     try:
         context = bpy.context
         scene = context.scene
@@ -155,8 +153,10 @@ class BXR_OT_restore_checkpoint(bpy.types.Operator):
             self.report({'ERROR'}, 'No recovery checkpoints exist')
             return {'CANCELLED'}
         source = candidates[0]
-        out = source.with_name(source.stem + '-restored-' +
-                               datetime.now(timezone.utc).strftime('%H%M%S%f') + '.blend')
+        recovered = folder().parent / 'recovered'
+        recovered.mkdir(parents=True, exist_ok=True)
+        out = recovered / (source.stem + '-restored-' +
+                           datetime.now(timezone.utc).strftime('%H%M%S%f') + '.blend')
         try:
             shutil.copy2(source, out)
             bpy.ops.wm.open_mainfile(filepath=str(out), load_ui=False)
