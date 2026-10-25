@@ -66,14 +66,18 @@ def mesh_for_rig(context, arm=None):
         return current
     if arm is None and _valid(context, current, 'ARMATURE'):
         arm = current
-    if arm is not None:
-        candidate = bpy.data.objects.get(arm.get('mesh_xr_target_mesh', ''))
-        if _valid(context, candidate, 'MESH'):
-            return candidate
+    # Explicit multi-selection always wins over a previously remembered pair:
+    # equivalent to Blender Ctrl+P (mesh selected, armature active).
     meshes = [obj for obj in context.selected_objects
               if _valid(context, obj, 'MESH')]
     if len(meshes) == 1:
         return meshes[0]
+    if len(meshes) > 1:
+        raise ValueError('Select one mesh to parent at a time')
+    if arm is not None:
+        candidate = bpy.data.objects.get(arm.get('mesh_xr_target_mesh', ''))
+        if _valid(context, candidate, 'MESH'):
+            return candidate
     if arm:
         paired = [obj for obj in context.view_layer.objects
                   if obj.type == 'MESH' and obj.visible_get(view_layer=context.view_layer)
