@@ -118,6 +118,11 @@ def _model(layout, context, settings):
     row = layout.row(align=True)
     row.enabled = bool(obj and obj.type == 'MESH' and obj.mode == 'OBJECT')
     _operator(row, 'blender_xr.asset_audit', 'Audit mesh', 'VIEWZOOM')
+    _operator(layout, 'blender_xr.export_check', 'Pre-Export Check', 'CHECKMARK')
+    _operator(layout, 'blender_xr.measure', 'Measure Selection', 'ORIENTATION_VIEW')
+    layout.separator()
+    _header(layout, 'Quick Inspector', 'OBJECT_DATA')
+    quality_v080.draw_inspector(layout, context)
 
     layout.separator()
     _header(layout, 'Rigging', 'ARMATURE_DATA')
