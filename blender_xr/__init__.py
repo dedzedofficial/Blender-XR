@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, input_v080, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -21,6 +21,7 @@ rigging_v076.install_pages()
 rigging_v076.patch_runtime(runtime.Runtime)
 interaction_v076.install_pages()
 interaction_v076.patch_runtime(runtime.Runtime)
+input_v080.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Blender XR'
@@ -50,6 +51,14 @@ class BXR_Settings(bpy.types.PropertyGroup):
     input_source: EnumProperty(name='Input', items=[
         ('CONTROLLERS','Controllers','Use trigger and grip controls'),
         ('STEAMVR_HANDS','Finger bridge (experimental)','Requires external SteamVR skeletal bridge and tracked hand poses')], default='CONTROLLERS',update=_persist_setting)
+    menu_style: EnumProperty(name='VR Menu',items=[
+        ('RADIAL','Offhand radial','Hold non-dominant Trigger; select with the same hand thumbstick'),
+        ('CLASSIC','Classic ray menu','Original ray-and-trigger grid')],default='RADIAL',update=_persist_setting)
+    hand_display: EnumProperty(name='VR Hands',items=[
+        ('HANDS','Animated hands','Show low-poly articulated controller hands in XR'),
+        ('CONTROLLERS','Native controllers','Use the Blender OpenXR controller visuals'),
+        ('POINTERS','Pointers only','Only show Mesh XR rays and tool markers')],default='HANDS',update=_persist_setting)
+    hand_scale: FloatProperty(name='Hand size',default=1.0,min=0.65,max=1.5,update=_persist_setting)
     finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
         description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
