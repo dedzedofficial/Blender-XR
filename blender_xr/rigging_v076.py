@@ -19,17 +19,36 @@ WEIGHT_PAGE = (
     ('DONE', 'RIG_EXIT_PAINT'),
 )
 
+PARENT_PAGE = (
+    ('AUTO WEIGHTS', 'PARENT_AUTO'),
+    ('EMPTY GROUPS', 'PARENT_EMPTY'),
+    ('ENVELOPES', 'PARENT_ENVELOPE'),
+    ('ARMATURE', 'PARENT_ARMATURE'),
+    ('OBJECT PARENT', 'PARENT_OBJECT'),
+    ('CLEAR PARENT', 'PARENT_CLEAR'),
+    ('BACK', 'BACK'),
+)
+
+
 def install_pages():
+    # Weight Paint is a first-class Blender mode, not just a rigging action.
+    mode = list(menus.PAGES['MODE_SELECT'])
+    if not any(action == 'MODE_WEIGHT_PAINT' for _, action in mode):
+        mode.insert(2, ('WEIGHT PAINT', 'MODE_WEIGHT_PAINT'))
+    menus.PAGES['MODE_SELECT'] = tuple(mode)
     menus.PAGES['RIGGING'] = (
         ('ARMATURE', 'RIG_CREATE'), ('SELECT', 'SELECT'),
         ('EDIT BONES', 'RIG_EDIT_TOGGLE'),
-        ('ADD BONE', 'RIG_ADD_BONE'), ('EMPTY GROUPS', 'RIG_BIND_EMPTY'),
-        ('AUTO WEIGHTS', 'RIG_BIND'), ('WEIGHT PAINT', 'RIG_WEIGHT'),
+        ('ADD BONE', 'RIG_ADD_BONE'), ('PARENT', 'PARENT_MENU'),
+        ('WEIGHT PAINT', 'MODE_WEIGHT_PAINT'),
         ('CLEAN', 'RIG_CLEAN'), ('POSE', 'RIG_POSE'),
         ('AUDIT', 'RIG_AUDIT'), ('BACK', 'BACK'),
     )
+    menus.PAGES['PARENT_RIG'] = PARENT_PAGE
     menus.PAGES['WEIGHT_PAINT'] = WEIGHT_PAGE
-    menus.TITLES['WEIGHT_PAINT'] = 'VERTEX GROUP WEIGHT PAINT'
+    menus.TITLES['PARENT_RIG'] = 'PARENT TO ARMATURE'
+    menus.TITLES['WEIGHT_PAINT'] = 'WEIGHT PAINT MODE'
+
 
 def _valid(context, obj, kind):
     return (obj is not None and obj.type == kind
@@ -126,6 +145,91 @@ def already_bound(mesh, arm):
                     for mod in mesh.modifiers))
 
 
+def resolve_pair(context):
+    """Use regular Blender selection or remembered armature/mesh pairing."""
+    current = context.view_layer.objects.active
+    if _valid(context, current, 'ARMATURE'):
+        arm = current
+    elif _valid(context, current, 'MESH'):
+        arm = armature_v076.activate_armature(context)
+    else:
+        raise ValueError('Select a mesh or armature with the normal Select tool')
+    mesh = mesh_for_rig(context, arm)
+    return arm, mesh
+
+
+def parent_to_armature(context, method):
+    """Blender Ctrl+P types, including parenting without deformation."""
+    if method not in {'ARMATURE_AUTO', 'ARMATURE_NAME', 'ARMATURE_ENVELOPE',
+                      'ARMATURE', 'OBJECT'}:
+        raise ValueError('Unsupported parenting method: ' + str(method))
+    ensure_object_mode(context)
+    arm, target = resolve_pair(context)
+    if target.parent and target.parent != arm:
+        raise ValueError('Mesh has a different parent; clear that relationship first')
+    paired_selection(context, arm, target)
+    if method != 'OBJECT' and already_bound(target, arm):
+        # Reparenting must never wipe vertex weights the artist has painted.
+        ensure_deform_groups(target, arm)
+        return target, arm, False
+    if method == 'OBJECT' and target.parent == arm:
+        return target, arm, False
+    result = bpy.ops.object.parent_set(type=method, keep_transform=True)
+    if 'FINISHED' not in result or target.parent != arm:
+        raise ValueError('Blender could not parent the mesh to the armature')
+    if method == 'ARMATURE_NAME':
+        ensure_deform_groups(target, arm)
+    return target, arm, True
+
+
+def clear_mesh_parent(context):
+    """Native Blender Clear Parent (Keep Transform); retain any weight groups."""
+    ensure_object_mode(context)
+    target = mesh_for_rig(context)
+    if target.parent is None:
+        raise ValueError('Selected mesh has no parent')
+    for obj in context.selected_objects:
+        obj.select_set(False)
+    target.select_set(True)
+    context.view_layer.objects.active = target
+    result = bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+    if 'FINISHED' not in result or target.parent is not None:
+        raise ValueError('Clear Parent failed')
+    return target
+
+
+def enter_weight_mode(context):
+    """Enter native Weight Paint without implicitly parenting anything."""
+    ensure_object_mode(context)
+    active = context.view_layer.objects.active
+    arm = active if _valid(context, active, 'ARMATURE') else None
+    if arm is None and _valid(context, active, 'MESH'):
+        target = active
+        try:
+            arm = armature_v076.activate_armature(context)
+        except ValueError:
+            arm = None
+    else:
+        target = mesh_for_rig(context, arm)
+    if target is None or target.type != 'MESH':
+        raise ValueError('Select a mesh to enter Weight Paint mode')
+    if arm is not None:
+        arm['mesh_xr_target_mesh'] = target.name
+        ensure_deform_groups(target, arm)
+    if not target.vertex_groups:
+        target.vertex_groups.new(name='Group')
+    for item in context.selected_objects:
+        item.select_set(False)
+    target.select_set(True)
+    context.view_layer.objects.active = target
+    active_group(target)
+    result = bpy.ops.blender_xr.weight_paint()
+    if 'FINISHED' not in result or target.mode != 'WEIGHT_PAINT':
+        raise ValueError('Blender refused Weight Paint mode; see its error report')
+    context.view_layer.update()
+    return target
+
+
 def active_group(obj):
     if not obj.vertex_groups:
         raise ValueError('Mesh has no vertex groups; use Empty Groups to bind it')
@@ -149,7 +253,22 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     inv = obj.matrix_world.inverted_safe()
     local_origin = inv @ Vector(world_origin)
     local_direction = (inv.to_3x3() @ Vector(world_direction)).normalized()
-    hit, local_point, _normal, _face_index = obj.ray_cast(local_origin, local_direction)
+    # Prefer the evaluated surface location where Armature modifiers deform
+    # the mesh; use local cage raycast as a fallback for unmodified meshes.
+    hit = False
+    local_point = None
+    try:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        found, world_point, _normal, _face, surface, _matrix = (
+            bpy.context.scene.ray_cast(depsgraph, world_origin, world_direction))
+        if found and surface.original == obj:
+            local_point = inv @ world_point
+            hit = True
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        pass
+    if not hit:
+        hit, local_point, _normal, _face_index = (
+            obj.ray_cast(local_origin, local_direction))
     if not hit:
         return 0
     verts = obj.data.vertices
@@ -194,6 +313,9 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
                       else weight + (1.0 - weight) * influence)
             group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
             changes = 1
+    if changes:
+        obj.data.update()
+        bpy.context.view_layer.update()
     return changes
 
 class BXR_OT_select_mesh(bpy.types.Operator):
@@ -238,6 +360,60 @@ class BXR_OT_bind_paired(bpy.types.Operator):
                 raise ValueError('Binding failed; inspect the Blender operator report')
             ensure_deform_groups(mesh, arm)
             self.report({'INFO'}, 'Bound ' + mesh.name + ' to ' + arm.name)
+            return {'FINISHED'}
+        except (ValueError, RuntimeError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_parent_paired(bpy.types.Operator):
+    bl_idname = 'blender_xr.parent_paired'
+    bl_label = 'Parent Mesh to Armature'
+    bl_description = 'Blender-style Ctrl+P parenting: automatic, empty, envelope, deform or object'
+    bl_options = {'REGISTER', 'UNDO'}
+    parent_type: bpy.props.StringProperty(default='ARMATURE_NAME')
+
+    def execute(self, context):
+        try:
+            target, arm, changed = parent_to_armature(context, self.parent_type)
+            self.report({'INFO'}, ('Parented ' if changed else 'Already parented: ') +
+                        target.name + ' → ' + arm.name)
+            return {'FINISHED'}
+        except (RuntimeError, ValueError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_clear_mesh_parent(bpy.types.Operator):
+    bl_idname = 'blender_xr.clear_mesh_parent'
+    bl_label = 'Clear Parent (Keep Transform)'
+    bl_description = 'Use Blender Clear Parent while retaining the mesh world transform'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    def execute(self, context):
+        try:
+            mesh = clear_mesh_parent(context)
+            self.report({'INFO'}, 'Cleared parent of ' + mesh.name)
+            return {'FINISHED'}
+        except (RuntimeError, ValueError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class BXR_OT_weight_mode(bpy.types.Operator):
+    bl_idname = 'blender_xr.weight_mode'
+    bl_label = 'Weight Paint Mode'
+    bl_description = 'Switch to native Blender Weight Paint mode (like Object/Edit Mode)'
+    bl_options = {'REGISTER', 'UNDO'}
+    enabled: bpy.props.BoolProperty(default=True)
+
+    def execute(self, context):
+        try:
+            if self.enabled:
+                target = enter_weight_mode(context)
+                self.report({'INFO'}, 'Weight Paint: ' + active_group(target).name)
+            else:
+                ensure_object_mode(context)
             return {'FINISHED'}
         except (ValueError, RuntimeError) as exc:
             self.report({'ERROR'}, str(exc))
@@ -482,4 +658,5 @@ def patch_runtime(Runtime):
     Runtime._v076_rigging_paired = True
 
 
-CLASSES = (BXR_OT_select_mesh, BXR_OT_bind_paired, BXR_OT_select_weight_group)
+CLASSES = (BXR_OT_select_mesh, BXR_OT_bind_paired, BXR_OT_parent_paired,
+           BXR_OT_clear_mesh_parent, BXR_OT_weight_mode, BXR_OT_select_weight_group)
