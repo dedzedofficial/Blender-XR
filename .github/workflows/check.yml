@@ -178,7 +178,7 @@ jobs:
         run: python -m compileall -q blender_xr tests
       - name: Build platform-neutral desktop extension
         run: python scripts/build.py
-      - name: Verify all five declared desktop architectures inside ZIP
+      - name: Verify Windows/Linux baseline and both macOS architectures inside ZIP
         run: python tests/test_platform_package.py
 
   preview-package:
