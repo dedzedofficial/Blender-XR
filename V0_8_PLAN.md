@@ -1,6 +1,6 @@
 # Mesh XR v0.8 — VR-First Workflow and Rigging Completion Plan
 
-**Status:** Proposed specification; no v0.8 implementation or release is implied.
+**Status:** Active v0.8 specification. Early hand-visual, radial-menu and macOS alpha implementations exist on `dev/v0.8.0` ([draft PR #20](https://github.com/dedzedofficial/Blender-XR/pull/20)); the remaining items below are **planned, not delivered**. Physical-headset verification and stable 0.8 release remain outstanding.
 **Baseline:** Mesh XR v0.7.6 merged and published on GitHub, 25 October 2026.
 **Mission:** Make Mesh XR feel like Blender operated naturally inside a PC-connected VR headset, with predictable controller interactions and a complete mesh → rig → weight → pose workflow. Add four targeted VR-native features: reversible Isolation/X-Ray, Weight Eyedropper, direct IK-assisted posing and controller-drawn Blender curves.
 
@@ -18,6 +18,7 @@
 5. **No junk UI.** Context-specific wrist menu, shared global Mode/Undo/Redo/Save, one source-of-truth action registry. No dead buttons, duplicate aliases in menus or obsolete panels.
 6. **Version discipline.** Develop on a v0.8 branch. Preserve the shipped 0.7.6 installation and operator IDs where practical; use pull requests to merge completed, reviewed and CI-validated milestones into `main`.
 7. **No browser or sculpt workspace.** Do not build a VR Asset/File Browser, sculpt mode, or extra selection controls in 0.8. An optional simple in-scene Outliner is not an asset browser.
+8. **No radial favourites.** Keep the non-dominant-hand radial menu contextual and predictable. Do not add configurable favourites, pinning, frequently-used suggestions, or a new favourites ring.
 
 ## What exists in v0.7.6 (build on, do not rebuild)
 
@@ -62,6 +63,9 @@ Add support for **macOS Apple Silicon (Blender 5.x)** and **macOS Intel (Blender
 - [ ] Accurate picking across overlapping objects, visible armatures, bones, vertices, edges and faces: nearest/depth targeting, selection cycling, optional X-ray for hidden bones and tolerance scaled to controller distance.
 - [ ] Controller grabs and Trigger transforms must preserve the starting pivot, orientation, selection and object transform; implement reliable begin/update/end/cancel and tool feedback.
 - [ ] Unified undo/redo coverage for transforms, parenting, group editing, weight strokes and supported rig operations. Cancel must roll back fully; interrupted tracking must not leave an active drag.
+- [ ] **Controller and hand calibration (P0):** Offer a short in-headset wizard for grip/wrist offset, controller orientation, hand scale, finger/pointer alignment and handedness. Use separate user preferences per supported controller/runtime profile, reversible Preview/Reset, and clear estimated/partial/full joint data labels. Do not edit Blender scene geometry or persist raw hand-tracking samples.
+- [ ] **Gesture recovery and rearming (P0):** If a hand loses tracking, a bridge packet expires, the VR session loses focus, or the user changes modes mid-drag, restore the pre-gesture data and require neutral release before accepting another command. Test two-hand scaling and Weight Paint interruptions.
+- [ ] **Input diagnostics (P1):** A small optional local-only panel reports active physical controller bindings, hand tracking quality/joint validity, last packet freshness, current action owner, menu capture, transform state and safe error guidance. No telemetry or motion recording by default.
 - [ ] Build an optional *local* bug-report export with tool, mode, headset input profile, add-on/Blender versions and error logs. Do not upload or collect telemetry automatically.
 
 **A is complete when:** 30 consecutive mode-switch and grab/select/undo cycles work on a physical Quest 3 PC-VR setup without unresponsive controls, unintended operations, lost selection or corrupted weight data.
@@ -70,11 +74,14 @@ Add support for **macOS Apple Silicon (Blender 5.x)** and **macOS Intel (Blender
 
 - [ ] **Single contextual wrist menu.** Always-present Mode, Undo, Redo and Save; contextual tool row for Object, Mesh Edit, Armature Edit, Pose and Weight Paint. Consistent Back behaviour. No duplicated Select or mode buttons.
 - [ ] **Precise transforms.** Switch Global/Local/Normal axes; constrain X/Y/Z; choose Median/Individual/3D Cursor/Active pivot; grid and vertex/edge/face snapping with visual indicators.
+- [ ] **Precision Grab / Fine Adjustment (P1):** Optional hold-to-slow direct Grip/Trigger translation/rotation for vertex, object, bone tip and curve handles. Show amount, selected axis/pivot and an unambiguous preview; confirm/cancel/undo exactly once. Use a contextual modifier that does **not** hijack the non-dominant radial Trigger/thumbstick or locomotion.
 - [ ] **Numeric entry.** In-headset keypad for exact translation, rotation, scale, extrusion distance, brush strength and weight values. Physical controllers remain usable without numeric input.
 - [ ] **Direct editing.** Reliable selected vertex/edge/face grabbing, multi-selection, *box/lasso/brush select* (one shared Select tool with gesture types), proportional editing with adjustable falloff (start with connected vertex neighborhoods), and hand-directed Extrude with ghost preview and one-step cancel/undo.
 - [ ] **Precision bubble.** Optional temporary controller-local magnification/target zoom for tiny vertices and bone tips without scaling the actual mesh or saving a distorted model.
 - [ ] **Reversible isolation + X-Ray.** See the focused 0.8 feature section. Put both under a single View/Visibility menu; no extra Select buttons.
-- [ ] **Scene hierarchy.** A small, searchable, filterable Object/Outliner panel in the same menu system: select, hide/show, lock/unlock, rename, set active, collections and parent relations. No second independent object-selection tool.
+- [ ] **Scene hierarchy + quick inspector (P1).** A small, searchable, filterable in-scene Object/Outliner panel: select, rename, hide/show, lock/unlock, reveal parenting and material/collection info, and set active. Include a read-only quick-properties view and protected edit affordances for current selection; no second Select tool and no asset/file browser.
+- [ ] **Accidental-edit protection (P1):** Respect Blender-native object hide-select/lock constraints, unselectable geometry, locked vertex groups and armature/bone restrictions during grabbing, painting, posing and cleanup. Show a concise 'locked' reason rather than bypassing restrictions; enable temporary unlock only through an explicit action.
+- [ ] **In-VR measurements (P1):** Ruler and two-point distance, three-point angle, dimensions and bone-length readouts in scene units; optional snap to geometry and controller points. Measurements are overlay-only unless explicitly converted into native objects. No exported helper meshes by default.
 - [ ] **Visibility and guidance.** Show current Blender mode, active object/bone/group, selected count, active tool, axis/pivot, brush size/strength and concise reasons an action cannot run. Use a brief first-run in-VR tutorial that can be disabled.
 
 **B is complete when:** From the headset, users can accurately edit a cube's individual vertices, extrude a face, rotate by an exact angle, snap an object to geometry, select a different object in the hierarchy and save—all with no mouse/keyboard.
@@ -155,6 +162,55 @@ This is a safer, smaller improvement than building a sculpt engine. Put tasks un
 
 **Acceptance:** Run cleanup on a deliberately messy rigged mesh; the preview explains counts and proposed modifications, edits are reversible, no painted weights disappear and the hierarchy/material state remains intact.
 
+## Milestone S — Usability safeguards and polish (P0/P1, integrated into A → D)
+
+These improvements were selected after the v0.8 alpha review. **All are in scope except radial-menu favourites**, which the user explicitly declined. Reuse the existing Session/Model/Project/Help panels and contextual radial categories; do **not** make another permanent workspace or add duplicate toolbar buttons.
+
+### S1. Recoverable safety saves (P0)
+
+- [ ] Provide a clearly visible **Auto-Recovery** preference (on/off, interval, location and retention count) and a small explanation of disk usage. Default to safe, bounded local storage and respect a user's disabled preference.
+- [ ] Write versioned, timestamped *copies* of the .blend to a dedicated user-private recovery folder. Never overwrite the original project, alter its currently selected save path, silently upload anything or persist to a repository.
+- [ ] Save only from Blender's main thread and when no active gesture, modal edit transaction, Weight Paint stroke, undo operation or XR shutdown is in progress; defer the checkpoint rather than serialising partial geometry.
+- [ ] Include atomic/validated file replacement where practical, sensible retention/pruning and low-disk-space handling. Keep the last known-good recovery file if checkpoint creation fails.
+- [ ] On restart, detect a newer recovery copy and offer **Inspect / Recover As New File / Dismiss**, with no automatic overwrite of the user's project.
+- [ ] Test unsaved projects, named projects, save failures, mode switches, Blender re-entry, tracking loss and recovery from a deliberately interrupted editing session.
+
+**Acceptance:** A rigged mesh is checkpointed between edits, interruption is simulated, and a restorable copy opens with correct Blender-native mesh/armature/weights without touching the saved original.
+
+### S2. Calibration and preferences (P0/P1)
+
+- [ ] Provide calibration for both animated controller hands and any actual skeletal provider. Store per-controller/runtime settings only as normal local add-on preferences.
+- [ ] Remember handedness, controller model, offset/scale, fine adjustment, comfort, diagnostics visibility, tool strength and navigation preferences across .blend files; allow Reset to Safe Defaults.
+- [ ] Keep **one contextual non-dominant-hand radial menu**. User-defined favourites/pinning/learned sorting are **excluded**.
+
+**Acceptance:** Switching a right-handed Touch profile to left-handed and back restores correct hand alignment and non-dominant menu control without changing scene geometry, saved rig data or other devices' calibration.
+
+### S3. Performance (P0/P1)
+
+- [ ] Profile controller-to-action latency, XR draw/update frame time, brush sampling, KD/BVH creation and mesh/depsgraph refresh on small and dense rigged scenes.
+- [ ] Cache evaluated lookups based on object and topology/deformation invalidation; batch painting safely and avoid allocating or re-rendering complete hand/UI meshes unnecessarily every frame.
+- [ ] Add an **optional** lightweight in-VR performance readout and conservative overlay detail reduction on unusually large scenes; maintain geometry/weight quality, selection accuracy and user's requested detail.
+- [ ] Do not advertise specific universal headset frame rates; compare measured hardware, XR runtime, Blender version and scene against a reproducible baseline.
+
+**Acceptance:** Repeated brush strokes do not rebuild a KD-tree on every sample, dense geometry interaction remains responsive, and opting out restores the normal display without scene changes.
+
+### S4. Measurement, inspection and export checks (P1)
+
+- [ ] Reuse the existing object inspector and audit operations; no extra browser. Provide distance, angle, bone length and dimension measurement overlays calibrated to Blender's scene units.
+- [ ] Add a **read-only Pre-Export Check** to the existing project/model workflow: triangle count/budget, unapplied transforms when relevant, missing texture files, material slots, non-manifold/degenerate geometry, armature/modifier links, empty groups and excessive bone influences.
+- [ ] Show findings as *warnings vs actionable errors*, link each to the affected object/vertices/groups and provide reversible fixes only through existing explicit Cleanup/Repair commands. Do not claim universal VRChat/Unity compatibility from heuristic checks.
+- [ ] Keep exports using native Blender operations or existing project workflows. No new asset browser, remote exporter, unexplained auto-fix or silent changes to export settings.
+
+**Acceptance:** Audit an intentionally flawed rigged mesh, identify missing texture and excess influences, jump to the offending selection, correct one issue, rerun the check, and export without any unsolicited scene edits.
+
+### S5. Test and release gates (P0)
+
+- [ ] Add unit/integration tests for calibration state, preference migrations, radial/locomotion conflicts, manual lock enforcement, fine precision transforms, recovery file retention/failures, zero-change read-only audits and measurement conversions.
+- [ ] Use existing Linux Blender 4.2/4.5/5.0/5.2 tests plus Windows baseline and Mac Intel/Apple Silicon CI. **Physical headset interaction remains a separate validation step**, and macOS XR must not be claimed fully compatible merely because desktop integration passed.
+- [ ] Block stable v0.8 release on any reproducible data corruption, unexpected project overwrite, input capture deadlock, locked-element mutation or loss of undo/cancel safety.
+
+**Schedule:** P0 input/calibration/recovery/performance work before adding more tool breadth. P1 inspector/measurement/pre-export audits can be delivered after safe editing, as later 0.8 milestones. Pose preset libraries and full keyframe animation remain in **v0.9**, not new v0.8 work.
+
 ## Milestone D — Quest 3 PC-VR responsiveness and release quality (P0)
 
 - [ ] Performance-profile a representative Quest 3 over Link/Air Link or SteamVR connection on a *documented reference PC*, not standalone Quest Blender.
@@ -174,10 +230,10 @@ This is a safer, smaller improvement than building a sculpt engine. Put tasks un
 | Stage | Deliverable | Must pass to move forward |
 | --- | --- | --- |
 | 0.8-0 / research gate | Input audit, 3D hand design, tracked-joint source probes, thumbstick radial prototype | Feasibility decisions, fallback mapping and physical headset input checklist |
-| 0.8-A / alpha 1 | Single input router, shared Select/Grab and interaction tests | Real Quest 3 selection, transformation, cancellation and mode change work repeatedly |
-| 0.8-B / alpha 2 | Precision transforms and compact menu/outliner | Edit, snap, type exact values, undo and save entirely inside headset |
+| 0.8-A / alpha 1 | Single input router, shared Select/Grab, hand calibration design and interaction tests | Real Quest 3 selection, transformation, cancellation and mode change work repeatedly |
+| 0.8-B / alpha 2 | Fine precision transforms, calibration, safety-save proof and compact menu/outliner | Edit precisely and safely, recover checkpoint, undo and save entirely inside headset |
 | 0.8-C / beta 1 | Full armature/weight/pose workflow; isolation/X-Ray; eyedropper and direct IK drag | Mesh-to-rig end-to-end scenario plus isolated and read-only weight sampling |
-| 0.8-C2 / beta 2 | Safe Cleanup/Repair; optional controller Curve Draw | Undoable mesh/rig cleanup; editable native Curve strokes if performance gates pass |
+| 0.8-C2 / beta 2 | Safe Cleanup/Repair, measurements and pre-export audit; optional controller Curve Draw | Read-only project findings, reversible repairs, native Curve strokes if performance gates pass |
 | 0.8-D / RC | Performance, documentation, accessibility, Windows/headset QA | Four-version CI, packaged installer, VR acceptance and no outstanding P0 bugs |
 | 0.8 stable | Final release approval and publish | Completed milestones in `main`, approved release checklist and verified installer |
 
@@ -214,6 +270,9 @@ Run from a new Blender scene, with the headset connected to PC Blender:
 6. Recover from out-of-range controllers, lost tracking and stopping XR mid-transform/paint. The .blend must remain valid.
 7. Verify hover/pointer/palette readability, controller comfort, dominant-hand swap, undo feedback, mirrored viewport and expected performance.
 8. Install the packaged extension on a clean supported Blender profile, save/reopen the .blend, disable/reenable Mesh XR and compare the edited scene.
+9. Calibrate left/right hand visuals; test non-dominant radial navigation, fine adjustment and locked object/bone/grp protection. Lose tracking while holding a transform and verify rollback/rearm.
+10. Create a recoverable checkpoint outside an active edit, interrupt a later session, restore as a new project and compare meshes, bones and native weight data without overwriting the original.
+11. Measure a known 1-metre mesh, inspect a deliberately faulty rigged object and run Pre-Export Check. Confirm no geometry was edited during measurement/inspection and display responsiveness is acceptable on documented hardware.
 
 ## Engineering guardrails
 
@@ -224,4 +283,4 @@ Run from a new Blender scene, with the headset connected to PC Blender:
 - A GitHub Actions green check means **Blender automation passes**, not that a feature has been proven usable on actual XR hardware.
 - Each milestone is independently reviewable, tested and reversible; merge completed milestones to `main` through validated pull requests.
 
-The priority order is intentional: **input correctness and performance first; reliable Blender workflows second; targeted VR extras last.** User-selected extras are Isolation/X-Ray, Weight Eyedropper, Direct Posing and Draw Curves, plus non-destructive mesh/rig cleanup. **No asset browser or sculpt mode.**
+The priority order is intentional: **input correctness, hand calibration, safe recovery and performance first; reliable Blender workflows second; targeted VR extras last.** User-selected extras include Isolation/X-Ray, Weight Eyedropper, Direct Posing, Draw Curves, safe Cleanup/Repair, Precision Grab, Accidental-Edit Protection, Measurement, Pre-Export Check, Quick Inspector and preferences. **No radial favourites, asset browser, sculpt mode, or mobile apps.**
