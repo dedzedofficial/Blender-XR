@@ -48,9 +48,9 @@ def _session(layout, context, settings, active):
     col.prop(settings, 'hand_display', text='Hands', icon='HAND')
     if settings.hand_display == 'HANDS':
         col.prop(settings, 'hand_scale', text='Hand size', icon='ARROW_LEFTRIGHT')
-        col.prop(settings, 'hand_offset_x', text='Hand offset X')
-        col.prop(settings, 'hand_offset_y', text='Hand offset Y')
-        col.prop(settings, 'hand_offset_z', text='Hand offset Z')
+        col.prop(settings, 'hand_offset_x', text='Hand offset X', icon='EMPTY_ARROWS')
+        col.prop(settings, 'hand_offset_y', text='Hand offset Y', icon='EMPTY_ARROWS')
+        col.prop(settings, 'hand_offset_z', text='Hand offset Z', icon='EMPTY_ARROWS')
         _operator(col, 'blender_xr.reset_hand_calibration', 'Reset hand alignment', 'LOOP_BACK')
     if settings.input_source == 'STEAMVR_HANDS':
         col.prop(settings, 'bridge_port', text='Bridge port', icon='CONSOLE')
@@ -75,14 +75,14 @@ def _session(layout, context, settings, active):
         session = runtime.CURRENT
         if session:
             layout.label(text='Dominant: ' + settings.dominant_hand, icon='HAND')
-            layout.label(text='Input: ' + settings.input_source)
+            layout.label(text='Input: ' + settings.input_source, icon='EVENT_S')
             layout.label(text='Menu: ' + ('active' if getattr(
-                getattr(session, 'radial', None), 'active', False) else 'idle'))
+                getattr(session, 'radial', None), 'active', False) else 'idle'), icon='EVENT_M')
             bridge = getattr(session, 'bridge', None)
             if bridge:
-                layout.label(text='Fingers: ' + str(getattr(bridge, 'tracking_levels', []))[:40])
+                layout.label(text='Fingers: ' + str(getattr(bridge, 'tracking_levels', []))[:40], icon='HAND')
         else:
-            layout.label(text='VR not running')
+            layout.label(text='VR not running', icon='INFO')
     _header(layout, 'PC View Mode', 'WINDOW')
     view_space = context.space_data
     if hasattr(view_space, 'mirror_xr_session'):
@@ -102,7 +102,7 @@ def _model(layout, context, settings):
     col.prop(settings, 'step', text='Tool step', icon='EMPTY_ARROWS')
     col.prop(settings, 'fine_grab_enabled', text='Precision Grab', icon='SNAP_ON')
     if settings.fine_grab_enabled:
-        col.prop(settings, 'fine_grab_factor', text='Fine sensitivity')
+        col.prop(settings, 'fine_grab_factor', text='Fine sensitivity', icon='SNAP_ON')
     row = col.row(align=True)
     row.prop(settings, 'precision_mode', text='Snap', icon='SNAP_ON', toggle=True)
     row.prop(settings, 'haptic_feedback', text='Haptics', icon='FORCE_HARMONIC', toggle=True)
