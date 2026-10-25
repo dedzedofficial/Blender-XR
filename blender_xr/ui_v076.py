@@ -97,11 +97,21 @@ def _model(layout, context, settings):
             _operator(col, 'blender_xr.add_bone', 'Add Bone', 'BONE_DATA')
         if obj.mode == 'EDIT':
             _operator(col, 'blender_xr.finish_bones', 'Finish Bones', 'CHECKMARK')
+    col.label(text='Parent to Armature (Blender Ctrl+P)', icon='CONSTRAINT_BONE')
     row = col.row(align=True)
-    _operator(row, 'blender_xr.bind_paired', 'Empty Groups', 'GROUP_VERTEX', binding='EMPTY')
-    _operator(row, 'blender_xr.bind_paired', 'Auto Weights', 'CONSTRAINT_BONE', binding='AUTO')
+    _operator(row, 'blender_xr.parent_paired', 'Auto Weights', 'CONSTRAINT_BONE', parent_type='ARMATURE_AUTO')
+    _operator(row, 'blender_xr.parent_paired', 'Empty Groups', 'GROUP_VERTEX', parent_type='ARMATURE_NAME')
     row = col.row(align=True)
-    _operator(row, 'blender_xr.weight_cleanup', 'Clean Weights', 'GROUP_VERTEX')
+    _operator(row, 'blender_xr.parent_paired', 'Envelopes', 'MOD_ARMATURE', parent_type='ARMATURE_ENVELOPE')
+    _operator(row, 'blender_xr.parent_paired', 'Deform Only', 'ARMATURE_DATA', parent_type='ARMATURE')
+    row = col.row(align=True)
+    _operator(row, 'blender_xr.parent_paired', 'Object Parent', 'OBJECT_DATA', parent_type='OBJECT')
+    _operator(row, 'blender_xr.clear_mesh_parent', 'Clear Parent', 'X')
+    _operator(col, 'blender_xr.weight_cleanup', 'Clean Weights', 'GROUP_VERTEX')
+    row = col.row(align=True)
+    _operator(row, 'blender_xr.weight_mode', 'Weight Paint Mode', 'WPAINT_HLT', enabled=True)
+    if obj and obj.mode == 'WEIGHT_PAINT':
+        _operator(row, 'blender_xr.weight_mode', 'Object Mode', 'OBJECT_DATA', enabled=False)
     if obj and obj.type == 'MESH' and obj.vertex_groups:
         col.label(text='Vertex group: ' + (obj.vertex_groups.active.name
                   if obj.vertex_groups.active else '(none)'), icon='GROUP_VERTEX')
@@ -111,8 +121,7 @@ def _model(layout, context, settings):
         col.prop(settings, 'weight_brush_strength', text='Brush strength', icon='BRUSH_DATA')
         col.prop(settings, 'weight_brush_radius', text='Brush size', icon='BRUSH_DATA')
         col.prop(settings, 'weight_erase', text='Erase', icon='X')
-        if obj.mode == 'OBJECT':
-            _operator(col, 'blender_xr.weight_paint', 'Enter Weight Paint', 'WPAINT_HLT')
+
     if obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT':
         _operator(col, 'blender_xr.pose_test', 'Pose', 'POSE_HLT')
     col.label(text='Point at rig bones to select in VR', icon='INFO')
