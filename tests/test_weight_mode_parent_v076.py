@@ -127,6 +127,19 @@ def run():
             s.command(bpy.context, 'PARENT_CLEAR')
             assert mesh.parent is None
 
+        # Explicit Blender-style selection overrides the last cached pair.
+        bpy.ops.mesh.primitive_cube_add()
+        other_mesh = bpy.context.object
+        other_mesh.name = 'Explicit parent target'
+        rig.select_set(True)
+        bpy.context.view_layer.objects.active = rig
+        s.command(bpy.context, 'PARENT_OBJECT')
+        assert other_mesh.parent == rig
+        assert mesh.parent is None, 'Accidentally parented the cached mesh'
+        assert rig.get('mesh_xr_target_mesh') == other_mesh.name
+        s.command(bpy.context, 'PARENT_CLEAR')
+        assert other_mesh.parent is None
+
         # Automatic Weights works on a separate ordinary cube.
         _reset()
         auto_mesh, auto_arm = _cube_and_rig()
