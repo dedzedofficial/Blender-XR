@@ -1,5 +1,8 @@
 # Mesh XR v0.8.0 (development alpha)
 
+**Desktop OS coverage:** Universal Blender extension manifest now includes Windows x64/ARM64, Linux x64, and macOS Intel/Apple Silicon. Platform packaging does not guarantee a working XR runtime. iOS/iPadOS and standalone Android/Quest require separately built companion/native apps. See [Platform Compatibility](PLATFORM_COMPATIBILITY.md).
+
+
 **Experimental v0.8 branch: articulated controller hands and non-dominant-hand radial menu.** Hold the offhand Trigger, tilt the **same offhand thumbstick** toward a tool, and release to activate; return to centre to cancel. Category recentering opens submenus. The other controller is free for modelling. When the radial menu is active, stick locomotion and turn are suspended.
 
 Lightweight animated hands replace Blender controller indicators when **Hands** is enabled. Trigger and Grip animate estimated finger bends; **true per-joint hand tracking is not yet implemented**. Switch back to **Classic ray menu** and **Native controllers** in the Session workspace.
