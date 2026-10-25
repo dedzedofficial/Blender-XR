@@ -253,6 +253,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     """
     if obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
         raise ValueError('Activate a mesh in Blender Weight Paint mode')
+    if getattr(obj, 'hide_select', False):
+        raise ValueError('Unlock the object before painting weights')
     group = active_group(obj)
     inv = obj.matrix_world.inverted_safe()
     local_origin = inv @ Vector(world_origin)
