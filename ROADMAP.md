@@ -217,6 +217,17 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 - [ ] Toggle supported modifier viewport visibility.
 - [ ] Reorder, apply and remove supported modifiers.
 
+## Cross-platform support (v0.8 workstream)
+
+- [x] Include all five supported Blender desktop platform manifest tags: Windows x64/ARM64, macOS Intel/Apple Silicon, Linux x64.
+- [x] Add OS/architecture/OpenXR capability reporting and explicit desktop-versus-headset availability feedback.
+- [x] Add native Windows and macOS package/build checks in CI alongside the Linux Blender regression suite.
+- [ ] Validate full Blender registration/operator tests on Windows, macOS ARM64 and Intel Mac with compatible Blender versions.
+- [ ] Verify Quest/SteamVR/Monado hardware interaction on supported Windows and Linux PCs; macOS XR depends on a compatible real runtime.
+- [ ] Investigate a separate iPhone/iPad remote-control companion and standalone Quest native client with secure pairing. **Not a part of desktop add-on ZIP.**
+
+See [PLATFORM_COMPATIBILITY.md](PLATFORM_COMPATIBILITY.md) for the support matrix and remaining verification.
+
 ## v0.8 — VR-first workflow + rigging completion (proposed)
 
 **Full requirements, stages, scope limits and headset acceptance:** [V0_8_PLAN.md](V0_8_PLAN.md). New tools complement existing v0.7.6 features rather than duplicate them.
