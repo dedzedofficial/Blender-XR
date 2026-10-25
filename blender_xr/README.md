@@ -1,5 +1,11 @@
 # Mesh XR v0.7.6
 
+## 0.7.6 native Weight Paint Mode and Blender parenting
+
+Open the standard headset **Mode** menu and choose **Weight Paint** just as you would choose Object or Edit Mode. The active Blender mesh switches to `WEIGHT_PAINT`, and the VR controller paints real vertex-group weights. Use Paint or Erase, switch groups, change brush size/strength and exit with Done (Object Mode). The status tells you whether the controller ray hit a mesh; Weight Paint does not automatically parent the object.
+
+To parent like Blender Ctrl+P, select your mesh and rig (armature active) or use the remembered pairing from Create Armature. Open **Rigging → Parent** and choose Automatic Weights, Empty Groups, Envelope Weights, Armature Deform or Object Parent. Clear Parent retains the mesh transform. Repeat parenting is guarded so existing painted weights are preserved. The Model sidebar offers equivalent commands. These features are covered by Blender tests but still need headset acceptance testing.
+
 ## 0.7.6 Blender-style controller selection and transforms
 
 The former Select Mesh and Select Rig actions have been consolidated into **Select**. Aim at a visible armature bone or mesh in Object Mode; repeated selection over an overlapped rig/mesh switches the target. In Mesh Edit Mode, Select points/edges/faces directly, including nearby loose elements. Hold the controller's **Grip** to grab and move selected geometry or an object; choose **Move**, **Scale**, or **Rotate** then hold **Trigger** to transform with controller motion. Bone editing and Pose Mode use the same context-based select and transform gestures. All controller transforms have VR-local Undo/Redo support. The old modelling tools remain accessible, and an automated menu audit checks for duplicate actions. Hardware testing remains required for v0.7.6 acceptance.
