@@ -14,6 +14,8 @@ TOOLTIPS = {
     'MODE_MENU': ('Mode', 'Switch Object / Edit Mode'),
     'MODE_OBJECT': ('Object Mode', 'Work with complete objects'),
     'MODE_EDIT': ('Edit Mode', 'Edit vertices, edges and faces'),
+    'MODE_WEIGHT_PAINT': ('Weight Paint Mode', 'Paint native Blender bone vertex groups with the VR controller'),
+    'PARENT_MENU': ('Parent', 'Blender Ctrl+P parenting types and clear parent'),
     'SELECT': ('Select', 'Point at geometry and press trigger'),
     'SELECT_VERT': ('Vertex Select', 'Select individual vertices'),
     'SELECT_EDGE': ('Edge Select', 'Select individual edges'),
