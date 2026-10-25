@@ -234,15 +234,29 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 - [ ] **P0:** Replace sphere-style controller pointers with lightweight, user-optional 3D hands; animate estimated controller fingers and upgrade SteamVR joint feed where supported. Optical tracking remains capability-gated.
 - [ ] **P0/P1:** Replace the ray-only grid with a **non-dominant-hand radial menu**: hold the non-dominant Trigger, select with that same hand's thumbstick, release to activate or recenter to cancel. Capture both sticks to prevent movement/turning while open; provide correct left-hand/right-hand reversal and legacy ray-grid fallback.
 - [ ] **P0:** Unify controller action routing, context-sensitive Select and all gesture/transform handling; no duplicate selection buttons.
+- [ ] **P0:** Provide a reversible hand/controller calibration wizard with per-runtime/controller offsets, scale, pointer alignment, left/right handedness and safe profile reset.
+- [ ] **P0:** Create recoverable, versioned **local auto-checkpoints** between Blender-native editing transactions; never overwrite the original project. Provide restore-as-new-file and retention/error handling.
+- [ ] **P0:** Recover reliably from XR focus loss, bridge dropouts and disconnected controllers: cancel unfinished edits, restore data and require neutral release before input resumes.
+- [ ] **P1:** Optional in-VR **diagnostics** for hand confidence/joints, bindings, capture owner, tracking freshness and error state. No automatic telemetry.
+
 - [ ] **P0:** Blender-native modes, correct Undo/Redo/cancel, reliable weight strokes, robust session startup/shutdown and physical Quest 3 acceptance.
 - [ ] **P1:** One compact contextual wrist UI, X/Y/Z constraints, precision bubble, snapping, numeric input and box/lasso/brush selection.
+- [ ] **P1:** **Precision Grab / Fine Adjustment** for object/vertex/bone/curve-point manipulation with constrained sensitivity, live numerical feedback, preview and Undo; must not conflict with the non-dominant radial menu.
+- [ ] **P1:** **Accidental-edit protection and Quick Inspector**: respect Blender-native object/bone/group locks, show why editing is blocked, and expose Rename, Hide, Lock and properties in existing UI without adding a second Select or a file browser.
+- [ ] **P1:** **Measurements** for distance, angles, dimensions and bone length in Blender scene units, with non-exported overlay defaults.
+- [ ] **P1:** **Pre-Export Check** in the existing Project/Model tools: detect missing textures, geometry problems, excessive influences, transforms and broken rig links without silently modifying or exporting content.
+- [ ] **P1:** Remember calibration, handedness, comfort, precision, UI and tracking preferences locally, with Reset to Safe Defaults.
+
 - [ ] **P1:** **Isolation and X-Ray** for targeted meshes, rigs and through-surface selection; independently controlled, reversible and non-destructive.
 - [ ] **P1:** **Weight Eyedropper** for precise read-only weight sampling and brush value matching, plus better group tools, bone-to-group picking, symmetry and weight cleanup.
 - [ ] **P1:** **Direct Posing** with controller-grabbed endpoints, small IK chains, pose reset and live mesh deformation without changing rest bones.
 - [ ] **P1:** **Cleanup/Repair** tools: Merge by Distance, loose/degenerate geometry, normals, non-manifold inspection, broken rig mappings and safe weight cleanup with preview and Undo.
 - [ ] **P2 / conditional:** **Draw Curves in 3D** with controller stroke preview, jitter reduction, editable native Blender splines, thickness/bevel, curve-point edits and optional conversion to mesh. Delay to v0.8.x if core stability/performance gates are not met.
 - [ ] **P0:** Profile OpenXR/Quest 3 PC-VR workloads, cache expensive pick structures, test Blender 4.2/4.5/5.0/5.2 and finish headset-based release QA.
-- [ ] **Excluded:** VR asset browser, sculpt mode, full character animation and automatic full-body posing.
+- [ ] **P0/P1:** Adaptive performance checks and lightweight optional frame/input/brush metrics. Cache selection acceleration safely, batch weight processing, reduce costly overlays only (never scene geometry quality), and benchmark on documented hardware.
+- [ ] **Excluded:** Radial favourites/pinning, VR asset browser, sculpt mode, mobile/standalone companion apps, full character animation (remains v0.9) and automatic full-body posing.
+
+**Added user-approved quality-of-life scope:** Calibration, recovery checkpoints, Precision Grab, diagnostics, safe locks, Quick Inspector, measurement, export readiness, preferences and performance. **No favourite-tools radial ring.** [Acceptance criteria and detailed plan](V0_8_PLAN.md).
 
 ## v0.9 — deformation + animation
 
