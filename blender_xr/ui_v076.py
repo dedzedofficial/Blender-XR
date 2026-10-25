@@ -232,6 +232,9 @@ def _project(layout, context, settings):
     layout.prop(settings, 'save_path', text='File', icon='FILE_BLEND')
     _operator(layout, 'blender_xr.save', 'Save .blend', 'FILE_TICK')
     layout.separator()
+    _header(layout, 'Safe Recovery', 'FILE_BACKUP')
+    recovery_v080.draw(layout, settings)
+    layout.separator()
     layout.prop(settings, 'show_statistics', text='Statistics', icon='INFO', toggle=True)
     if not settings.show_statistics:
         return
