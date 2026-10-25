@@ -4,7 +4,7 @@
 
 - Added macOS **Apple Silicon** (`macos-arm64`) and **Intel** (`macos-x64`) as desktop Blender extension targets, retaining the existing Windows x64 and Linux x64 support. No Windows ARM64 expansion is planned for this phase.
 - Added clear macOS host/Blender/OpenXR diagnostics in the Session UI and Start VR operator, including Intel Mac Blender 4.5 LTS guidance and experimental Blender 5.1+ OpenXR status on Apple Silicon.
-- Added ZIP packaging/unit and checksum tests on native Apple Silicon and Intel Mac CI runners, alongside existing Linux Blender 4.2/4.5/5.0/5.2 coverage.
+- Added native **Blender 4.5.15 Intel macOS** and **Blender 5.2.2 Apple Silicon** extension registration/UI, hand-geometry, mesh and rigging integration tests, plus ZIP packaging/checksum checks on each runner. All passed in [CI #40208950376](https://github.com/dedzedofficial/Blender-XR/actions/runs/40208950376). Existing Linux Blender 4.2/4.5/5.0/5.2 coverage remains.
 - Mac desktop installation is distinct from **real headset support**, which remains unverified. Removed iOS/iPadOS and standalone Quest companion application work from the active development scope.
 
 ## v0.8.0 — alpha 1 (development, Quest 3 physical testing outstanding)
