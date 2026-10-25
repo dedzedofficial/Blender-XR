@@ -1,4 +1,13 @@
-# Mesh XR v0.7.6
+# Mesh XR v0.8.0 (development alpha)
+
+**Experimental v0.8 branch: articulated controller hands and non-dominant-hand radial menu.** Hold the offhand Trigger, tilt the **same offhand thumbstick** toward a tool, and release to activate; return to centre to cancel. Category recentering opens submenus. The other controller is free for modelling. When the radial menu is active, stick locomotion and turn are suspended.
+
+Lightweight animated hands replace Blender controller indicators when **Hands** is enabled. Trigger and Grip animate estimated finger bends; **true per-joint hand tracking is not yet implemented**. Switch back to **Classic ray menu** and **Native controllers** in the Session workspace.
+
+This is an **alpha development build**, not the published 0.7.6 release. It still requires real Quest 3 PC-VR acceptance testing.
+
+## Previous v0.7.6 release
+
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
