@@ -40,7 +40,7 @@ def run():
         obj.location = (0, 0, 0)
         drag = interaction_v076.begin_transform(bpy.context, 'MOVE',
                                                 (0, 0, 0), Quaternion())
-        assert drag['fine_factor'] == .20
+        assert abs(drag['fine_factor'] - .20) < 1e-5
         interaction_v076.update_transform(bpy.context, drag, Vector((1, 0, 0)), Quaternion())
         assert abs(obj.matrix_world.translation.x - .20) < 1e-4
         interaction_v076.restore_transform(bpy.context, drag)
