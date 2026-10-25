@@ -485,6 +485,48 @@ def patch_runtime(Runtime):
         return result
 
     def command(self, context, action):
+        if action == 'PARENT_MENU':
+            ensure_object_mode(context)
+            self.menu.page = 'PARENT_RIG'
+            self.status = 'CHOOSE BLENDER PARENTING METHOD'
+            return
+        if action == 'BACK' and self.menu.page == 'PARENT_RIG':
+            self.menu.page = 'RIGGING'
+            return
+        parent_type = {
+            'PARENT_AUTO': 'ARMATURE_AUTO',
+            'PARENT_EMPTY': 'ARMATURE_NAME',
+            'PARENT_ENVELOPE': 'ARMATURE_ENVELOPE',
+            'PARENT_ARMATURE': 'ARMATURE',
+            'PARENT_OBJECT': 'OBJECT',
+        }.get(action)
+        if parent_type:
+            target, arm, _changed = parent_to_armature(context, parent_type)
+            self.menu.page = 'RIGGING'
+            self.status = 'PARENTED ' + target.name.upper() + ' TO ' + arm.name.upper()
+            return
+        if action == 'PARENT_CLEAR':
+            target = clear_mesh_parent(context)
+            self.menu.page = 'RIGGING'
+            self.status = 'CLEARED PARENT / ' + target.name.upper()
+            return
+        if action in {'MODE_WEIGHT_PAINT', 'RIG_WEIGHT'}:
+            target = enter_weight_mode(context)
+            self.tool = 'WEIGHT_BRUSH'
+            self.menu.page = 'WEIGHT_PAINT'
+            self.status = 'PAINT MODE / ' + active_group(target).name.upper()
+            self._weight_last_sample = 0.0
+            return
+        if action == 'MODE_OBJECT' and context.view_layer.objects.active:
+            if context.view_layer.objects.active.mode == 'WEIGHT_PAINT':
+                ensure_object_mode(context)
+                self.tool = 'SELECT'
+                self.menu.page = 'TOOLS'
+                self.status = 'OBJECT MODE'
+                return
+        if action == 'MODE_EDIT' and context.view_layer.objects.active:
+            if context.view_layer.objects.active.mode == 'WEIGHT_PAINT':
+                ensure_object_mode(context)
         if action == 'RIG_CREATE':
             source = context.view_layer.objects.active
             result = original_command(self, context, action)
@@ -520,48 +562,18 @@ def patch_runtime(Runtime):
             ensure_deform_groups(target, arm)
             self.status = 'BOUND ' + target.name.upper() + ' / GROUP ' + active_group(target).name.upper()
             return result
-        if action == 'RIG_WEIGHT':
-            ensure_object_mode(context)
-            current = context.view_layer.objects.active
-            arm = current if _valid(context, current, 'ARMATURE') else None
-            if arm is None and current and current.type == 'MESH':
-                try:
-                    arm = armature_v076.activate_armature(context)
-                except ValueError:
-                    arm = None
-            target = mesh_for_rig(context, arm)
-            if not target.vertex_groups and arm:
-                paired_selection(context, arm, target)
-                result = bpy.ops.blender_xr.bind_empty_weights()
-                if 'FINISHED' not in result:
-                    raise ValueError('Could not create empty groups for manual painting')
-            if not target.vertex_groups:
-                raise ValueError('No deform groups. Select a rig and use Empty Groups first')
-            if arm:
-                arm['mesh_xr_target_mesh'] = target.name
-            for candidate in context.selected_objects:
-                candidate.select_set(False)
-            target.select_set(True)
-            context.view_layer.objects.active = target
-            active_group(target)
-            result = original_command(self, context, action)
-            self.tool = 'WEIGHT_BRUSH'
-            self.menu.page = 'WEIGHT_PAINT'
-            self.status = 'PAINT ' + active_group(target).name.upper()
-            return result
         if action == 'RIG_EXIT_PAINT':
             ensure_object_mode(context)
             self.tool = 'SELECT'
-            self.menu.page = 'RIGGING'
-            self.status = 'WEIGHT PAINT FINISHED'
+            self.menu.page = 'TOOLS'
+            self.status = 'OBJECT MODE / WEIGHT PAINT FINISHED'
             return
         if action in {'WEIGHT_BRUSH', 'WEIGHT_ERASE'}:
             obj = context.view_layer.objects.active
             if not obj or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
                 raise ValueError('Enter Weight Paint first')
             self.tool = 'WEIGHT_BRUSH'
-            if action == 'WEIGHT_ERASE':
-                self.settings.weight_erase = not self.settings.weight_erase
+            self.settings.weight_erase = (action == 'WEIGHT_ERASE')
             self.status = ('ERASE' if self.settings.weight_erase else 'PAINT') + ' ' + active_group(obj).name.upper()
             return
         if action in {'WEIGHT_GROUP_PREV', 'WEIGHT_GROUP_NEXT'}:
@@ -634,21 +646,29 @@ def patch_runtime(Runtime):
         return original_begin(self, context, origin, rotation)
 
     def tick(self, context):
-        # Let the existing XR update own controllers, menu interaction, navigation
-        # and haptics. Extend it only for held-trigger brush samples.
+        # Native Weight Paint can also be entered via Blender or a mode menu.
+        # Always synchronize the VR controller brush with the actual mode.
+        obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
+        if obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT':
+            self.tool = 'WEIGHT_BRUSH'
+            if self.menu.page not in {'WEIGHT_PAINT', 'MODE_SELECT'}:
+                self.menu.page = 'WEIGHT_PAINT'
         result = original_tick(self, context)
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         if (obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT'
-                and self.tool == 'WEIGHT_BRUSH' and self.trigger.down
-                and not self.hover and self.ray):
+                and self.trigger.down and not self.hover and self.ray):
             now = time.monotonic()
-            if now - getattr(self, '_weight_last_sample', 0.0) >= 0.07:
+            if now - getattr(self, '_weight_last_sample', 0.0) >= 0.045:
                 origin, direction = self.ray
-                paint_vertices(obj, origin, direction,
-                               self.settings.weight_brush_radius,
-                               self.settings.weight_brush_strength,
-                               self.settings.weight_erase)
+                count = paint_vertices(obj, origin, direction,
+                                       self.settings.weight_brush_radius,
+                                       self.settings.weight_brush_strength,
+                                       self.settings.weight_erase)
                 self._weight_last_sample = now
+                self.status = (('ERASE ' if self.settings.weight_erase else 'PAINT ') +
+                               active_group(obj).name.upper() + ' / ' +
+                               (str(count) + ' VERTICES' if count else
+                                'NO SURFACE HIT - AIM AT MESH'))
         return result
 
     Runtime.command = command
