@@ -8,7 +8,7 @@ import textwrap
 
 import bpy
 
-from . import materials, preferences, runtime, statistics
+from . import materials, preferences, runtime, statistics, platform_support, quality_v080, recovery_v080
 
 
 UI_SECTION_ITEMS = [
@@ -44,6 +44,14 @@ def _session(layout, context, settings, active):
     col.prop(settings, 'dominant_hand', text='Hand', icon='HAND')
     col.prop(settings, 'controller_family', text='Controller', icon='PREFERENCES')
     col.prop(settings, 'input_source', text='Input', icon='EVENT_S')
+    col.prop(settings, 'menu_style', text='Menu', icon='EVENT_M')
+    col.prop(settings, 'hand_display', text='Hands', icon='HAND')
+    if settings.hand_display == 'HANDS':
+        col.prop(settings, 'hand_scale', text='Hand size', icon='ARROW_LEFTRIGHT')
+        col.prop(settings, 'hand_offset_x', text='Hand offset X', icon='EMPTY_ARROWS')
+        col.prop(settings, 'hand_offset_y', text='Hand offset Y', icon='EMPTY_ARROWS')
+        col.prop(settings, 'hand_offset_z', text='Hand offset Z', icon='EMPTY_ARROWS')
+        _operator(col, 'blender_xr.reset_hand_calibration', 'Reset hand alignment', 'LOOP_BACK')
     if settings.input_source == 'STEAMVR_HANDS':
         col.prop(settings, 'bridge_port', text='Bridge port', icon='CONSOLE')
         if active and getattr(runtime.CURRENT, 'bridge', None):
@@ -51,6 +59,30 @@ def _session(layout, context, settings, active):
     else:
         col.prop(settings, 'finger_touch', text='Finger shortcuts', toggle=True, icon='HAND')
 
+    capabilities = platform_support.current_info(bpy)
+    _header(layout, 'Platform', 'DESKTOP')
+    layout.label(text='Desktop: ' + (capabilities['tag'] or 'unsupported'),
+                 icon='CHECKMARK' if capabilities['desktop'] else 'ERROR')
+    if not capabilities['vr']:
+        layout.label(text='VR unavailable on this build', icon='INFO')
+    elif capabilities['tag'].startswith('macos'):
+        layout.label(text='VR experimental / needs OpenXR runtime', icon='INFO')
+    else:
+        layout.label(text='VR requires an active OpenXR runtime', icon='INFO')
+
+    layout.prop(settings, 'show_diagnostics', text='Controller diagnostics', icon='INFO', toggle=True)
+    if settings.show_diagnostics:
+        session = runtime.CURRENT
+        if session:
+            layout.label(text='Dominant: ' + settings.dominant_hand, icon='HAND')
+            layout.label(text='Input: ' + settings.input_source, icon='EVENT_S')
+            layout.label(text='Menu: ' + ('active' if getattr(
+                getattr(session, 'radial', None), 'active', False) else 'idle'), icon='EVENT_M')
+            bridge = getattr(session, 'bridge', None)
+            if bridge:
+                layout.label(text='Fingers: ' + str(getattr(bridge, 'tracking_levels', []))[:40], icon='HAND')
+        else:
+            layout.label(text='VR not running', icon='INFO')
     _header(layout, 'PC View Mode', 'WINDOW')
     view_space = context.space_data
     if hasattr(view_space, 'mirror_xr_session'):
@@ -68,6 +100,9 @@ def _model(layout, context, settings):
     _header(layout, 'Precision', 'MODIFIER')
     col = layout.column(align=True)
     col.prop(settings, 'step', text='Tool step', icon='EMPTY_ARROWS')
+    col.prop(settings, 'fine_grab_enabled', text='Precision Grab', icon='SNAP_ON')
+    if settings.fine_grab_enabled:
+        col.prop(settings, 'fine_grab_factor', text='Fine sensitivity', icon='SNAP_ON')
     row = col.row(align=True)
     row.prop(settings, 'precision_mode', text='Snap', icon='SNAP_ON', toggle=True)
     row.prop(settings, 'haptic_feedback', text='Haptics', icon='FORCE_HARMONIC', toggle=True)
@@ -83,6 +118,11 @@ def _model(layout, context, settings):
     row = layout.row(align=True)
     row.enabled = bool(obj and obj.type == 'MESH' and obj.mode == 'OBJECT')
     _operator(row, 'blender_xr.asset_audit', 'Audit mesh', 'VIEWZOOM')
+    _operator(layout, 'blender_xr.export_check', 'Pre-Export Check', 'CHECKMARK')
+    _operator(layout, 'blender_xr.measure', 'Measure Selection', 'ORIENTATION_VIEW')
+    layout.separator()
+    _header(layout, 'Quick Inspector', 'OBJECT_DATA')
+    quality_v080.draw_inspector(layout, context)
 
     layout.separator()
     _header(layout, 'Rigging', 'ARMATURE_DATA')
@@ -191,6 +231,9 @@ def _project(layout, context, settings):
     _header(layout, 'Project', 'FILE_BLEND')
     layout.prop(settings, 'save_path', text='File', icon='FILE_BLEND')
     _operator(layout, 'blender_xr.save', 'Save .blend', 'FILE_TICK')
+    layout.separator()
+    _header(layout, 'Safe Recovery', 'FILE_BACKUP')
+    recovery_v080.draw(layout, settings)
     layout.separator()
     layout.prop(settings, 'show_statistics', text='Statistics', icon='INFO', toggle=True)
     if not settings.show_statistics:

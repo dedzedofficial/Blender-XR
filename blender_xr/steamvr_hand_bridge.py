@@ -64,8 +64,15 @@ def sample(vr, inputs, handle):
     a, b = bones[5].position.v, bones[10].position.v
     pinch = math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(3)))
     summary = inputs.getSkeletalSummaryData(handle, vr.VRSummaryType_FromAnimation)
-    curl = sum(summary.flFingerCurl[i] for i in (2, 3, 4)) / 3
-    return {'tracked': True, 'level': levels[level], 'pinch': pinch, 'curl': curl}
+    fingers = [round(max(0., min(1., float(summary.flFingerCurl[i]))), 4)
+               for i in range(5)]
+    curl = sum(fingers[i] for i in (2, 3, 4)) / 3
+    # Native SteamVR hand-local joint data. Keep this distinct from the
+    # estimated/controller poses and require calibration before use in Blender.
+    joints = [[round(float(bones[i].position.v[j]), 4) for j in range(3)]
+              for i in range(26)]
+    return {'tracked': True, 'level': levels[level], 'pinch': pinch,
+            'curl': curl, 'fingers': fingers, 'joints': joints}
 
 
 def main():
@@ -106,7 +113,7 @@ def main():
                         print('Hand input unavailable:', exc, flush=True)
                         last_error = str(exc)
                     hands = [{'tracked': False} for _ in handles]
-                data = {'v': 1, 'key': args.key, 'seq': seq, 'hands': hands}
+                data = {'v': 2, 'key': args.key, 'seq': seq, 'hands': hands}
                 sock.sendto(json.dumps(data).encode(), ('127.0.0.1', args.port))
                 seq += 1
                 time.sleep(1 / 60)

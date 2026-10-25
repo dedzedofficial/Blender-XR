@@ -11,6 +11,28 @@ from mathutils import Vector
 from mathutils.kdtree import KDTree
 from . import armature_v076, menus
 
+# Retain one short-lived spatial lookup while successive weight brush samples
+# hit the same unmodified mesh. Edit Mode cannot change topology during a
+# Weight Paint stroke. A small TTL bounds stale vertex-position risk.
+_WEIGHT_SPATIAL_CACHE = {'key': None, 'tree': None, 'expires': 0.0}
+
+
+def cached_weight_tree(obj):
+    data = obj.data
+    key = (data.as_pointer(), len(data.vertices))
+    now = time.monotonic()
+    cache = _WEIGHT_SPATIAL_CACHE
+    if cache['key'] == key and cache['tree'] is not None and now < cache['expires']:
+        return cache['tree']
+    verts = data.vertices
+    tree = KDTree(len(verts))
+    for vert in verts:
+        tree.insert(vert.co, vert.index)
+    tree.balance()
+    cache.update(key=key, tree=tree, expires=now + 0.20)
+    return tree
+
+
 WEIGHT_PAGE = (
     ('PAINT', 'WEIGHT_BRUSH'), ('ERASE', 'WEIGHT_ERASE'),
     ('GROUP -', 'WEIGHT_GROUP_PREV'), ('GROUP +', 'WEIGHT_GROUP_NEXT'),
@@ -253,6 +275,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     """
     if obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
         raise ValueError('Activate a mesh in Blender Weight Paint mode')
+    if getattr(obj, 'hide_select', False):
+        raise ValueError('Unlock the object before painting weights')
     group = active_group(obj)
     inv = obj.matrix_world.inverted_safe()
     local_origin = inv @ Vector(world_origin)
@@ -278,10 +302,7 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     verts = obj.data.vertices
     if not verts:
         return 0
-    tree = KDTree(len(verts))
-    for vert in verts:
-        tree.insert(vert.co, vert.index)
-    tree.balance()
+    tree = cached_weight_tree(obj)
     scale = max(1e-6, min(abs(v) for v in obj.matrix_world.to_scale()))
     search_radius = radius / scale
     changes = 0

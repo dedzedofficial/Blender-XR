@@ -16,6 +16,12 @@ assert manifest['id']=='blender_xr'
 assert manifest['name']=='Mesh XR'
 assert manifest.get('support')=='https://github.com/dedzedofficial/Blender-XR/issues'
 version=manifest['version']
+# Preserve existing Windows/Linux desktop targets and add both Mac platforms.
+# Mobile/standalone applications are not in scope.
+SUPPORTED_PLATFORMS={'windows-x64','linux-x64','macos-x64','macos-arm64'}
+assert set(manifest.get('platforms', [])) == SUPPORTED_PLATFORMS, (
+    'Manifest must explicitly cover Blender desktop Windows/Linux/macOS targets')
+
 
 OPENVR_VERSION='2.12.1401'
 OPENVR_WHEEL='openvr-'+OPENVR_VERSION+'-py3-none-any.whl'

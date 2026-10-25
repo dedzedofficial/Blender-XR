@@ -369,8 +369,14 @@ def draw(runtime):
         gpu.state.blend_set('ALPHA')
         gpu.state.depth_test_set('NONE')
         obj=runtime.context.view_layer.objects.active
-        runtime.menu.draw(shader,runtime.tool,runtime.hover,runtime.settings.step,runtime.status,
-                          runtime.settings,obj.name if obj else 'NONE',runtime.select_mode)
+        if (getattr(runtime.settings, 'menu_style', 'CLASSIC') == 'RADIAL'
+                and getattr(runtime, 'radial_supported', True)
+                and getattr(runtime, 'bridge', None) is None):
+            from . import radial_draw_v080
+            radial_draw_v080.draw(runtime, shader)
+        else:
+            runtime.menu.draw(shader,runtime.tool,runtime.hover,runtime.settings.step,runtime.status,
+                              runtime.settings,obj.name if obj else 'NONE',runtime.select_mode)
         origin,direction=runtime.ray
         end=runtime.pointer if runtime.pointer is not None else origin+direction*2*runtime.menu.scale
         draw_batch(shader,'LINES',[origin,end],(0.3,1,0.6,1) if runtime.target else (0.12,0.85,1,1))
@@ -441,6 +447,8 @@ def draw(runtime):
                         for edge in face.edges:
                             points.extend(obj.matrix_world@v.co for v in edge.verts)
             draw_batch(shader,'LINES',points,(1,0.6,0.08,1))
+        from . import hands_v080
+        hands_v080.draw(runtime, shader)
     finally:
         gpu.state.depth_test_set(old_depth)
         gpu.state.blend_set(old_blend)

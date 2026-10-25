@@ -1,4 +1,25 @@
-# Mesh XR v0.7.6
+# Mesh XR v0.8.0 (development alpha)
+
+**Mac desktop support:** Mesh XR v0.8 adds macOS **Apple Silicon** and **Intel** compatibility to the existing Windows x64 / Linux x64 add-on. Intel Macs require Blender 4.5 LTS or earlier; Apple Silicon Macs can use current Blender. macOS VR remains experimental and needs a compatible OpenXR runtime. No iOS/iPadOS or standalone mobile app is planned. See [macOS compatibility](PLATFORM_COMPATIBILITY.md).
+
+
+**Experimental v0.8 branch: articulated controller hands and non-dominant-hand radial menu.** Hold the offhand Trigger, tilt the **same offhand thumbstick** toward a tool, and release to activate; return to centre to cancel. Category recentering opens submenus. The other controller is free for modelling. When the radial menu is active, stick locomotion and turn are suspended.
+
+Lightweight animated hands replace Blender controller indicators when **Hands** is enabled. Trigger and Grip animate estimated finger bends; **true per-joint hand tracking is not yet implemented**. Switch back to **Classic ray menu** and **Native controllers** in the Session workspace.
+
+This is an **alpha development build**, not the published 0.7.6 release. It still requires real Quest 3 PC-VR acceptance testing.
+
+## New in 0.8 alpha 2 — for testing
+
+- Calibrate the 3D hands from Session; enable fine controller grabs from Model.
+- Project has **safe local recovery** checkpoints and confirmed restore-as-new; automatic checkpoints wait for Blender Object Mode and completed gestures.
+- Model includes **Measurements**, a read-only **Pre-Export Check**, and a **Quick Inspector** with native selection locking.
+- Session includes optional input/hand-tracking diagnostics; hot Weight Paint lookup data is cached briefly for responsiveness.
+- Radial thumbstick remains on the **non-dominant** hand, without favourites. Tracking loss now requires a release before a new radial command can start.
+- This is an alpha: automated Blender tests do **not** establish physical VR headset suitability. The complete 0.8 plan remains in progress.
+
+## Previous v0.7.6 release
+
 
 **Free VR mesh modeling and scene building inside Blender, by Ded Zed.**
 
