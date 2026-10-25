@@ -47,8 +47,8 @@ class RadialTests(unittest.TestCase):
         self.assertEqual(state.update(True, (0, 0), menu, 'TOOLS'), ('navigate', 'MODE_MENU'))
         child = [('OBJECT', 'MODE_OBJECT'), ('EDIT', 'MODE_EDIT')]
         self.assertIsNone(state.update(True, (0, 0), child, 'MODE_SELECT'))
-        self.assertEqual(state.update(True, (1, 0), child, 'MODE_SELECT'), ('hover', 'MODE_EDIT'))
-        self.assertEqual(state.update(False, (1, 0), child, 'MODE_SELECT'), ('select', 'MODE_EDIT'))
+        self.assertEqual(state.update(True, (.71, .71), child, 'MODE_SELECT'), ('hover', 'MODE_EDIT'))
+        self.assertEqual(state.update(False, (.71, .71), child, 'MODE_SELECT'), ('select', 'MODE_EDIT'))
 
     def test_pagination_never_loses_existing_menu_actions(self):
         buttons = [(str(i), 'ACT_' + str(i)) for i in range(15)]
