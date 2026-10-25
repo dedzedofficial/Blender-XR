@@ -30,10 +30,16 @@ def patch_runtime(Runtime):
 
     def tick(self, context):
         state = context.window_manager.xr_session_state
-        running = (state is not None and
-                   __import__('bpy').types.XrSessionState.is_running(context))
+        try:
+            running = (state is not None and
+                       __import__('bpy').types.XrSessionState.is_running(context))
+        except (TypeError, RuntimeError, ValueError):
+            # Blender's older regression tests intentionally provide a
+            # lightweight simulated context, not a native bpy.Context.
+            return old_tick(self, context)
         if not running:
-            self.radial.reset()
+            if hasattr(self, 'radial'):
+                self.radial.reset()
             return old_tick(self, context)
 
         # Collect one consistent, visual controller sample. Menu acquisition
