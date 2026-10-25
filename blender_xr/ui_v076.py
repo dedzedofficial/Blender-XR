@@ -8,7 +8,7 @@ import textwrap
 
 import bpy
 
-from . import materials, preferences, runtime, statistics, platform_support
+from . import materials, preferences, runtime, statistics, platform_support, quality_v080, recovery_v080
 
 
 UI_SECTION_ITEMS = [
