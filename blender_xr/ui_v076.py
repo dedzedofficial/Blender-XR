@@ -100,6 +100,9 @@ def _model(layout, context, settings):
     _header(layout, 'Precision', 'MODIFIER')
     col = layout.column(align=True)
     col.prop(settings, 'step', text='Tool step', icon='EMPTY_ARROWS')
+    col.prop(settings, 'fine_grab_enabled', text='Precision Grab', icon='SNAP_ON')
+    if settings.fine_grab_enabled:
+        col.prop(settings, 'fine_grab_factor', text='Fine sensitivity')
     row = col.row(align=True)
     row.prop(settings, 'precision_mode', text='Snap', icon='SNAP_ON', toggle=True)
     row.prop(settings, 'haptic_feedback', text='Haptics', icon='FORCE_HARMONIC', toggle=True)
