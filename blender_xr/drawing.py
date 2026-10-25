@@ -10,6 +10,10 @@ _ICON_BY_ACTION = {
     # Main object/edit workflows.
     'MODE_MENU': 'object_datamode', 'MODE': 'object_datamode',
     'MODE_OBJECT': 'object_data', 'MODE_EDIT': 'mesh_data',
+    'MODE_WEIGHT_PAINT': 'mod_vertex_weight', 'PARENT_MENU': 'mod_armature',
+    'PARENT_AUTO': 'mod_armature', 'PARENT_EMPTY': 'mod_vertex_weight',
+    'PARENT_ENVELOPE': 'mod_armature', 'PARENT_ARMATURE': 'armature_data',
+    'PARENT_OBJECT': 'object_data', 'PARENT_CLEAR': 'delete',
     'SELECT': 'cursor', 'SELECT_VERT': 'mesh_data',
     'SELECT_EDGE': 'object_data', 'SELECT_FACE': 'mesh_cube',
     'MOVE': 'transform_move', 'MOVE_EDIT': 'transform_move',
