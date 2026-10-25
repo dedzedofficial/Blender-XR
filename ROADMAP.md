@@ -223,7 +223,7 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 
 - [ ] **Research gate — before implementation:** investigate existing balls/controller visuals; hand overlay drawing; Quest 3/OpenXR and SteamVR joint capabilities; thumbstick input conflicts; radial UX; full risk matrix. [Technical design](V0_8_SYSTEM_AUDIT_AND_INPUT_PLAN.md).
 - [ ] **P0:** Replace sphere-style controller pointers with lightweight, user-optional 3D hands; animate estimated controller fingers and upgrade SteamVR joint feed where supported. Optical tracking remains capability-gated.
-- [ ] **P0/P1:** Replace the ray-only grid with a thumbstick radial menu using input capture, cancel/confirm states, menu deadzones and legacy ray-grid fallback.
+- [ ] **P0/P1:** Replace the ray-only grid with a **non-dominant-hand radial menu**: hold the non-dominant Trigger, select with that same hand's thumbstick, release to activate or recenter to cancel. Capture both sticks to prevent movement/turning while open; provide correct left-hand/right-hand reversal and legacy ray-grid fallback.
 - [ ] **P0:** Unify controller action routing, context-sensitive Select and all gesture/transform handling; no duplicate selection buttons.
 - [ ] **P0:** Blender-native modes, correct Undo/Redo/cancel, reliable weight strokes, robust session startup/shutdown and physical Quest 3 acceptance.
 - [ ] **P1:** One compact contextual wrist UI, X/Y/Z constraints, precision bubble, snapping, numeric input and box/lasso/brush selection.
