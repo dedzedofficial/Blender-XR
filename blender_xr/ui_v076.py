@@ -48,6 +48,9 @@ def _session(layout, context, settings, active):
     col.prop(settings, 'hand_display', text='Hands', icon='HAND')
     if settings.hand_display == 'HANDS':
         col.prop(settings, 'hand_scale', text='Hand size', icon='ARROW_LEFTRIGHT')
+        col.prop(settings, 'hand_offset_x', text='Hand offset X')
+        col.prop(settings, 'hand_offset_y', text='Hand offset Y')
+        col.prop(settings, 'hand_offset_z', text='Hand offset Z')
     if settings.input_source == 'STEAMVR_HANDS':
         col.prop(settings, 'bridge_port', text='Bridge port', icon='CONSOLE')
         if active and getattr(runtime.CURRENT, 'bridge', None):
