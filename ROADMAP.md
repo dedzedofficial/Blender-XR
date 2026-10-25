@@ -1,37 +1,16 @@
 # Mesh XR roadmap
 
-## v0.7.6 — compact desktop UI test
+## v0.7.6 — shipped baseline (25 October 2026)
 
-- [x] Consolidate redundant selection actions into a single context-sensitive Select control.
-- [x] Grab and transform vertices, edges, faces, armatures and bones with controller Grip/Trigger; Move, Scale and Rotate use Blender data.
-- [x] Expose a separate Pose Bones control page with the shared Select/Move/Scale/Rotate workflow.
-- [x] Preserve native mesh edit and Undo/Redo workflows, and audit menu actions for duplicates.
-- [ ] Confirm selection rays, hand-driven scaling and rotation, bone transforms and undo usability in a connected headset.
+- [x] Compact seven-workspace native-icon desktop UI.
+- [x] One contextual Select tool (no separate Select Mesh / Select Armature buttons), vertex/edge/face and bone grabbing/transforms, and Mesh XR Undo/Redo.
+- [x] Freeform armature creation, bone edit tools, native Blender parenting, Weight Paint Mode and controller brush with group management basics.
+- [x] Automated install/compatibility matrix for Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2; GitHub v0.7.6 release published.
+- [ ] Full **physical-headset** acceptance for real controller interactions and Weight Paint remains unverified. This is a v0.8 release gate, not proof of a failed automated test.
 
+**Next target:** [Mesh XR v0.8 — VR-first workflow and rigging completion plan](V0_8_PLAN.md).
 
-- [x] Keep mesh and armature as a remembered pair through selection changes and rigging/edit/paint modes.
-- [x] Support Select Mesh / Select Rig, automatic empty-group binding, active group initialization and headset-driven paint/erase.
-- [x] Preserve Blender's regular mesh editing workflow beside the armature workflow.
-- [ ] Verify the new selection, brush strokes and bone editing on physical headset hardware.
-
-
-- [x] Replace the restrictive humanoid starter-rig template with a freeform armature, including selected wide and flat meshes.
-- [x] Add desktop Add Bone / Edit Bones / Finish Bones actions using standard Blender armature edit mode.
-- [x] Add manual weight painting through Bind Empty Groups while keeping Automatic Weights available.
-- [x] Make the basic rig and bone-add operations available from headset menu with the existing icon-based UI.
-- [ ] Test armature placement, bone editing, and manual weight painting with real workflows before calling v0.7.6 complete.
-
-
-- [x] Native Blender icon-first workspace selector in the main 3D View sidebar.
-- [x] Preserve existing operators and group advanced panels beneath a single entry point.
-- [x] Isolate new sidebar layout and add Blender-side smoke regression coverage.
-- [ ] Run the Blender CI compatibility matrix against the 0.7.6 test branch.
-- [ ] Validate VR headset, controller profiles, mirror and optional SteamVR hand bridge on physical equipment.
-- [ ] Incorporate tester feedback before considering merge into `main`.
-
-Release boundary: the later v0.7, v0.8, v0.9 and v1.0 roadmap sections are targets, **not** already implemented features. Do not mark them shipped without tests.
-
-Mesh XR is a free controller-first OpenXR modeling extension for Blender by Ded Zed. This roadmap describes scoped goals rather than promises of full Blender parity. Shipped release history is kept in [CHANGELOG.md](CHANGELOG.md); this file tracks completed milestones and future direction.
+Shipped details: [CHANGELOG.md](CHANGELOG.md). Version 0.8 and later items are **proposals**, not completed features.
 
 ## v0.7.5 — workflow expansion (development)
 
@@ -195,7 +174,7 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 | Version | Main goal | Ideal direction |
 | --- | --- | --- |
 | **v0.7** | **Object transforms + modifiers** | Numeric transforms, origins, snapping, duplication and a focused set of common modifiers. |
-| **v0.8** | **Rigging + Weight Painting** | Armatures, bones, posing, vertex groups, weighting, deformation testing and basic rig constraints in one complete rigging workflow. |
+| **v0.8** | **VR usability + production rigging** | Consolidated controller input, one contextual UI, precision transforms, reliable weight painting, complete mesh → rig → pose workflow and headset QA. [Detailed plan](V0_8_PLAN.md). |
 | **v0.9** | **Deformation + Animation** | Shape keys/blendshapes, corrective deformation, pose presets, basic drivers and practical keyframe animation tools in VR. |
 | **v1.0** | **Stable complete XR modeling workflow** | Polish all earlier systems and make the complete workflow stable, performant and VR-native, including direct-hand manipulation and Extrude-to-Hand. |
 
@@ -238,48 +217,18 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 - [ ] Toggle supported modifier viewport visibility.
 - [ ] Reorder, apply and remove supported modifiers.
 
-## v0.8 — rigging + weight painting
+## v0.8 — VR-first workflow + rigging completion (proposed)
 
-v0.8 should take a mesh from an unrigged state through a usable weighted armature without forcing the user to leave XR.
+**Full implementation stages, priorities, acceptance tests and excluded features:** [V0_8_PLAN.md](V0_8_PLAN.md).
 
-### Armatures + bones
+- [ ] **P0:** One controller-input/action state machine and verified real-headset selection, grab, transform, painting and mode switching.
+- [ ] **P0:** Consistent native Blender object/mesh/bone/pose/weight state and safe Undo/Redo/cancel for every new 0.8 tool.
+- [ ] **P1:** Contextual wrist controls, numeric transforms, axis/pivot orientation and snapping; simple scene hierarchy and contextual feedback without duplicate buttons.
+- [ ] **P1:** Production-ready armature editing, vertex-group manager, smoothing/mirroring/normalization, visible brush heatmap and deformation preview.
+- [ ] **P1:** Essential pose constraints including IK, Copy Rotation and Copy Location.
+- [ ] **P0:** Caching/performance, clean installer, cross-version Blender tests and Quest 3 PC-VR device acceptance.
 
-- [ ] Add armatures and bones.
-- [ ] Select/multi-select, move, rotate, scale and extrude bones.
-- [ ] Parent/unparent, rename, mirror, duplicate and delete bones.
-- [ ] Armature and bone display controls.
-
-### Pose workflow
-
-- [ ] Enter Pose Mode from VR.
-- [ ] Switch Rest/Pose position.
-- [ ] Select and transform pose bones.
-- [ ] Reset individual/full pose.
-- [ ] Test mesh deformation while posing.
-
-### Parenting + vertex groups
-
-- [ ] Parent mesh to armature with automatic weights or empty groups.
-- [ ] Clear armature parenting safely.
-- [ ] Recalculate automatic weights.
-- [ ] Create/delete/rename/select vertex groups.
-- [ ] Assign/remove/select/deselect vertices by group.
-
-### Weight Painting
-
-- [ ] Enter Weight Paint Mode from VR.
-- [ ] Choose active bone/group.
-- [ ] Add/remove/set weight.
-- [ ] Brush size and strength.
-- [ ] Normalize, mirror, smooth, clean and limit influences.
-- [ ] Visual weight heatmap.
-- [ ] Pose while testing deformation.
-
-### Rig constraints
-
-- [ ] Basic IK creation/target/chain length.
-- [ ] Copy Rotation and Copy Location.
-- [ ] Enable/disable/remove supported constraints.
+Existing basics from v0.7.6 (armature creation, parent types, initial Weight Paint Mode, simple paint brush, bone transforms) are **not** new 0.8 features. The work is to finish and harden their combined workflow.
 
 ## v0.9 — deformation + animation
 
