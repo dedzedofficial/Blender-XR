@@ -2,7 +2,7 @@
 
 ## v0.7.6 — Unified VR modelling, freeform armatures and native Weight Paint
 
-*Compared with v0.7.5, the previous published release. Merged into `main` on 25 October 2026 via [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18). This merge does not itself publish a tagged GitHub or Blender Extensions release.*
+*Compared with v0.7.5. Merged into `main` on 25 October 2026 via [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18); the [v0.7.6 GitHub release](https://github.com/dedzedofficial/Blender-XR/releases/tag/v0.7.6) and installer ZIP were published shortly afterward. Blender Extensions publication status has not been separately verified.*
 
 ### Blender-style VR selection and transforms
 
