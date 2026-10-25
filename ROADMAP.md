@@ -217,6 +217,15 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 - [ ] Toggle supported modifier viewport visibility.
 - [ ] Reorder, apply and remove supported modifiers.
 
+## macOS desktop compatibility (v0.8 development)
+
+- [ ] Add Mac desktop Blender targets **Intel (`macos-x64`)** and **Apple Silicon (`macos-arm64`)**, preserving the current Windows/Linux baseline. Implementation is in [development PR #20](https://github.com/dedzedofficial/Blender-XR/pull/20).
+- [ ] Pass Blender native registration, mesh, UI, and rigging tests on Intel Mac Blender 4.5 and Apple Silicon Blender 5.2, separately from the ordinary package installation check.
+- [ ] Keep physical macOS OpenXR/headset support labelled experimental/unverified until a compatible live XR runtime is confirmed.
+- [x] Remove the proposed mobile/iOS/standalone companion work from scope; [issue #21](https://github.com/dedzedofficial/Blender-XR/issues/21) closed as not planned.
+
+**No iOS/iPadOS/visionOS or standalone Quest application is requested.** Windows x64/Linux x64 support must not regress.
+
 ## v0.8 — VR-first workflow + rigging completion (proposed)
 
 **Full requirements, stages, scope limits and headset acceptance:** [V0_8_PLAN.md](V0_8_PLAN.md). New tools complement existing v0.7.6 features rather than duplicate them.
