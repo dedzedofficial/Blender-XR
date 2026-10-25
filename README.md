@@ -15,7 +15,7 @@ Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand ca
 - **Rigging → Parent** offers Blender Ctrl+P parenting types: Automatic Weights, Empty Groups, Envelopes, Armature Deform, Object Parent and Clear Parent.
 - Seven icon-led sidebar workspaces keep Materials, UV, Workflow, Travel and Project tools accessible without large stacked panels.
 - Automated builds and regressions passed Blender **4.2, 4.5, 5.0 and 5.2**; see the [full comparison with v0.7.5](CHANGELOG.md).
-- **Merged into main 25 October 2026.** The packaged 0.7.6 GitHub / Blender Extensions release has not yet been published; OpenXR device behaviour still needs hands-on confirmation.
+- **Released on GitHub 25 October 2026** after merging into `main`. [Get the v0.7.6 installable ZIP](https://github.com/dedzedofficial/Blender-XR/releases/tag/v0.7.6). Blender Extensions publication has not been separately verified; OpenXR device behaviour still needs hands-on confirmation.
 
 ## v0.7.5 development highlights
 
