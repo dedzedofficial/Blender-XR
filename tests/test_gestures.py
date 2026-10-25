@@ -2,6 +2,7 @@
 import ctypes
 import importlib.util
 import json
+import time
 from pathlib import Path
 import socket
 import tempfile
@@ -70,7 +71,14 @@ class Tests(unittest.TestCase):
         sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.addCleanup(sender.close)
         sender.sendto(packet(6, pinch=.01), ('127.0.0.1', bridge.port))
-        self.assertEqual(bridge.read(), ((1.,0.),(1.,0.)))
+        # UDP loopback receive is asynchronous on macOS; poll briefly rather
+        # than asserting delivery in the same scheduler quantum as sendto().
+        for _ in range(25):
+            received = bridge.read()
+            if received == ((1., 0.), (1., 0.)):
+                break
+            time.sleep(.005)
+        self.assertEqual(received, ((1., 0.), (1., 0.)))
         self.assertFalse(bridge.accept(packet(7, hands=[dict(tracked=True, level='estimated', pinch=.1, curl=0)]*2), local))
 
     def test_v2_individual_finger_curls_and_joint_validation(self):
