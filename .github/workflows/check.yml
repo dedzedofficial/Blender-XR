@@ -163,7 +163,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-2022, macos-15, macos-15-intel]
+        include:
+          - platform: windows-2022
+            blender_version: ''
+            blender_arch: ''
+          - platform: macos-15
+            blender_version: '5.2.2'
+            blender_arch: arm64
+          - platform: macos-15-intel
+            blender_version: '4.5.15'
+            blender_arch: x64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -180,6 +189,37 @@ jobs:
         run: python scripts/build.py
       - name: Verify Windows/Linux baseline and both macOS architectures inside ZIP
         run: python tests/test_platform_package.py
+      - name: Download official Blender desktop for native Mac integration tests
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          BLENDER_VERSION: ${{ matrix.blender_version }}
+          BLENDER_ARCH: ${{ matrix.blender_arch }}
+        run: |
+          set -euo pipefail
+          series="${BLENDER_VERSION%.*}"
+          url="https://download.blender.org/release/Blender${series}/blender-${BLENDER_VERSION}-macos-${BLENDER_ARCH}.dmg"
+          curl --fail --location --retry 3 --silent --show-error "$url" -o "$RUNNER_TEMP/meshxr-blender.dmg"
+          mkdir -p "$RUNNER_TEMP/meshxr-mounted"
+          hdiutil attach "$RUNNER_TEMP/meshxr-blender.dmg" -mountpoint "$RUNNER_TEMP/meshxr-mounted" -nobrowse -quiet
+          test -x "$RUNNER_TEMP/meshxr-mounted/Blender.app/Contents/MacOS/Blender"
+      - name: Native Blender macOS add-on and hand/rigging regression tests
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BLENDER="$RUNNER_TEMP/meshxr-mounted/Blender.app/Contents/MacOS/Blender"
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_ui.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_hands.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_rigging_v076.py
+      - name: Unmount official Blender DMG
+        if: always() && runner.os == 'macOS'
+        shell: bash
+        run: |
+          if [ -d "$RUNNER_TEMP/meshxr-mounted/Blender.app" ]; then
+            hdiutil detach "$RUNNER_TEMP/meshxr-mounted" -quiet || true
+          fi
 
   preview-package:
     if: github.event_name == 'pull_request'
