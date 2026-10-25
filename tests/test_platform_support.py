@@ -13,17 +13,17 @@ spec.loader.exec_module(support)
 
 
 class DesktopSupportTests(unittest.TestCase):
-    def test_manifest_covers_all_official_desktop_blender_targets(self):
+    def test_manifest_covers_existing_desktops_and_both_macs(self):
         manifest = tomllib.loads((ROOT / 'blender_xr' / 'blender_manifest.toml').read_text())
         self.assertEqual(set(manifest['platforms']), set(support.DESKTOP_EXTENSION_TARGETS))
         self.assertEqual(manifest['wheels'], ['./wheels/openvr-2.12.1401-py3-none-any.whl'])
         self.assertNotIn('ios', ' '.join(manifest['platforms']))
         self.assertNotIn('android', ' '.join(manifest['platforms']))
 
-    def test_platform_mapping_for_apple_silicon_intel_windows_arm(self):
+    def test_platform_mapping_for_apple_silicon_and_intel(self):
         cases = {
             ('Windows', 'AMD64'): 'windows-x64',
-            ('Windows', 'ARM64'): 'windows-arm64',
+            ('Windows', 'ARM64'): None,
             ('Linux', 'x86_64'): 'linux-x64',
             ('Darwin', 'arm64'): 'macos-arm64',
             ('Darwin', 'x86_64'): 'macos-x64',
@@ -69,8 +69,9 @@ class DesktopSupportTests(unittest.TestCase):
         info = support.support_info((5, 2, 2), True, 'Windows', 'AMD64')
         self.assertTrue(info['vr'])
         self.assertIn('active OpenXR runtime', info['message'])
-        info = support.support_info((5, 2, 2), True, 'Windows', 'ARM64')
-        self.assertIn('ARM64', info['message'])
+        # No new Windows ARM64 support is added during the macOS-focused update.
+        self.assertFalse(support.support_info((5, 2, 2), True,
+                      'Windows', 'ARM64')['desktop'])
 
     def test_blender_info_wrapper(self):
         fake = NS(app=NS(version=(5, 2, 2),build_options=NS(xr_openxr=False)))
