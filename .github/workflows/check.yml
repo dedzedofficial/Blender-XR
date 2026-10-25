@@ -23,6 +23,7 @@ jobs:
         run: |
           python tests/test_gestures.py
           python tests/test_v080_controls.py
+          python tests/test_platform_support.py
           python tests/test_prune.py
       - name: Check Python syntax
         run: python -m compileall -q blender_xr tests
@@ -155,6 +156,30 @@ jobs:
         with:
           name: mesh-xr-${{ matrix.blender }}
           path: dist/*
+
+  desktop-cross-platform-package:
+    name: Desktop package / ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-2022, macos-15, macos-15-intel]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Platform compatibility, radial and skeletal regressions
+        run: |
+          python tests/test_platform_support.py
+          python tests/test_v080_controls.py
+          python tests/test_gestures.py
+      - name: Compile source and tests
+        run: python -m compileall -q blender_xr tests
+      - name: Build platform-neutral desktop extension
+        run: python scripts/build.py
+      - name: Verify all five declared desktop architectures inside ZIP
+        run: python tests/test_platform_package.py
 
   preview-package:
     if: github.event_name == 'pull_request'
