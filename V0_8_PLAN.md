@@ -44,6 +44,15 @@ The user requested **real 3D hands instead of ball-shaped controller indicators*
 
 **Detailed audit and proposed solutions:** [V0_8_SYSTEM_AUDIT_AND_INPUT_PLAN.md](V0_8_SYSTEM_AUDIT_AND_INPUT_PLAN.md).
 
+## macOS desktop scope (v0.8 integration workstream)
+
+Add support for **macOS Apple Silicon (Blender 5.x)** and **macOS Intel (Blender 4.5 LTS and earlier)** as desktop Blender extension targets. Preserve existing Windows x64 and Linux x64 functionality.
+
+- Do not add Windows ARM64 or mobile/standalone application development as part of this scope.
+- Validate packaging **and** Blender registration/UI/mesh/rigging operators on a Mac Intel Blender 4.5 build and an Apple Silicon Blender 5.2 build.
+- Distinguish Blender desktop functionality from **real OpenXR headset availability**. macOS preliminary OpenXR starts with Blender 5.1; headset availability, controller alignment, radial selection and finger tracking are unverified until real Mac hardware/runtime tests.
+- Track implementation and verification in [PR #20](https://github.com/dedzedofficial/Blender-XR/pull/20) and [macOS platform guide on the development branch](https://github.com/dedzedofficial/Blender-XR/blob/dev/v0.8.0/PLATFORM_COMPATIBILITY.md).
+
 ## Milestone A — Interaction-engine stabilisation (P0, release blocker)
 
 - [ ] Replace the chained runtime `tick`, `select` and `command` monkey patches with a single input/action router and stable, mode-specific tool handlers. Preserve supported extension/operator compatibility.
