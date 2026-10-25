@@ -217,16 +217,18 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 - [ ] Toggle supported modifier viewport visibility.
 - [ ] Reorder, apply and remove supported modifiers.
 
-## Cross-platform support (v0.8 workstream)
+## macOS desktop support (v0.8 workstream)
 
-- [x] Include all five supported Blender desktop platform manifest tags: Windows x64/ARM64, macOS Intel/Apple Silicon, Linux x64.
-- [x] Add OS/architecture/OpenXR capability reporting and explicit desktop-versus-headset availability feedback.
-- [x] Add native Windows and macOS package/build checks in CI alongside the Linux Blender regression suite.
-- [ ] Validate full Blender registration/operator tests on Windows, macOS ARM64 and Intel Mac with compatible Blender versions.
-- [ ] Verify Quest/SteamVR/Monado hardware interaction on supported Windows and Linux PCs; macOS XR depends on a compatible real runtime.
-- [ ] Investigate a separate iPhone/iPad remote-control companion and standalone Quest native client with secure pairing. **Not a part of desktop add-on ZIP.**
+**Only Mac computers are being added as new platform targets.** Keep the existing Windows x64 and Linux x64 Blender extension support, with no additional Windows ARM64 or mobile companion expansion.
 
-See [PLATFORM_COMPATIBILITY.md](PLATFORM_COMPATIBILITY.md) for the support matrix and remaining verification.
+- [x] Add both Blender desktop Mac platform tags: `macos-x64` (Intel) and `macos-arm64` (Apple Silicon); keep existing `windows-x64` and `linux-x64` packaging.
+- [x] Detect Mac CPU family and Blender/OpenXR capabilities, with explicit guidance that Intel Macs stop at Blender 4.5 LTS and Mac VR is preliminary only on Blender 5.1+.
+- [x] Run native macOS Intel/Apple Silicon package and regression checks in CI, retaining existing Linux Blender testing.
+- [ ] Validate Blender-native extension registration and operator tests on macOS Intel 4.5 LTS and Apple Silicon 5.2 or later.
+- [ ] Verify XR controller mapping, hand alignment, radial menu and GPU overlays on a real compatible Mac OpenXR runtime before claiming Mac VR headset support.
+- [ ] Publish an accurate Mac installation guide and track packaging / native Blender / physical VR separately.
+
+**Excluded:** iOS, iPadOS, visionOS, standalone Quest/Android and mobile companion apps. See [macOS support guide](PLATFORM_COMPATIBILITY.md).
 
 ## v0.8 — VR-first workflow + rigging completion (proposed)
 
