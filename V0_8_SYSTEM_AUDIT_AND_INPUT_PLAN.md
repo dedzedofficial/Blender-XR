@@ -79,11 +79,14 @@ Replace the feeling of a flat button grid plus controller spheres with a coheren
 
 ## Design C — Thumbstick radial menu (preferred UI)
 
+**Confirmed control requirement (user decision): both menu-opening Trigger and menu-selection thumbstick belong to the NON-DOMINANT hand.** Right-handed users use the left controller for both; left-handed users use the right controller for both. The dominant hand is never required to browse the radial menu.
+
+
 ### Proposed mechanics
 
-- **Menu-open input:** **hold offhand Trigger** to show a menu at the offhand wrist/hand (replaces current trigger-toggle option when radial mode is enabled). This works on Touch without extra reserved buttons.
-- **Navigation input:** while that hold is active, the **dominant-hand thumbstick** selects a wedge using its angle. This temporarily disables *dominant-stick turning/lift/boost*; disable both movement and turning during the menu hold to remove unintended navigation or floating while browsing.
-- **Activation:** rotate stick past outer deadzone → highlight wedge; release **offhand Trigger** while a wedge is valid → activate exactly once. Keep the stick neutral on release → close without action. If controller tracking is lost or any operation already owns input → **cancel**, not activate.
+- **Menu-open input:** **hold the non-dominant hand Trigger** to show the menu attached to that same hand/wrist (replaces the current offhand trigger-toggle option when radial mode is enabled). This works on Touch without requiring the modelling hand.
+- **Navigation input:** while holding that Trigger, use the **NON-DOMINANT hand's OWN thumbstick** to highlight wedges by angle. This keeps the dominant modelling hand completely free. Capture that physical stick and suspend normal locomotion/turning on both sticks for the entire menu hold so opening the menu can never move, rotate or lift the viewer. The mapping swaps automatically when handedness changes.
+- **Activation:** tilt the **non-dominant stick** past the outer deadzone → highlight wedge; release the **same hand's Trigger** with a valid highlighted wedge → activate exactly once. Recenter the offhand stick before trigger release → close without acting. Tracking loss or conflicting active editing → **cancel**, not activate.
 - **Submenus:** categories expand into another radial ring/page while the menu is held. The user can flick to the category, return stick to neutral to arm the next selection, then flick to an option. Include **Back** as a consistent wedge. Avoid more than 8 items per ring.
 - **Suggested sectors:** 8 directions; at most 6 common actions plus Back/More in mode-specific rings. Persistent status in the center indicates the current mode/tool/selection and input hint; avoid long labels covering a neighboring wedge.
 - **Hysteresis:** first-choice entry deadzone ~0.55 normalized radial distance, a lower hold/exit threshold ~0.40, angular boundary hysteresis ~8–12 degrees; tune on real controllers, not fixed magic values. Sampling between neighboring sectors should never trigger a double click.
@@ -91,7 +94,7 @@ Replace the feeling of a flat button grid plus controller spheres with a coheren
 - **Optional Quick Favourites ring:** user can pin a handful of actions from current mode without duplicating the action or creating another Select tool.
 - **Modes:** Object, Mesh Edit, Armature Edit, Pose, Weight Paint. Common Undo/Redo/Save/Mode always reachable from utility ring or a single common area; categories only show actions valid in current Blender mode.
 - **Alternative interactions:** no-thumbstick optical hand tracking uses palm-facing menu with index aim/pinch selection and the same state/router; a fallback **ray-operated classic grid** remains for Vive trackpad/simple controllers and accessibility.
-- **Accessibility:** left-handed edit grip maps logical dominant/offhand explicitly; ability to invert thumbstick menu assignment or move to accessible side, increase size, switch to high-contrast color/icon/label, toggle menu open strategy and use classic menu.
+- **Accessibility:** left-handed editing reverses the physical non-dominant hand automatically (**right hand opens AND selects the menu**). Non-dominant control is the default; provide an optional remap for accessibility, larger text/contrast, optional toggle-open strategy and classic ray menu.
 - **Visual anchor:** default follows offhand while initial hold opens, then stabilizes with mild filtering; do not let hand jitter rotate the active sectors. Design for comfortable reading distance without requiring an awkward wrist pose.
 
 ### Radial selection input state machine
@@ -100,7 +103,7 @@ Replace the feeling of a flat button grid plus controller spheres with a coheren
 NORMAL_EDITING
   └─ offhand trigger press (no active edit) → RADIAL_OPEN
 RADIAL_OPEN
-  ├─ dominant stick in deadzone → no selection (cancel on release)
+  ├─ non-dominant stick in deadzone → no selection (cancel on release)
   ├─ valid wedge direction → RADIAL_PREVIEW
   └─ tracking lost / cancellation → NORMAL_EDITING, no action
 RADIAL_PREVIEW
@@ -114,7 +117,7 @@ RADIAL_SUBMENU
   └─ release opener on command → DISPATCH_ONCE
 ```
 
-**Design conflict:** offhand trigger currently toggles the panel, while offhand grip may navigate/scale and dominant stick participates in turning/lift. Build an explicit **input arbitration/capture system** and decide gestures in one place. A popup drawn but not capturing navigation is not acceptable.
+**Design conflict:** offhand Trigger currently toggles the panel; its own thumbstick already controls locomotion (when left handedness mapping is physical-left) or turning (when physical-right). Offhand Grip may navigate/scale. The new menu must own **both Trigger and thumbstick of the non-dominant hand**, suspend locomotion/turning on both sticks, and suppress conflicting editing until it closes. This is one-handed offhand control, leaving the dominant hand ready for modelling. A popup without input capture is unacceptable.
 
 ### Suggested ring information architecture
 
@@ -127,7 +130,7 @@ RADIAL_SUBMENU
 | Pose | Select, Move/Rotate, Direct IK, Reset Pose, Constraints, More, Back | Chain/Target, Pose/Rest view |
 | Weight Paint | Paint, Erase, Smooth, Eyedropper, Group, Radius/Strength, More, Back | Mirror/Normalize/Clean/Limit influences |
 
-**UI alternative worth prototyping:** place the radial menu around the *dominant* controller thumbstick rather than floating above the wrist. Both designs share the same selection logic; evaluate legibility and hand occlusion in the headset before locking the visual anchor.
+**Visual placement alternative worth prototyping:** render the radial around the **non-dominant wrist/palm** or anchored near that **same non-dominant thumbstick**. Both are controlled exclusively by the non-dominant stick; compare readability, occlusion and hand posture without reassigning navigation to the dominant hand.
 
 ## System architecture target
 
@@ -227,7 +230,7 @@ Interaction ownership order: **tracking invalid → cancel/rearm; active edit ge
 
 1. **Hands:** both hands rendered instead of balls, correct handedness and alignment, finger animations reflect available physical input, no extra scene objects, no duplicate overlays; disable/fallback works.
 2. **Input:** controller-select and -grab precision is no worse than v0.7.6, thumbstick navigation and turn resume immediately and cleanly after menu closure.
-3. **Radial:** all categories reachable using dominant stick; release-to-select causes one action only; no accidental edits on menu opening, device reconnection or lost tracking.
+3. **Radial:** all categories reachable using the **non-dominant thumbstick only** while holding the **non-dominant Trigger**; the dominant hand remains free. Release-to-select causes one action only; neither stick navigates while the menu captures input; no accidental edits on opening, reconnection or lost tracking.
 4. **Tracking:** UI truthfully indicates estimated/partial/full and validates both hands; only call it optical hand tracking when actual joint data is confirmed.
 5. **Safety:** tracking loss cancels an active edit without corrupting meshes/rig/weights; legacy input and menu can be restored.
 6. **Performance:** headset frame times and input-to-visual latency measured against 0.7.6 on the same documented PC, headset runtime and scene; no unexplained regressions.
@@ -242,4 +245,4 @@ Interaction ownership order: **tracking invalid → cancel/rearm; active edit ge
 - Valve skeletal tracking and quality levels: https://github.com/ValveSoftware/openvr/wiki/SteamVR-Skeletal-Input
 - Valve skeletal input guidance: https://valvesoftware.github.io/steamvr_unity_plugin/articles/Skeleton-Input.html
 
-**Planning conclusion:** Build controller-driven, accurately skinned **visual hands first**, with a trustworthy full-joint provider abstraction rather than assuming Quest optical hand input is available in Blender. Design a **thumbstick-release radial menu** backed by an explicit action-capture router. Treat physical headset experiments, coordinate validation and safe controller fallback as non-negotiable gates before implementing the final 0.8 hand/radial runtime.
+**Planning conclusion:** Build controller-driven, accurately skinned **visual hands first**, with a trustworthy full-joint provider abstraction rather than assuming Quest optical hand input is available in Blender. Design a **single-hand, non-dominant Trigger + non-dominant thumbstick radial menu**, with release-to-select and explicit input capture. Keep the dominant hand free for editing. Treat physical headset experiments, coordinate validation and safe controller fallback as non-negotiable gates before implementing the final 0.8 hand/radial runtime.
