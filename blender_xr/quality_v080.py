@@ -143,7 +143,7 @@ def draw_inspector(layout, context):
     row = layout.row(align=True)
     row.prop(obj, 'hide_viewport', text='Hide in viewport', icon='HIDE_ON')
     layout.label(text='Type: %s  |  Polygons: %d' %
-                 (obj.type, len(obj.data.polygons) if obj.type == 'MESH' else 0))
+                 (obj.type, len(obj.data.polygons) if obj.type == 'MESH' else 0), icon='MESH_DATA')
     layout.label(text='Parent: ' + (obj.parent.name if obj.parent else '(none)'), icon='OUTLINER_DATA_EMPTY')
 
 
