@@ -51,6 +51,7 @@ def _session(layout, context, settings, active):
         col.prop(settings, 'hand_offset_x', text='Hand offset X')
         col.prop(settings, 'hand_offset_y', text='Hand offset Y')
         col.prop(settings, 'hand_offset_z', text='Hand offset Z')
+        _operator(col, 'blender_xr.reset_hand_calibration', 'Reset hand alignment', 'LOOP_BACK')
     if settings.input_source == 'STEAMVR_HANDS':
         col.prop(settings, 'bridge_port', text='Bridge port', icon='CONSOLE')
         if active and getattr(runtime.CURRENT, 'bridge', None):
