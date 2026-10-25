@@ -6,11 +6,9 @@ does not imply a functioning OpenXR runtime or headset connection.
 This module intentionally has no bpy dependency for OS-independent tests.
 """
 import platform
-import sys
 
 DESKTOP_EXTENSION_TARGETS = (
-    'windows-x64', 'windows-arm64', 'linux-x64',
-    'macos-x64', 'macos-arm64',
+    'windows-x64', 'linux-x64', 'macos-x64', 'macos-arm64',
 )
 
 
@@ -23,8 +21,7 @@ def desktop_platform(system=None, machine=None):
     system = str(system).lower()
     machine = str(machine).lower()
     if system == 'windows':
-        return 'windows-arm64' if machine in ('arm64', 'aarch64') else (
-            'windows-x64' if machine in ('amd64', 'x86_64', 'x64') else None)
+        return 'windows-x64' if machine in ('amd64', 'x86_64', 'x64') else None
     if system in ('darwin', 'macos'):
         return 'macos-arm64' if machine in ('arm64', 'aarch64') else (
             'macos-x64' if machine in ('x86_64', 'amd64') else None)
@@ -43,7 +40,7 @@ def support_info(blender_version=(5, 2, 2), has_openxr=False,
     tag = desktop_platform(system, machine)
     if tag is None:
         return {'tag': None, 'desktop': False, 'vr': False,
-                'message': 'Mesh XR requires supported desktop Blender on Windows, Linux or macOS; iOS/iPadOS and standalone Quest cannot run this Blender add-on'}
+                'message': 'Mesh XR requires a supported desktop Blender installation on Windows x64, Linux x64, or macOS Intel/Apple Silicon'}
     version = tuple(int(part) for part in blender_version[:3])
     if tag == 'macos-x64' and version >= (5, 0, 0):
         return {'tag': tag, 'desktop': False, 'vr': False,
@@ -57,9 +54,6 @@ def support_info(blender_version=(5, 2, 2), has_openxr=False,
                     'message': 'Desktop tools work, but macOS OpenXR requires Blender 5.1+ and a compatible runtime'}
         return {'tag': tag, 'desktop': True, 'vr': True,
                 'message': 'macOS OpenXR is experimental; a compatible active headset/runtime is still required'}
-    if tag == 'windows-arm64':
-        return {'tag': tag, 'desktop': True, 'vr': True,
-                'message': 'Windows ARM64 desktop supported; VR requires a compatible ARM64 OpenXR runtime and headset'}
     return {'tag': tag, 'desktop': True, 'vr': True,
             'message': 'Desktop supported; VR requires a compatible active OpenXR runtime and headset'}
 
