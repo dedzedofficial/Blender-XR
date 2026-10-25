@@ -1,4 +1,4 @@
-# Mesh XR v0.8.0 (alpha development build)
+# Mesh XR v0.8.0
 
 ## v0.8 alpha 1 — offhand radial menu and articulated controller hands
 
