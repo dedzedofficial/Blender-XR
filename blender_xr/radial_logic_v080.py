@@ -57,10 +57,11 @@ class RadialState:
         self.page_name = ''
         self._ready = True
 
-    def reset(self):
+    def reset(self, require_release=False):
         self.active = False
         self.selected = None
-        self._ready = True
+        # Tracking loss cannot synthesize a fresh Trigger press on reconnect.
+        self._ready = not require_release
 
     def update(self, held, xy, buttons, page, submenus=CATEGORIES):
         """Return ('open'|'hover'|'navigate'|'select'|'close'|'next', action)."""
