@@ -224,7 +224,7 @@ These are useful modeling improvements that remain open after v0.6.5 and can be 
 - [x] Add both Blender desktop Mac platform tags: `macos-x64` (Intel) and `macos-arm64` (Apple Silicon); keep existing `windows-x64` and `linux-x64` packaging.
 - [x] Detect Mac CPU family and Blender/OpenXR capabilities, with explicit guidance that Intel Macs stop at Blender 4.5 LTS and Mac VR is preliminary only on Blender 5.1+.
 - [x] Run native macOS Intel/Apple Silicon package and regression checks in CI, retaining existing Linux Blender testing.
-- [ ] Validate Blender-native extension registration and operator tests on macOS Intel 4.5 LTS and Apple Silicon 5.2 or later.
+- [x] Validate Blender-native UI, hands, mesh and rigging operator tests on Intel macOS Blender 4.5.15 and Apple Silicon Blender 5.2.2 in [CI #40208950376](https://github.com/dedzedofficial/Blender-XR/actions/runs/40208950376).
 - [ ] Verify XR controller mapping, hand alignment, radial menu and GPU overlays on a real compatible Mac OpenXR runtime before claiming Mac VR headset support.
 - [ ] Publish an accurate Mac installation guide and track packaging / native Blender / physical VR separately.
 
