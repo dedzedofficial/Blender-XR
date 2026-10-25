@@ -566,11 +566,15 @@ class BXR_PT_workflow(bpy.types.Panel):
         layout.label(text='Rig and mesh pairing works without Shift-select', icon='INFO')
         layout.label(text='Use Select in the headset to pick mesh or rig', icon='RESTRICT_SELECT_OFF')
         row = layout.row(align=True)
-        row.operator('blender_xr.bind_paired', text='Empty Groups', icon='GROUP_VERTEX').binding = 'EMPTY'
-        row.operator('blender_xr.bind_paired', text='Auto Weights', icon='CONSTRAINT_BONE').binding = 'AUTO'
+        row.operator('blender_xr.parent_paired', text='Empty Groups', icon='GROUP_VERTEX').parent_type = 'ARMATURE_NAME'
+        row.operator('blender_xr.parent_paired', text='Auto Weights', icon='CONSTRAINT_BONE').parent_type = 'ARMATURE_AUTO'
+        row = layout.row(align=True)
+        row.operator('blender_xr.parent_paired', text='Envelopes', icon='MOD_ARMATURE').parent_type = 'ARMATURE_ENVELOPE'
+        row.operator('blender_xr.parent_paired', text='Object', icon='OBJECT_DATA').parent_type = 'OBJECT'
+        layout.operator('blender_xr.clear_mesh_parent', text='Clear Parent', icon='X')
         layout.operator('blender_xr.weight_cleanup', icon='GROUP_VERTEX')
-        if obj and obj.type == 'MESH' and obj.mode == 'OBJECT' and obj.vertex_groups:
-            layout.operator('blender_xr.weight_paint', icon='WPAINT_HLT')
+        if obj and obj.type == 'MESH':
+            layout.operator('blender_xr.weight_mode', text='Weight Paint Mode', icon='WPAINT_HLT').enabled = True
         if obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT':
             layout.operator('blender_xr.pose_test', icon='POSE_HLT')
         layout.separator()
