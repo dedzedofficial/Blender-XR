@@ -36,7 +36,7 @@ The user requested **real 3D hands instead of ball-shaped controller indicators*
 - [ ] Design a lightweight left/right skinned hand model, optional estimated finger animations from ordinary Touch inputs, and safe controller/dot display fallback.
 - [ ] Measure the SteamVR bridge limitations: its current transport sends only one pinch and aggregate curl per hand, **not** per-joint poses. Prototype a versioned provider plan for per-finger/hand joints with honest estimated/partial/full reporting.
 - [ ] Assess native `XR_EXT_hand_tracking` feasibility: runtime support and safe access to hand joints via an actual supported bridge. Do not claim controller-animation equals optical tracking.
-- [ ] Prototype **offhand Trigger hold → dominant stick selects one radial wedge → release to activate** (with explicit neutral-center cancel and submenu recentering). Ensure both thumbsticks' locomotion/turn bindings are suspended while menu is captured, and consider hand-tracking pinch control when thumbsticks are absent.
+- [ ] Prototype **NON-DOMINANT Trigger hold → NON-DOMINANT thumbstick selects one radial wedge → release the same Trigger to activate**. The dominant hand stays free for editing. Recenter to cancel; submenus require recentering. Temporarily suspend locomotion/turning on both sticks while the menu is open, support automatic left/right-handed mapping, and consider pinch-operated fallback where physical thumbsticks are absent.
 - [ ] Identify device mapping, gesture overlap, dropped tracking, handedness, joint coordinate and redraw/framerate hazards, with tests and accessibility fallback for the existing ray-driven grid.
 - [ ] Choose hand-mesh visual style, wrist/radial anchoring and input thresholds based on headset experiments before feature implementation.
 
@@ -176,7 +176,7 @@ This is a safer, smaller improvement than building a sculpt engine. Put tasks un
 
 - **Hand visuals:** Animated hands by default on compatible controllers; user can choose Hands / Controllers / Pointers / Hidden. Custom hands are rendered into the XR overlay, not as user-scene objects.
 - **Finger input:** Estimated controller gestures available first; SteamVR partial fingers if actually reported; optical individual joints only after capability and transform-space proof.
-- **Menu:** New radial UI as preferred option, with the classic ray-button grid retained for unsupported controllers and accessibility. Opening the radial must capture thumbstick controls and suspend moving/turning until it closes.
+- **Menu:** New radial UI is operated **entirely from the non-dominant hand**: hold its Trigger and tilt its own thumbstick; release to select or recenter to cancel. Automatic hand reversal for left-handed editing. The dominant controller must not be required for menu navigation. Retain the classic ray-button grid for unsupported controllers/accessibility and capture navigation input while the radial is open.
 - **Tracking loss:** No guessed transforms or automatic commit. Cancel/restores editing, show state and require neutral rearm before next action.
 - **Performance:** No full Blender scene objects to represent hands; batched GPU overlay, safe draw-state restoration, low update overhead, measured frame time on Quest 3 PC-VR.
 
