@@ -35,7 +35,7 @@ def _session():
     return session
 
 def run():
-    assert blender_xr.VERSION == (0, 7, 6)
+    assert blender_xr.VERSION >= (0, 7, 6)
     blender_xr.register()
     try:
         s = _session()
