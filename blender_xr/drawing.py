@@ -369,7 +369,9 @@ def draw(runtime):
         gpu.state.blend_set('ALPHA')
         gpu.state.depth_test_set('NONE')
         obj=runtime.context.view_layer.objects.active
-        if getattr(runtime.settings, 'menu_style', 'CLASSIC') == 'RADIAL':
+        if (getattr(runtime.settings, 'menu_style', 'CLASSIC') == 'RADIAL'
+                and getattr(runtime, 'radial_supported', True)
+                and getattr(runtime, 'bridge', None) is None):
             from . import radial_draw_v080
             radial_draw_v080.draw(runtime, shader)
         else:
