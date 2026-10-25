@@ -173,8 +173,10 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
     if obj is None:
         raise ValueError('Select an object or geometry first')
     kind = _mode_kind(obj)
-    if obj.library or obj.data.library:
+    if obj.library or (obj.data is not None and obj.data.library):
         raise ValueError('Linked objects cannot be transformed')
+    if obj.hide_select:
+        raise ValueError('Selection is locked: unlock the object before grabbing it')
     before = None
     if kind == 'OBJECT':
         before = obj.matrix_world.copy()
@@ -197,6 +199,10 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         else:
             points = [matrix.translation for matrix in before.values()]
         pivot = obj.matrix_world @ (sum(points, Vector()) / len(points))
+    # Freeze fine-movement sensitivity at the beginning of each gesture.
+    settings = getattr(context.scene, 'blender_xr', None)
+    fine = (max(0.02, min(1.0, float(settings.fine_grab_factor)))
+            if settings and settings.fine_grab_enabled else 1.0)
     position = Vector(pos)
     if part is None and tool in {'BONE_MOVE_HEAD', 'BONE_MOVE_TAIL'}:
         part = 'HEAD' if tool == 'BONE_MOVE_HEAD' else 'TAIL'
@@ -205,24 +211,28 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         'source': source, 'start': position.copy(),
         'rotation': Quaternion(rotation).copy(), 'pivot': pivot,
         'before': before, 'part': part,
-        'mode': obj.mode,
+        'mode': obj.mode, 'fine_factor': fine,
     }
 
 
 def _delta_matrix(drag, position, rotation):
     tool = drag['tool']
     pivot = drag['pivot']
+    precision = max(0.02, min(1.0, float(drag.get('fine_factor', 1.0))))
     if tool in MOVE or tool == 'SELECT':
-        offset = Vector(position) - drag['start']
+        offset = (Vector(position) - drag['start']) * precision
         return Matrix.Translation(offset)
     if tool in SCALE:
         start = max((drag['start'] - pivot).length, .10)
         distance = (Vector(position) - pivot).length
         factor = max(.02, min(20.0, distance / start))
+        factor = 1.0 + (factor - 1.0) * precision
         return (Matrix.Translation(pivot) @ Matrix.Scale(factor, 4) @
                 Matrix.Translation(-pivot))
     if tool in ROTATE:
         difference = Quaternion(rotation) @ drag['rotation'].inverted()
+        if precision < 1.0:
+            difference = Quaternion().slerp(difference, precision)
         return (Matrix.Translation(pivot) @ difference.to_matrix().to_4x4() @
                 Matrix.Translation(-pivot))
     raise ValueError('Unsupported transform: ' + tool)
