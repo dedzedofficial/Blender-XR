@@ -15,7 +15,7 @@ with zipfile.ZipFile(installer) as archive:
     built = tomllib.loads(archive.read('blender_manifest.toml').decode())
     assert built['version'] == version
     assert set(built['platforms']) == {
-        'windows-x64', 'windows-arm64', 'linux-x64', 'macos-x64', 'macos-arm64'}
+        'windows-x64', 'linux-x64', 'macos-x64', 'macos-arm64'}
     assert built['wheels'] == ['./wheels/openvr-2.12.1401-py3-none-any.whl']
     for module in ('__init__.py', 'platform_support.py', 'hands_v080.py',
                    'radial_logic_v080.py', 'steamvr_hand_bridge.py'):
@@ -27,4 +27,4 @@ checksum = Path(str(installer) + '.sha256').read_text().split()[0]
 assert digest == checksum
 print('PASS universal desktop Blender extension:', installer.name, digest)
 print('TARGETS:', ', '.join(built['platforms']))
-print('NOTE: iOS/Android standalone and macOS headset runtimes are not implied.')
+print('NOTE: macOS OpenXR hardware availability must be independently verified.')
