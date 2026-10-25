@@ -6,14 +6,16 @@ Mesh XR adds a controller-first OpenXR modeling workflow to Blender. One hand ca
 
 [Latest Release](https://github.com/dedzedofficial/Blender-XR/releases/latest) · [Blender Extensions](https://extensions.blender.org/add-ons/blender-xr/) · [Report Issues](https://github.com/dedzedofficial/Blender-XR/issues) · [Icon Guide](ICON_GUIDE.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Testing](TESTING.md)
 
-## v0.7.6 preview — icon-first desktop interface
+## v0.7.6 — updated VR modelling and rigging (merged)
 
-- Seven small Blender-icon workspaces in the 3D View **Blender XR** sidebar: Session, Model, Material, UV, Travel, Project and Help.
-- Session start/stop and compact status feedback stay at the top while the selected workspace changes.
-- Advanced material, UV and asset/rigging sections are now collapsed contextual subpanels.
-- Blender's native icons and tooltips replace much of the sidebar's lengthy explanatory text.
-- The controller-driven VR modeling systems from 0.7.5 remain available. This preview still requires hands-on testing before release.
-- The PR build creates an installable `mesh-xr-v0.7.6.zip` test artifact. Do not use the repository source archive as the extension installer.
+- Unified **Select** picks objects, editable mesh geometry, edit bones and pose bones; separate mesh/armature selection buttons are removed.
+- Controller **Grip** grabs and moves mesh geometry or objects; Move, Scale and Rotate with Trigger support meshes, armatures and bones, with VR-local Undo/Redo.
+- Normal Blender freeform armatures replace the proportion-limited humanoid rig, with headset bone editing, native edit menus and Pose Mode tools.
+- **Weight Paint** is now its own Blender mode in the VR Mode selector, with controller Paint/Erase, vertex groups, strength and radius.
+- **Rigging → Parent** offers Blender Ctrl+P parenting types: Automatic Weights, Empty Groups, Envelopes, Armature Deform, Object Parent and Clear Parent.
+- Seven icon-led sidebar workspaces keep Materials, UV, Workflow, Travel and Project tools accessible without large stacked panels.
+- Automated builds and regressions passed Blender **4.2, 4.5, 5.0 and 5.2**; see the [full comparison with v0.7.5](CHANGELOG.md).
+- **Merged into main 25 October 2026.** The packaged 0.7.6 GitHub / Blender Extensions release has not yet been published; OpenXR device behaviour still needs hands-on confirmation.
 
 ## v0.7.5 development highlights
 
