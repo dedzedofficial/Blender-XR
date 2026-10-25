@@ -26,17 +26,24 @@ def _cuboid(out, a, b, width, depth):
         out.extend(corners[i] for i in indices)
 
 
-def hand_mesh(grip=0.0, trigger=0.0, left=False):
+def hand_mesh(grip=0.0, trigger=0.0, left=False, finger_curls=None):
     """One solid low-poly palm and 5 articulated fingers in hand-local metres."""
     grip = max(0.0, min(1.0, float(grip)))
     trigger = max(0.0, min(1.0, float(trigger)))
+    if finger_curls is not None and len(finger_curls) == 5:
+        fingers = tuple(max(0., min(1., float(v))) for v in finger_curls)
+    else:
+        # Trigger is an estimated index-finger bend, grip the other digits.
+        fingers = (max(grip, trigger * .6), trigger, grip, grip, grip)
     mirror = -1 if left else 1
     triangles = []
     _cuboid(triangles, Vector((0, 0, .021)), Vector((0, 0, -.048)), .083, .027)
     _cuboid(triangles, Vector((0, 0, .049)), Vector((0, 0, .023)), .053, .031)
     # Finger roots across knuckles, four fingers with individual bend profiles.
     for index, x in enumerate((-.030, -.010, .011, .030)):
-        curve = trigger if index == 1 else grip * (0.94 + index * .025)
+        # SteamVR skeletal summary supplies independent finger bends in v2.
+        # Controller-only mode uses clearly estimated trigger/grip curves.
+        curve = fingers[index + 1]
         base = Vector((mirror * x, -.001, -.044))
         for section, length in enumerate((.031, .025, .019)):
             angle = min(2.5, curve * (0.50 + .63 * section))
@@ -47,7 +54,7 @@ def hand_mesh(grip=0.0, trigger=0.0, left=False):
             base = end
     # The real thumb originates beside the palm, not in the finger row.
     root = Vector((mirror * .040, -.003, -.016))
-    bend = max(grip, trigger * .6)
+    bend = fingers[0]
     for section, length in enumerate((.029, .024)):
         end = root + Vector((mirror * (.8 - bend * .42) * length,
                              -.2 * length - bend * .60 * length,
@@ -80,7 +87,11 @@ def draw(runtime, shader):
                     continue
                 values = getattr(runtime, 'hand_controls', ((0., 0.), (0., 0.)))
                 trigger, grip = values[index]
-                local_mesh = hand_mesh(grip, trigger, left=index == 0)
+                skeletal = getattr(getattr(runtime, 'bridge', None),
+                                   'finger_curls', None)
+                individual = skeletal[index] if skeletal is not None else None
+                local_mesh = hand_mesh(grip, trigger, left=index == 0,
+                                       finger_curls=individual)
                 points = [origin + rotation @ (point * scale * vr_scale)
                           for point in local_mesh]
                 drawing.draw_batch(shader, 'TRIS', points,
