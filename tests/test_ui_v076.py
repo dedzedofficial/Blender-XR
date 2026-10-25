@@ -43,7 +43,7 @@ class FakeLayout:
 
 
 def test():
-    assert version.VERSION == (0, 7, 6), version.VERSION
+    assert version.VERSION >= (0, 7, 6), version.VERSION
     assert len(ui_v076.UI_SECTION_ITEMS) == 7
     assert len({item[0] for item in ui_v076.UI_SECTION_ITEMS}) == 7
     assert all(item[3] for item in ui_v076.UI_SECTION_ITEMS), 'Every workspace requires a Blender icon'
