@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, input_v080, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -126,8 +126,10 @@ class BXR_OT_session(bpy.types.Operator):
             return {'FINISHED'}
         preferences.ensure(context.scene.blender_xr, context)
         preferences.capture(context.scene.blender_xr, context)
-        if not bpy.app.build_options.xr_openxr:
-            self.report({'ERROR'},'This Blender build has no OpenXR support')
+        capabilities = platform_support.current_info(bpy)
+        if not capabilities['desktop'] or not capabilities['vr']:
+            self.report({'ERROR'}, capabilities['message'])
+            context.scene.blender_xr.status = capabilities['message']
             return {'CANCELLED'}
         if bpy.app.version[:3] == (5,0,1):
             self.report({'ERROR'},'Blender 5.0.1 has a known VR crash. Use another Blender version.')
