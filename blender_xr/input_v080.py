@@ -19,11 +19,11 @@ def patch_runtime(Runtime):
         old_init(self, *args, **kwargs)
         self.radial = radial_logic_v080.RadialState()
         self.hand_controls = ((0., 0.), (0., 0.))
-        self._radial_captured = False
+        self.radial_supported = True
 
     def configure(self):
         old_configure(self)
-        if getattr(self.settings, 'hand_display', 'CONTROLLERS') == 'HANDS':
+        if getattr(self.settings, 'hand_display', 'CONTROLLERS') in {'HANDS', 'POINTERS'}:
             xr = self.context.window_manager.xr_session_settings
             if hasattr(xr, 'show_controllers'):
                 xr.show_controllers = False
@@ -51,6 +51,7 @@ def patch_runtime(Runtime):
 
         if (getattr(self.settings, 'menu_style', 'CLASSIC') != 'RADIAL'
                 or self.bridge is not None):
+            self.radial_supported = self.bridge is None
             if self.radial.active:
                 self.radial.reset()
             return old_tick(self, context)
@@ -71,11 +72,13 @@ def patch_runtime(Runtime):
             off_stick = tuple(float(v) for v in actions.read(context, 'stick', self.off))
             if len(off_stick) != 2:
                 raise ValueError('No thumbstick axes available')
+            self.radial_supported = True
         except (ValueError, RuntimeError, IndexError, TypeError):
             if self.radial.active:
                 self.radial.reset()
                 self.status = 'RADIAL CANCELLED / INPUT LOST'
                 return
+            self.radial_supported = False  # Restore the classic ray menu.
             return old_tick(self, context)
 
         capture = self.radial.active or (off_held and not blocked)
@@ -97,6 +100,7 @@ def patch_runtime(Runtime):
         self.hover = None
         self.target = None
         self.gizmo_hover = None
+        self.gizmo = None
         # Keep the legacy Button edge detector synchronized so release does
         # not reopen the old menu, and suppress latent dominant trigger presses.
         self.off_trigger.update(1.0 if off_held else 0.0)
