@@ -8,7 +8,7 @@ import textwrap
 
 import bpy
 
-from . import materials, preferences, runtime, statistics
+from . import materials, preferences, runtime, statistics, platform_support
 
 
 UI_SECTION_ITEMS = [
@@ -54,6 +54,17 @@ def _session(layout, context, settings, active):
             _operator(layout, 'blender_xr.bridge_command', 'Copy bridge command', 'COPYDOWN')
     else:
         col.prop(settings, 'finger_touch', text='Finger shortcuts', toggle=True, icon='HAND')
+
+    capabilities = platform_support.current_info(bpy)
+    _header(layout, 'Platform', 'DESKTOP')
+    layout.label(text='Desktop: ' + (capabilities['tag'] or 'unsupported'),
+                 icon='CHECKMARK' if capabilities['desktop'] else 'ERROR')
+    if not capabilities['vr']:
+        layout.label(text='VR unavailable on this build', icon='INFO')
+    elif capabilities['tag'].startswith('macos'):
+        layout.label(text='VR experimental / needs OpenXR runtime', icon='INFO')
+    else:
+        layout.label(text='VR requires an active OpenXR runtime', icon='INFO')
 
     _header(layout, 'PC View Mode', 'WINDOW')
     view_space = context.space_data
