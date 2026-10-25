@@ -1,6 +1,6 @@
 # Mesh XR v0.7.6 — merged into main
 
-**Compared with v0.7.5, the most recent published release.** Version 0.7.6 was merged into `main` in [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18) on 25 October 2026; this does **not** mean a tagged GitHub / Blender Extensions release has been published.
+**Compared with v0.7.5, the most recent published release.** Version 0.7.6 was merged into `main` in [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18) on 25 October 2026, and the [v0.7.6 GitHub release](https://github.com/dedzedofficial/Blender-XR/releases/tag/v0.7.6) has since been published with an installable ZIP. Blender Extensions publication has not been independently verified.
 
 ## Highlights
 
