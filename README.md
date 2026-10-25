@@ -9,6 +9,15 @@ Lightweight animated hands replace Blender controller indicators when **Hands** 
 
 This is an **alpha development build**, not the published 0.7.6 release. It still requires real Quest 3 PC-VR acceptance testing.
 
+## New in 0.8 alpha 2 — for testing
+
+- Calibrate the 3D hands from Session; enable fine controller grabs from Model.
+- Project has **safe local recovery** checkpoints and confirmed restore-as-new; automatic checkpoints wait for Blender Object Mode and completed gestures.
+- Model includes **Measurements**, a read-only **Pre-Export Check**, and a **Quick Inspector** with native selection locking.
+- Session includes optional input/hand-tracking diagnostics; hot Weight Paint lookup data is cached briefly for responsiveness.
+- Radial thumbstick remains on the **non-dominant** hand, without favourites. Tracking loss now requires a release before a new radial command can start.
+- This is an alpha: automated Blender tests do **not** establish physical VR headset suitability. The complete 0.8 plan remains in progress.
+
 ## Previous v0.7.6 release
 
 
