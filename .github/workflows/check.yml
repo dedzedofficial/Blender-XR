@@ -148,6 +148,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v071.py
+      - name: v0.8 quality-of-life Blender integration
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v080_quality.py
       - name: v0.8 articulated XR hand geometry tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -211,6 +215,7 @@ jobs:
           BLENDER="$RUNNER_TEMP/meshxr-mounted/Blender.app/Contents/MacOS/Blender"
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_ui.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_hands.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_quality.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_rigging_v076.py
       - name: Unmount official Blender DMG
