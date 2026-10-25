@@ -10,6 +10,10 @@ _ICON_BY_ACTION = {
     # Main object/edit workflows.
     'MODE_MENU': 'object_datamode', 'MODE': 'object_datamode',
     'MODE_OBJECT': 'object_data', 'MODE_EDIT': 'mesh_data',
+    'MODE_WEIGHT_PAINT': 'mod_vertex_weight', 'PARENT_MENU': 'mod_armature',
+    'PARENT_AUTO': 'mod_armature', 'PARENT_EMPTY': 'mod_vertex_weight',
+    'PARENT_ENVELOPE': 'mod_armature', 'PARENT_ARMATURE': 'armature_data',
+    'PARENT_OBJECT': 'object_data', 'PARENT_CLEAR': 'delete',
     'SELECT': 'cursor', 'SELECT_VERT': 'mesh_data',
     'SELECT_EDGE': 'object_data', 'SELECT_FACE': 'mesh_cube',
     'MOVE': 'transform_move', 'MOVE_EDIT': 'transform_move',
@@ -31,8 +35,45 @@ _ICON_BY_ACTION = {
     'MERGE': 'mesh_data', 'SUBDIVIDE': 'mesh_cube',
     'RECALC': 'mesh_data', 'FLIP_NORMALS': 'mesh_data',
     'RIG_AUDIT': 'mesh_data',
+    'RIG_SELECT_MESH': 'mesh_data',
+    'ROTATE_EDIT': 'transform_rotate',
+    'BONE_SCALE': 'transform_scale', 'BONE_ROTATE': 'transform_rotate',
+    'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
+    'WEIGHT_GROUP_PREV': 'mod_vertex_weight', 'WEIGHT_GROUP_NEXT': 'mod_vertex_weight',
+    'WEIGHT_STRENGTH_DOWN': 'mod_vertex_weight', 'WEIGHT_STRENGTH_UP': 'mod_vertex_weight',
+    'WEIGHT_RADIUS_DOWN': 'transform_scale', 'WEIGHT_RADIUS_UP': 'transform_scale',
+    'RIG_EXIT_PAINT': 'checkmark', 'RIG_EXIT_POSE': 'checkmark',
+    # v0.7.6 armature selection / native Blender bone-edit categories.
+    'RIG_SELECT_ARMATURE': 'armature_data',
+    'RIG_EDIT_TOGGLE': 'object_datamode',
+    'BONE_SELECT': 'cursor',
+    'BONE_MOVE': 'transform_move',
+    'BONE_MOVE_HEAD': 'transform_move',
+    'BONE_MOVE_TAIL': 'transform_move',
+    'BONE_SELECT_MENU': 'cursor',
+    'BONE_EDIT_MENU': 'properties',
+    'BONE_SETTINGS_MENU': 'properties',
+    'BONE_SEL_ALL': 'cursor', 'BONE_SEL_NONE': 'cancel',
+    'BONE_SEL_INVERT': 'cursor', 'BONE_SEL_PARENT': 'bone_data',
+    'BONE_SEL_CHILD': 'bone_data', 'BONE_SEL_LINKED': 'bone_data',
+    'BONE_SEL_MIRROR': 'mod_armature',
+    'BONE_HIDE': 'cancel', 'BONE_HIDE_OTHER': 'cancel',
+    'BONE_REVEAL': 'checkmark',
+    'BONE_SUBDIVIDE': 'mesh_data', 'BONE_SYMMETRIZE': 'mod_armature',
+    'BONE_FLIP_DIRECTION': 'transform_rotate',
+    'BONE_DISSOLVE': 'delete', 'BONE_SPLIT': 'mesh_data',
+    'BONE_SEPARATE': 'object_data', 'BONE_PARENT': 'bone_data',
+    'BONE_CLEAR_PARENT': 'bone_data', 'BONE_RECALC_ROLL': 'transform_rotate',
+    'BONE_FILL': 'add', 'BONE_AUTO_NAMES': 'properties',
+    'BONE_FLIP_NAMES': 'properties',
+    'BONE_DELETE': 'delete', 'BONE_DUPLICATE': 'duplicate',
+    'BONE_EXTRUDE': 'extrude_region', 'BONE_CONNECT': 'bone_data',
+    'BONE_DEFORM': 'mod_vertex_weight', 'BONE_LOCK': 'preferences',
+    'BONE_ROLL_UP': 'transform_rotate', 'BONE_ROLL_DOWN': 'transform_rotate',
+
     # Armature and weights have dedicated Blender symbols, not a generic tool icon.
     'RIG_MENU': 'armature_data', 'RIG_CREATE': 'armature_data',
+    'RIG_ADD_BONE': 'bone_data', 'RIG_BIND_EMPTY': 'mod_armature',
     'RIG_BIND': 'mod_armature', 'RIG_WEIGHT': 'mod_vertex_weight',
     'RIG_CLEAN': 'mod_vertex_weight', 'RIG_POSE': 'pose_hlt',
     # Materials, shader, image and texture operations.
@@ -264,13 +305,28 @@ class Menu:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             icon_name = _ICON_BY_ACTION.get(action)
+            # PANEL cells are reserved for the three H/S/L sliders, not buttons.
+            # All actionable buttons get an icon even when PNG/GPU loading fails.
+            has_icon = action != 'PANEL'
             icon_texture = icon_textures.texture_for(icon_name) if icon_name else None
-            has_icon = icon_texture is not None
-            if has_icon:
+            icon_drawn = False
+            if has_icon and icon_texture is not None:
                 ix, iy, iw, ih = bx + 0.006, by + 0.008, 0.029, 0.029
                 corners = [self.world(ix, iy, 0.0015), self.world(ix+iw, iy, 0.0015),
                            self.world(ix+iw, iy+ih, 0.0015), self.world(ix, iy+ih, 0.0015)]
-                _draw_icon_texture(icon_texture, corners)
+                try:
+                    _draw_icon_texture(icon_texture, corners)
+                    icon_drawn = True
+                except (RuntimeError, ValueError, TypeError):
+                    # An unsupported GPU/shader combination must not leave
+                    # controller menu buttons visually empty.
+                    pass
+            if has_icon and not icon_drawn:
+                from .v065 import _line_icon
+                vertices = _line_icon(action, bx + 0.006, by + 0.008, 0.029, 0.029)
+                draw_batch(shader, 'LINES',
+                           [self.world(px, py, 0.0015) for px, py in vertices],
+                           (0.9, 0.95, 1.0, 1.0))
             friendly = {
                 'MODE_MENU':'MODE', 'MODE_OBJECT':'OBJECT', 'MODE_EDIT':'EDIT',
                 'SELECT_VERT':'VERTEX', 'SELECT_EDGE':'EDGE', 'SELECT_FACE':'FACE',
@@ -278,7 +334,8 @@ class Menu:
                 'ADD_MENU':'SHAPES', 'MATERIAL_MENU':'MATERIALS', 'NAV_MENU':'TRAVEL',
                 'RIG_MENU':'RIGGING', 'DELETE_OBJECT':'DELETE OBJ',
                 'DELETE_GEOM':'DELETE GEO', 'LOOP_CUT_MENU':'LOOP CUT',
-                'RIG_CREATE':'CREATE RIG', 'RIG_BIND':'BIND WEIGHTS',
+                'RIG_CREATE':'ARMATURE', 'RIG_ADD_BONE':'ADD BONE',
+                'RIG_BIND_EMPTY':'EMPTY GROUPS', 'RIG_BIND':'AUTO WEIGHTS',
                 'RIG_WEIGHT':'WEIGHT PAINT', 'RIG_CLEAN':'CLEAN WEIGHTS',
                 'RIG_POSE':'POSE TEST', 'RIG_AUDIT':'AUDIT MESH',
             }

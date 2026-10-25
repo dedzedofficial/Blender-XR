@@ -1,6 +1,39 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
-Mesh XR v0.7.5 renders Blender UI icon artwork as transparent PNG textures in its world-space headset menu. The icons are paired with short text labels so controls remain understandable, including where Blender has no exact matching icon and the closest official Blender symbol is used. The desktop sidebar continues to use Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
+## v0.7.6 Weight Paint and parenting icons
+
+The headset's existing **Mode** page now includes **Weight Paint** alongside Object and Edit Mode. In Weight Paint Mode the menu shows **Paint**, **Erase**, **Previous/Next Group**, **Strength +/-**, **Size +/-** and **Done**. Paint and Erase are explicit settings. The VR status shows how many vertices were affected and warns when the ray misses the mesh.
+
+**Rigging → Parent** opens Blender-style parenting icons: Automatic Weights, Empty Groups, Envelope Weights, Armature Deform, Object Parent and Clear Parent. They map to Blender's native `object.parent_set` and `object.parent_clear` operators instead of bespoke parenting logic. Explicitly selected mesh plus active armature behaves like Ctrl+P, and the remembered pairing is only a fallback.
+
+## v0.7.6 one Select action / controller transforms
+
+Use **Select** wherever the workflow exposes selection: it selects objects in Object Mode, vertices/edges/faces in Mesh Edit Mode, bones in Armature Edit Mode, and pose bones in Pose Mode. Selecting overlapping rigs and meshes toggles between the objects without separate mesh/armature selection buttons. **Grip** grabs and translates the pointed object or selected elements; choose **Move**, **Scale** or **Rotate** and hold Trigger for their corresponding controller transforms. The new Pose Bones menu includes these actions. The Edit Bone Tools page retains Head/Tail transforms. Multi-object / multi-element selection uses Blender's ordinary selection state and the existing additive controller gesture.
+
+## v0.7.6 rig / mesh / vertex group icon workflow
+
+The VR Rigging page has **Select Rig** (bone icon) and **Select Mesh** (mesh icon). Creating a rig remembers the current mesh; binding uses this relationship, not only Blender's currently selected objects. Once bound, Weight Paint opens icon controls for Paint, Erase, Previous Group, Next Group, Weight Strength +/- and Brush Radius +/- and Done. Group changes operate on the Blender vertex group data, and brush actions write actual Blender weights. Grip + Trigger in Object Mode adds to selection without discarding the first object.
+
+## v0.7.6 armature Edit Mode in the headset
+
+**VR Rigging:** Armature, Select Rig, Edit Bones, Add Bone, Empty Groups, Auto Weights, Weight Paint, Clean, Pose, Audit. **Bone Edit:** Select, Move, Head, Tail, Add, Extrude, Duplicate, Delete, Select Tools, Edit Tools, Settings and Finish. These category pages have official Blender-style icons with textual labels. Use **Select Rig** if the controller ray is on a mesh rather than the rig, then **Edit Bones**.
+
+**Point-and-edit:** The dominant controller ray now detects bone segments (not just meshes). Point and press Trigger in Select mode, or choose Move/Head/Tail and hold Trigger to move the selected part, releasing to apply. Undo and more nuanced Blender Edit Bone functions remain available from Blender's own desktop Edit Armature menu. Native operations may refuse invalid selections.
+
+## v0.7.6 freeform rigging icons
+
+On the desktop Model workspace use **Armature**, **Edit**, **Add Bone**, **Finish Bones**, **Empty Groups**, **Auto Weights** and **Paint**. The VR Rigging page also has **Armature**, **Add Bone** and **Empty Groups** using Blender's armature/bone/modifier symbols. Bone transforms and precise editing use Blender's standard desktop Armature Edit Mode; the headset Add Bone action creates an editable bone but does not implement VR bone gizmos.
+
+## v0.7.6 icon coverage test
+
+The Blender desktop sidebar has seven native-icon workspaces: **Session**, **Model**, **Material**, **UV**, **Travel**, **Project** and **Help**. Each workspace's commands and settings now have meaningful Blender icons. The Advanced Materials, UV Mapping and Workflow subpanels also use native icons. The active workspace is displayed as an icon tab with a descriptive tooltip, avoiding dependence on long English labels.
+
+The in-headset menu uses Blender artwork packaged as transparent PNGs. A compatibility fix prevents older hover highlighting from covering buttons. If Blender cannot load a PNG texture or create the GPU image shader, a procedural line icon remains visible. The intentionally blank HSL slider cells are not actions and are excluded from icon coverage.
+
+The `tests/test_ui_v076.py` regression runs within Blender to check actual Blender icon identifiers, all seven workspaces, nested advanced panels, and that every active headset menu action has a corresponding packaged PNG. **The version remains 0.7.6 until tester acceptance; this does not certify headset graphics on all devices.**
+
+
+Mesh XR v0.7.6 renders Blender UI icon artwork as transparent PNG textures in its world-space headset menu. The icons are paired with short text labels so controls remain understandable, including where Blender has no exact matching icon and the closest official Blender symbol is used. The desktop sidebar continues to use Blender's native icon IDs. Wider headset buttons improve controller-ray hit targets, and tooltips appear in a separate strip above the menu.
 
 The original SVG artwork is preserved in `blender_xr/icons_src/`; `tools/build_icon_textures.py` rasterizes it to 256×256 transparent PNGs in `blender_xr/icons/`. The branch's GitHub Actions workflow rebuilds these textures when the source artwork changes. The VR draw handler caches each loaded Blender image and GPU texture rather than decoding the PNG on every frame.
 

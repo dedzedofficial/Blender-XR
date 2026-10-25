@@ -11,6 +11,7 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         blender: ["4.2.0", "4.5.0", "5.0.0", "5.2.2"]
     steps:
@@ -56,12 +57,41 @@ jobs:
       - name: Mesh and registration tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
-        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set +e
+          /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
+          result=$?
+          if [[ "$result" -ne 0 && -f /tmp/blender.crash.txt ]]; then
+            echo "==== Blender native crash stack ===="
+            cat /tmp/blender.crash.txt
+          fi
+          exit "$result"
       - name: Native Blender launch UI tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_ui.py
-      - name: v0.7.5 asset audit and rigging tests
+      - name: v0.7.6 compact sidebar smoke tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_ui_v076.py
+      - name: v0.7.6 native weight mode and Blender parent tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_weight_mode_parent_v076.py
+      - name: v0.7.6 unified controller select and transform tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_interaction_v076.py
+      - name: v0.7.6 paired rigging, group and VR brush integration tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_rigging_v076.py
+      - name: v0.7.6 in-headset bone selection and armature edit tests
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_armature_v076.py
+      - name: v0.7.6 freeform armature and weight painting tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_v075_features.py
@@ -120,3 +150,27 @@ jobs:
         with:
           name: mesh-xr-${{ matrix.blender }}
           path: dist/*
+
+  preview-package:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate Blender icon textures
+        run: |
+          python -m pip install cairosvg
+          python tools/build_icon_textures.py
+      - name: Validate and package test extension
+        run: |
+          python -m compileall -q blender_xr
+          python scripts/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mesh-xr-v0.7.6-preview-installer
+          path: |
+            dist/mesh-xr-v0.7.6.zip
+            dist/mesh-xr-v0.7.6.zip.sha256
+          retention-days: 30

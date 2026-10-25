@@ -12,15 +12,18 @@ from blender_xr import drawing, gizmo, menus, runtime, version, v065, v075_featu
 def run():
     blender_xr.register()
     try:
-        assert version.VERSION == (0, 7, 5)
+        assert version.VERSION >= (0, 7, 5)
         # The v0.7.5 headset toolbar must expose functional rigging routes,
         # clear labels/tooltips, a separate tooltip strip and pickable gizmos.
         assert 'RIG_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
-        assert {'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT', 'RIG_CLEAN',
+        assert {'RIG_CREATE', 'PARENT_MENU', 'MODE_WEIGHT_PAINT', 'RIG_CLEAN',
                 'RIG_POSE', 'RIG_AUDIT'} <= {
                     action for _label, action in menus.PAGES['RIGGING']}
+        assert {'PARENT_AUTO', 'PARENT_EMPTY', 'PARENT_ENVELOPE',
+                'PARENT_ARMATURE', 'PARENT_OBJECT', 'PARENT_CLEAR'} <= {
+                    action for _label, action in menus.PAGES['PARENT_RIG']}
         assert 'RIGGING' in v065.CORE_PAGES
-        assert 'DEFAULT_CLOSED' not in getattr(v075_features.BXR_PT_workflow, 'bl_options', set())
+        assert 'DEFAULT_CLOSED' in getattr(v075_features.BXR_PT_workflow, 'bl_options', set()), 'Compact UI keeps the advanced workflow folded'
         assert {'RIG_MENU', 'RIG_CREATE', 'RIG_BIND', 'RIG_WEIGHT',
                 'RIG_CLEAN', 'RIG_POSE', 'RIG_AUDIT'} <= set(v065.TOOLTIPS)
         assert drawing.button_rect(0)[2] >= 0.19
@@ -93,11 +96,11 @@ def run():
         bpy.ops.object.delete(use_global=False)
         bpy.ops.mesh.primitive_cube_add()
         obj = bpy.context.object
-        # Make an upright, non-degenerate mesh for the proportion-based starter rig.
+        # Deliberately wide, non-humanoid object: a normal armature must work.
         for vertex in obj.data.vertices:
-            vertex.co.x *= 0.35
-            vertex.co.y *= 0.3
-            vertex.co.z *= 1.5
+            vertex.co.x *= 3.0
+            vertex.co.y *= 0.6
+            vertex.co.z *= 0.15
         bpy.context.view_layer.update()
 
         audit = v075_features.mesh_health(obj)
@@ -157,46 +160,71 @@ def run():
 
         result = bpy.ops.blender_xr.create_basic_rig()
         assert 'FINISHED' in result, result
-        armature = next(o for o in bpy.context.scene.objects if o.type == 'ARMATURE')
-        expected_bones = {
-            'root', 'pelvis', 'spine', 'chest', 'neck', 'head',
-            'upper_arm.L', 'forearm.L', 'hand.L',
-            'upper_arm.R', 'forearm.R', 'hand.R',
-            'thigh.L', 'shin.L', 'foot.L', 'thigh.R', 'shin.R', 'foot.R',
-        }
-        assert expected_bones <= {bone.name for bone in armature.data.bones}
-        assert bpy.context.view_layer.objects.active == obj
+        armature = bpy.context.view_layer.objects.active
+        assert armature.type == 'ARMATURE'
+        assert len(armature.data.bones) == 1
+        assert armature.data.bones[0].name == 'Bone'
+        assert armature.show_in_front
+        assert obj.select_get(), 'Selected mesh must remain selected for binding'
 
-        # Weight cleanup is safe to call on an object with a small valid group.
-        group = obj.vertex_groups.new(name='Mesh XR Test Group')
-        group.add([0, 1, 2, 3], 0.25, 'REPLACE')
-        obj.select_set(True)
+        assert 'FINISHED' in bpy.ops.blender_xr.add_bone()
+        assert len(armature.data.bones) == 2
+        assert 'FINISHED' in bpy.ops.blender_xr.edit_bones()
+        assert armature.mode == 'EDIT'
+        assert 'FINISHED' in bpy.ops.blender_xr.add_bone()
+        assert len(armature.data.edit_bones) == 3
+        assert 'FINISHED' in bpy.ops.blender_xr.finish_bones()
+        assert len(armature.data.bones) == 3
+
+        # Manual binding generates bone-named groups without painted weights.
+        assert 'FINISHED' in bpy.ops.blender_xr.bind_empty_weights()
+        assert obj.parent == armature
+        assert all(bone.name in obj.vertex_groups for bone in armature.data.bones
+                   if bone.use_deform)
+        assert any(mod.type == 'ARMATURE' and mod.object == armature
+                   for mod in obj.modifiers)
+        for group in obj.vertex_groups:
+            assert all(group.index not in {item.group for item in vertex.groups}
+                       for vertex in obj.data.vertices), group.name
+
+        # The mesh can now be weight-painted without automatic weights.
         armature.select_set(False)
+        obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
+        assert 'FINISHED' in bpy.ops.blender_xr.weight_paint()
+        assert obj.mode == 'WEIGHT_PAINT'
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Weight cleanup remains available after painting.
+        group = obj.vertex_groups.get('Bone')
+        group.add([0, 1, 2, 3], 0.25, 'REPLACE')
         result = bpy.ops.blender_xr.weight_cleanup()
         assert 'FINISHED' in result, result
         assert bpy.context.view_layer.objects.active == obj
         assert obj.select_get()
 
-        # Failed rig preflight must not strand selection or leave a partial armature.
+        # Flat meshes are no longer rejected as failed humanoid preflight.
         bpy.ops.mesh.primitive_plane_add()
-        invalid = bpy.context.object
-        original_armatures = sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE')
-        try:
-            result = bpy.ops.blender_xr.create_basic_rig()
-            assert 'CANCELLED' in result, result
-        except RuntimeError as exc:
-            # Blender background mode may raise for an operator that reports an error.
-            assert 'Starter rig creation failed' in str(exc), str(exc)
-        assert bpy.context.view_layer.objects.active == invalid
-        assert list(bpy.context.selected_objects) == [invalid]
-        assert sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE') == original_armatures
-        bpy.data.objects.remove(invalid, do_unlink=True)
-        obj.select_set(True)
-        armature.select_set(False)
-        bpy.context.view_layer.objects.active = obj
+        plane = bpy.context.object
+        original_armatures = sum(1 for item in bpy.context.scene.objects
+                                 if item.type == 'ARMATURE')
+        assert 'FINISHED' in bpy.ops.blender_xr.create_basic_rig()
+        plane_rig = bpy.context.view_layer.objects.active
+        assert len(plane_rig.data.bones) == 1
+        assert sum(1 for item in bpy.context.scene.objects if item.type == 'ARMATURE') == original_armatures + 1
+        bpy.data.objects.remove(plane_rig, do_unlink=True)
+        bpy.data.objects.remove(plane, do_unlink=True)
 
-        print('PASS Mesh XR v0.7.5 asset audit and starter rig')
+        # No active mesh is also valid: create a freeform armature at the cursor.
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.view_layer.objects.active = None
+        assert 'FINISHED' in bpy.ops.blender_xr.create_basic_rig()
+        cursor_rig = bpy.context.view_layer.objects.active
+        assert cursor_rig.type == 'ARMATURE'
+        assert len(cursor_rig.data.bones) == 1
+        bpy.data.objects.remove(cursor_rig, do_unlink=True)
+
+        print('PASS Mesh XR v0.7.6 freeform armature, manual weights and asset audit')
     finally:
         blender_xr.unregister()
 

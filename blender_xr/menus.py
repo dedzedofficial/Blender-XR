@@ -101,7 +101,8 @@ PAGES = {
         ('TOOLS','BACK'),
     ),
     'RIGGING': (
-        ('CREATE RIG','RIG_CREATE'), ('BIND WEIGHTS','RIG_BIND'),
+        ('ARMATURE','RIG_CREATE'), ('ADD BONE','RIG_ADD_BONE'),
+        ('EMPTY GROUPS','RIG_BIND_EMPTY'), ('AUTO WEIGHTS','RIG_BIND'),
         ('WEIGHT PAINT','RIG_WEIGHT'), ('CLEAN WEIGHTS','RIG_CLEAN'),
         ('POSE TEST','RIG_POSE'), ('AUDIT MESH','RIG_AUDIT'),
         ('BACK','BACK'),

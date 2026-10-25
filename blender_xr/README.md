@@ -1,4 +1,36 @@
-# Mesh XR v0.7.5
+# Mesh XR v0.7.6
+
+## 0.7.6 native Weight Paint Mode and Blender parenting
+
+Open the standard headset **Mode** menu and choose **Weight Paint** just as you would choose Object or Edit Mode. The active Blender mesh switches to `WEIGHT_PAINT`, and the VR controller paints real vertex-group weights. Use Paint or Erase, switch groups, change brush size/strength and exit with Done (Object Mode). The status tells you whether the controller ray hit a mesh; Weight Paint does not automatically parent the object.
+
+To parent like Blender Ctrl+P, select your mesh and rig (armature active) or use the remembered pairing from Create Armature. Open **Rigging → Parent** and choose Automatic Weights, Empty Groups, Envelope Weights, Armature Deform or Object Parent. Clear Parent retains the mesh transform. Repeat parenting is guarded so existing painted weights are preserved. The Model sidebar offers equivalent commands. These features are covered by Blender tests but still need headset acceptance testing.
+
+## 0.7.6 Blender-style controller selection and transforms
+
+The former Select Mesh and Select Rig actions have been consolidated into **Select**. Aim at a visible armature bone or mesh in Object Mode; repeated selection over an overlapped rig/mesh switches the target. In Mesh Edit Mode, Select points/edges/faces directly, including nearby loose elements. Hold the controller's **Grip** to grab and move selected geometry or an object; choose **Move**, **Scale**, or **Rotate** then hold **Trigger** to transform with controller motion. Bone editing and Pose Mode use the same context-based select and transform gestures. All controller transforms have VR-local Undo/Redo support. The old modelling tools remain accessible, and an automated menu audit checks for duplicate actions. Hardware testing remains required for v0.7.6 acceptance.
+
+## 0.7.6 paired rigging and controller weight painting
+
+The Rigging page includes **Select Rig** and **Select Mesh**. Mesh XR remembers which mesh belongs to the rig even before parenting; Bind Empty Groups and Auto Weights therefore work without manually reselecting both. Select Mesh opens the actual mesh, Select Rig returns to the armature, and Grip+Trigger adds another Object Mode selection. Enter Weight Paint to select the first available vertex group (automatically creating empty groups if the mesh is not yet bound); the headset displays Paint, Erase, Previous/Next Group, Strength +/- and Brush Size +/-. Aim at the model and hold the dominant Trigger to apply or erase native Blender vertex-group weights. Done returns to Object Mode, while Pose tests the deforming skeleton. These interactions coexist with existing standard mesh Object/Edit controls. **Test on headset** before release.
+
+## 0.7.6 controller armature editing
+
+In the VR Rigging page choose **Select Rig** or point directly at an armature bone in Object Mode. Choose **Edit Bones** to open the dedicated in-headset bone editor. Trigger selects bones; choose Move, Head or Tail to move them with the controller. Selection, topology/parenting, roll and settings submenus expose native Blender bone editing tools. Choose Finish to return to Object Mode. The desktop Model workspace also includes **Edit Bone Tools** and Blender's own complete Edit Armature menu for advanced options. These VR interactions need hardware validation before v0.7.6 acceptance.
+
+## 0.7.6 freeform rigging
+
+The old `Create Basic Human Rig` action is now **Create Armature**. Any mesh shape is accepted (or select no mesh to create at the 3D cursor). The new armature has one editable bone. Select it, choose **Edit Bones** and add or extrude bones in Blender; **Finish Bones** exits editing. Select the mesh plus the armature, make the armature active, and click **Empty Groups** to bind for manual Weight Paint. **Auto Weights** remains optional. Select the bound mesh and click **Paint**. You can add bones from the headset menu, but precise Edit Bone positioning is in Blender's native desktop armature tools. The old operator ID is retained for compatibility. This stays version 0.7.6 while testing.
+
+## 0.7.6 UI preview
+
+All workspaces, nested desktop panels and actionable headset menus are now intended to show icons. Core-menu icon occlusion is fixed and controller menus use line-symbol fallbacks if a packaged icon cannot render. The current build is a tester candidate; keep version 0.7.6 until manual headset checks pass.
+
+
+In the 3D View, open the **Blender XR** sidebar. The compact native-icon selector switches between Session, Model, Material, UV, Travel, Project and Help. Start/Stop VR and a short status remain visible above it. Advanced material, UV and workflow sections are collapsed subpanels shown only with their matching workspace. Every button keeps its underlying Blender operator and descriptive hover tooltip.
+
+The test ZIP is built from the draft pull request as `mesh-xr-v0.7.6.zip`. This is not a headset-hardware-verified release.
+
 
 v0.7.5 development adds a PC View Mode toggle to switch the current Blender viewport between the normal desktop view and Blender's live OpenXR session mirror, where supported. The toggle is display-only and does not start or stop VR. It also carries forward the v0.7.1 Object Tools, Geometry Tools, managed modifiers and UV history.
 

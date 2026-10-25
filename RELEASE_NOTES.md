@@ -1,4 +1,30 @@
-# Mesh XR v0.7.5
+# Mesh XR v0.7.6 — preview for testing
+
+## Rigging revised for freeform models
+
+Creating a rig no longer assumes a humanoid mesh that is taller than it is wide. **Create Armature** adds a normal Blender armature with one bone near the selected mesh, or at the cursor if no mesh is active. Use **Edit Bones / Add Bone / Finish Bones** in the Model workspace to construct and position bones with Blender's native tools. Select mesh and armature (armature active) and choose **Empty Groups** to create bone vertex groups, then select the mesh and **Paint** to paint weights. **Auto Weights** is still available but optional. VR can create a rig, extend the bone chain and bind empty groups; positioning bones precisely uses the desktop Blender Armature Edit Mode. All changes remain v0.7.6.
+
+
+**Status: draft / unmerged.** This test update prioritises a minimal native Blender sidebar, discoverable icons, and preservation of the 0.7.5 systems.
+
+## Interface changes
+
+- A compact seven-workspace navigation bar uses Blender-native icons: Session, Model, Material, UV, Travel, Project and Help.
+- The main panel always shows Start/Stop VR and up to two short status lines.
+- One workspace is shown at a time; other sections are not stacked down the sidebar.
+- The full Materials + Textures, UV Mapping and Workflow panels are retained, collapsed by default, and only shown within their relevant workspace.
+- Common tools have recognisable Blender icons while hover tooltips and short labels remain available to explain actions.
+- All existing stable `blender_xr` operator identifiers, XR runtime patches and preference names are preserved.
+
+## Testing and rollout
+
+- Adds a Blender-side smoke test for each workspace, category/panel grouping and main actions.
+- Retains the older regression matrix across Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2.
+- Pull requests produce a ZIP installer artifact from the actual extension packaging script.
+- OpenXR hardware, tracking, two-hand scaling, haptic output and native headset mirroring require in-headset validation. Automated tests cannot prove these work on every device.
+- Future roadmap features remain separate from the 0.7.6 UI release.
+
+## v0.7.5 foundations carried forward
 
 Mesh XR v0.7.5 expands the controller-first OpenXR workflow with a desktop headset mirror toggle, controller precision and scaling improvements, a starter rigging workflow, and non-destructive asset diagnostics.
 

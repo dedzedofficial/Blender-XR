@@ -1,3 +1,80 @@
+# Mesh XR testing
+
+## v0.7.6 Weight Paint Mode and Ctrl+P parenting acceptance
+
+- Use the existing **Mode** menu and select **Weight Paint** while a rig or mesh is selected. Verify the Blender viewport actually enters Weight Paint mode and the VR hand menu changes to the Paint/Erase/Group/Strength/Size controls.
+- Point at the mesh (including a posed/deformed mesh) and hold Trigger. Painting should change the active vertex group and visibly show weight colors; the VR status should report affected vertices, or **NO SURFACE HIT** when the ray misses.
+- Test **Erase** reduces existing weight and choosing **Paint** after Erase restores additive painting. Change active bone group and adjust brush strength/size. Use the Object Mode menu or Done to exit.
+- In **Rigging → Parent**, select **Empty Groups** to make manual weights, **Automatic Weights** to populate weights, **Envelopes** to use bone envelopes, **Armature Deform** for unweighted deformation and **Object Parent** to follow the rig without deformation. Clear Parent should keep the mesh world transform.
+- Explicitly select a *different* mesh and the same armature using normal Select / additive selection, then use Parent again. The newly selected mesh must win over any cached pair. Repeating Empty Groups should not wipe existing painted weights.
+- Check that Mode switching and parenting do not remove Object / Edit mesh tools, armature bone editing, Pose mode or existing Undo/Redo.
+- Real OpenXR controller hit testing, visual weight display and frame-rate ergonomics require confirmation on headset before version acceptance.
+
+## v0.7.6 single-Select / controller transform acceptance
+
+- In **Object Mode**, point Select at a mesh, then at its armature bone. On a rig drawn over the mesh, repeated Select clicks should let you target either one. **Grip** grabs the currently aimed object; no separate Select Rig / Select Mesh menu buttons exist.
+- In **Mesh Edit Mode**, change Vertex/Edge/Face mode, point at the desired element and press Select. Pick loose vertices/edges that a face ray cannot hit. Point at a selected element, hold Grip, move the controller, and release to apply the change.
+- In **Move/Scale/Rotate** mode, hold Trigger while moving and/or rotating the controller. Verify full-object transformations and selection transforms, with correct pivot and no surprise mesh topology changes.
+- In **Armature Edit Mode**, test Select / Move / Scale / Rotate on individual and multiple edit bones; test the Head and Tail tools on the Edit Tools page. Then Finish Editing and test the whole armature as an Object.
+- In **Pose Mode**, verify that the headset Pose Bones menu offers Select, Move, Scale, Rotate and Finish Pose, with the rig and mesh still paired afterwards.
+- After each transformation, use VR Undo then Redo; check that geometry, bone transformations and the active mode remain coherent. Cancel must restore the previous shape.
+- Open the old Blender mesh modelling menus and confirm Inset, Extrude, Bevel, Loop Cut, Delete, Merge and materials remain accessible. No duplicated Select Rig / Select Mesh buttons should appear.
+- **Automated smoke tests do not validate tracked-hand accuracy, headset latency or UX**. Sign off the physical Quest/SteamVR session separately before declaring 0.7.6 complete.
+
+## v0.7.6 end-to-end VR rigging and paint integration
+
+1. Select a mesh, create a rig, then use **Select Mesh** and **Select Rig** repeatedly. These must succeed even when the armature bones sit within the mesh surface.
+2. Edit the bones, finish, and choose **Empty Groups** without selecting mesh+rig again. It should find the paired mesh and activate the first bone-named vertex group.
+3. Choose **Weight Paint** from the headset. While pointing at the mesh, press/hold the dominant Trigger to paint the selected native group. Check group previous/next, brush radius/strength and Erase.
+4. Use Done to exit Weight Paint, then Pose to test deformation, press Pose again to return to Object Mode, and return to Mesh Edit Mode.
+5. Check controller Grip+Trigger adds a second Object Mode selection without clearing the first. The underlying mesh Edit Mode tool behavior should remain unchanged.
+6. Try a low-polygon mesh with sparse vertices; the brush should still affect the nearest vertex when its ray strikes a polygon.
+7. Record headset-specific pointer/brush inaccuracies for further v0.7.6 testing. Automated tests cover Blender data and modes, but cannot prove VR ergonomics.
+
+## v0.7.6 direct headset armature editing
+
+- In Object Mode aim the controller directly at a visible bone on an armature in front of a mesh; **Select** should activate the armature, not the underlying mesh.
+- In the Rigging page press **Select Rig** if clicking bone geometry is difficult; when multiple rigs exist, select a specific bound mesh first.
+- Choose **Edit Bones**; point to bones and press Trigger in **Select**, or use Move/Head/Tail and hold/release Trigger to adjust them. Confirm selection and transforms appear in Blender's Edit Mode.
+- Use **Select Tools** to select all/none/inverse/linked/parent/child/mirror, and hide/reveal. Use **Edit Tools** for subdivide, symmetrize, parenting, roll, delete, fill and other operations; **Settings** toggles connected/deform/lock and names.
+- Choose **Finish** to return to Object Mode. Test empty-group binding, Weight Paint and pose as before; test re-entering armature edit mode.
+- On desktop open the Model workspace, select the rig, choose Edit Armature, then expand **Edit Bone Tools** and the **All Blender Armature Edit Tools** native menu.
+- Ensure none of the mesh Edit Mode workflows lose their menu actions, selection or undo. Some native operations require valid selections and may be unavailable in certain contexts.
+- Hardware XR ray, dragging, visibility and menu hit-testing must be signed off by a tester; automation alone is not enough.
+
+## v0.7.6 freeform rigging regression checklist
+
+- Create Armature on a wide cube, a planar mesh and no selected object. None should produce an upright humanoid error.
+- From Model → Rigging, add bones, enter native armature Edit Mode, move/extrude/parent bones and finish editing.
+- Select the mesh and armature (armature active). **Empty Groups** should create a bone group per deforming bone with no weights; Paint should enter Blender Weight Paint on the mesh.
+- Paint weights, pose the armature to test deformation, and check Clean Weights does not destroy the rig.
+- Run the original Auto Weights action separately to confirm it remains available.
+- In VR, verify Create Armature, Add Bone and Empty Groups icons work, and confirm that precise bone positioning in Blender's native Edit Mode is clearly documented.
+
+## v0.7.6 preview acceptance checks
+
+**Icon completion criteria:** all seven desktop workspaces, their advanced subpanels and every actionable in-headset page must show a symbol. Test both with texture images working normally and (where practical) when individual texture loading fails, to verify vector fallback. Hover and active highlighting must never paint over the icons. The six intentionally blank HSL slider cells are permitted, because they are slider overlays rather than menu buttons. Keep this at v0.7.6 and draft-only until the checks pass on real OpenXR hardware.
+
+
+Install the **mesh-xr-v0.7.6.zip** produced by the draft pull request's `preview-package` Actions job (not the GitHub repository source ZIP). In Blender's 3D View sidebar open **Blender XR**.
+
+- Visit all seven native-icon workspaces at narrow and wide sidebar sizes; check hover tooltips and keyboard navigation.
+- Start and stop a headset session, change controller/hand settings while stopped, toggle the PC headset mirror while running, and recover from tracking loss.
+- Test object/Edit geometry operations, snap, precision and two-hand scaling using real controllers.
+- In Model, audit a mesh; create a starter armature; bind and clean weights; test Paint/Pose modes.
+- In Material, edit color/shading and expand Materials + Textures to exercise slots, images and presets.
+- In UV Edit Mode, unwrap and transform UVs; confirm advanced UV tools only show in the UV workspace.
+- In Travel, check movement, turn settings, turbo, flight and grab-air.
+- In Project, save a new and existing .blend and confirm live scene statistics.
+- With SteamVR and supported controllers, verify the external skeletal bridge and haptic feedback.
+- Report reproducible failures with Blender version, headset/runtime, steps, logs and screenshots.
+
+Automated command: `blender --background --factory-startup --python-exit-code 1 --python tests/test_ui_v076.py`.
+
+CI must pass in Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, and headset testing must be reviewed before merging this preview into main.
+
+---
+
 # Mesh XR validation
 
 Mesh XR uses automated Blender regression tests plus manual headset/runtime checks. Background Blender can validate geometry, data, UI registration and package behavior, but it cannot prove stereo readability, physical controller feel or runtime-specific tracking behavior.
