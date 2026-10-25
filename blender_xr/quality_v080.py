@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Read-only game-readiness audit, VR measurements and native object protection."""
 import math
+from pathlib import Path
 import bpy
 from mathutils import Vector
 from bpy.props import EnumProperty
@@ -60,7 +61,7 @@ def pre_export_findings(obj, budget=70000):
                 if node.type == 'TEX_IMAGE' and node.image:
                     img = node.image
                     if (img.source == 'FILE' and not img.packed_file and
-                            not bpy.path.exists(img.filepath, library=img.library)):
+                            not Path(bpy.path.abspath(img.filepath, library=img.library)).is_file()):
                         findings.append(('WARNING', 'Missing texture: ' + img.name))
     armatures = [mod for mod in obj.modifiers if mod.type == 'ARMATURE']
     for mod in armatures:
