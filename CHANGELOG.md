@@ -1,5 +1,16 @@
 # Mesh XR changelog
 
+## v0.8.0 — alpha 2 safety, precision and diagnostics test build
+
+- Added opt-in controller-hand position calibration (X/Y/Z offsets, hand size and reset) with persisted local settings; visual-only, never moves scene geometry or the editing ray.
+- Added Precision Grab control for fine object/mesh/rig transforms; movement, rotation and scaling use a stable per-gesture sensitivity value.
+- Added bounded local main-thread .blend recovery checkpoints with Object Mode / active gesture guards, retention, and explicit restore to a **new copy**, not the original project.
+- Added read-only Pre-Export Check for triangle budgets, materials, missing textures, rig modifiers, transforms, unweighted vertices and bone influence counts, plus object measurements.
+- Added a native object Quick Inspector, selection locks and lock-enforcement checks, plus local tracking/controller diagnostics.
+- Cached short-lived Weight Paint KD lookups, avoided stale SteamVR grip packet indexing and hardened radial-menu input rearm after tracking loss.
+- Added new Blender integration tests for safe recovery guards, read-only export auditing, precision transformation, object locks, calibration reset and spatial lookup reuse.
+- **Remaining:** physical Quest 3 validation, full per-joint optical tracking, deeper consolidated input router, Isolation/X-Ray, Weight Eyedropper, direct IK posing, Curve Draw and fuller game-readiness workflows.
+
 ## v0.8.0 — alpha macOS desktop compatibility follow-up
 
 - Added macOS **Apple Silicon** (`macos-arm64`) and **Intel** (`macos-x64`) as desktop Blender extension targets, retaining the existing Windows x64 and Linux x64 support. No Windows ARM64 expansion is planned for this phase.
