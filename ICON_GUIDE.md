@@ -1,5 +1,11 @@
 # Mesh XR — VR Toolbar and Tool Guide
 
+## v0.7.6 Weight Paint and parenting icons
+
+The headset's existing **Mode** page now includes **Weight Paint** alongside Object and Edit Mode. In Weight Paint Mode the menu shows **Paint**, **Erase**, **Previous/Next Group**, **Strength +/-**, **Size +/-** and **Done**. Paint and Erase are explicit settings. The VR status shows how many vertices were affected and warns when the ray misses the mesh.
+
+**Rigging → Parent** opens Blender-style parenting icons: Automatic Weights, Empty Groups, Envelope Weights, Armature Deform, Object Parent and Clear Parent. They map to Blender's native `object.parent_set` and `object.parent_clear` operators instead of bespoke parenting logic. Explicitly selected mesh plus active armature behaves like Ctrl+P, and the remembered pairing is only a fallback.
+
 ## v0.7.6 one Select action / controller transforms
 
 Use **Select** wherever the workflow exposes selection: it selects objects in Object Mode, vertices/edges/faces in Mesh Edit Mode, bones in Armature Edit Mode, and pose bones in Pose Mode. Selecting overlapping rigs and meshes toggles between the objects without separate mesh/armature selection buttons. **Grip** grabs and translates the pointed object or selected elements; choose **Move**, **Scale** or **Rotate** and hold Trigger for their corresponding controller transforms. The new Pose Bones menu includes these actions. The Edit Bone Tools page retains Head/Tail transforms. Multi-object / multi-element selection uses Blender's ordinary selection state and the existing additive controller gesture.
