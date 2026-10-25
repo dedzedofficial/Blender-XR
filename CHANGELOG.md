@@ -1,11 +1,11 @@
 # Mesh XR changelog
 
-## v0.8.0 — alpha cross-platform follow-up
+## v0.8.0 — alpha macOS desktop compatibility follow-up
 
-- Extended Blender extension manifest to all five desktop platform tags: Windows x64/ARM64, macOS Intel/ARM64, Linux x64.
-- Added OS-aware XR support diagnostics to the Session UI and Start VR operator, with Blender 5.1+ macOS experimental XR gate and Intel Mac version guidance.
-- Added cross-platform packaging/unit/ZIP integrity regression checks on native Windows/macOS CI hosts, retaining Blender 4.2/4.5/5.0/5.2 Linux CI matrix.
-- Separated headset/runtime support from add-on installability; mobile iOS/iPadOS and standalone Android/Quest are **not** native Blender extension hosts. Documented an optional secure desktop companion route.
+- Added macOS **Apple Silicon** (`macos-arm64`) and **Intel** (`macos-x64`) as desktop Blender extension targets, retaining the existing Windows x64 and Linux x64 support. No Windows ARM64 expansion is planned for this phase.
+- Added clear macOS host/Blender/OpenXR diagnostics in the Session UI and Start VR operator, including Intel Mac Blender 4.5 LTS guidance and experimental Blender 5.1+ OpenXR status on Apple Silicon.
+- Added ZIP packaging/unit and checksum tests on native Apple Silicon and Intel Mac CI runners, alongside existing Linux Blender 4.2/4.5/5.0/5.2 coverage.
+- Mac desktop installation is distinct from **real headset support**, which remains unverified. Removed iOS/iPadOS and standalone Quest companion application work from the active development scope.
 
 ## v0.8.0 — alpha 1 (development, Quest 3 physical testing outstanding)
 
