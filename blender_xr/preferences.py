@@ -10,6 +10,9 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 FIELDS = (
     'dominant_hand','controller_family','input_source','finger_touch','bridge_port',
     'menu_style','hand_display','hand_scale',
+    'hand_offset_x','hand_offset_y','hand_offset_z',
+    'fine_grab_enabled','fine_grab_factor','show_diagnostics',
+    'recovery_enabled','recovery_minutes','recovery_keep',
     'step','bevel_segments','move_speed','fly_mode','fast_flight','turn_mode',
     'turn_angle','turn_speed','grab_air','primitive_size','placement_distance',
     'show_statistics','precision_mode','haptic_feedback','triangle_budget',
@@ -29,6 +32,15 @@ class BXR_Preferences(bpy.types.AddonPreferences):
     menu_style: EnumProperty(items=[('RADIAL','Offhand radial',''),('CLASSIC','Classic','')],default='RADIAL')
     hand_display: EnumProperty(items=[('HANDS','Animated hands',''),('CONTROLLERS','Native controllers',''),('POINTERS','Pointers only','')],default='HANDS')
     hand_scale: FloatProperty(default=1.0,min=0.65,max=1.5)
+    hand_offset_x: FloatProperty(default=0.0,min=-0.20,max=0.20)
+    hand_offset_y: FloatProperty(default=0.0,min=-0.20,max=0.20)
+    hand_offset_z: FloatProperty(default=0.0,min=-0.20,max=0.20)
+    fine_grab_enabled: BoolProperty(default=False)
+    fine_grab_factor: FloatProperty(default=0.20,min=0.02,max=1.0)
+    show_diagnostics: BoolProperty(default=False)
+    recovery_enabled: BoolProperty(default=True)
+    recovery_minutes: IntProperty(default=5,min=1,max=120)
+    recovery_keep: IntProperty(default=8,min=1,max=50)
     finger_touch: BoolProperty(default=False)
     bridge_port: IntProperty(default=39540,min=1024,max=65535)
     step: FloatProperty(default=0.03,min=0.0001,max=10)
