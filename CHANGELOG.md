@@ -1,76 +1,49 @@
 # Mesh XR changelog
 
-## v0.7.6 — icon-first sidebar and usability test (unreleased)
+## v0.7.6 — Unified VR modelling, freeform armatures and native Weight Paint
 
-### Real Weight Paint Mode and Blender parent-to-armature (test preview)
+*Compared with v0.7.5, the previous published release. Merged into `main` on 25 October 2026 via [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18). This merge does not itself publish a tagged GitHub or Blender Extensions release.*
 
-- Weight Paint is a **first-class mode** in the headset Mode picker beside Object and Edit. Selecting it switches Blender to its actual `WEIGHT_PAINT` mode and opens the dedicated painting toolbar; exiting returns to Object Mode.
-- The brush writes real selected vertex-group weights, refreshes the Blender mesh/view layer, uses a ray hit on the evaluated (including skinned) mesh when possible, and shows explicit **NO SURFACE HIT** feedback instead of failing silently. Paint and Erase are explicit modes, not a toggle that leaves Paint stuck erasing.
-- Rigging now has a compact **Parent** page using the same Blender Ctrl+P types: **Automatic Weights**, **Empty Groups**, **Envelope Weights**, **Armature Deform** and **Object Parent**, plus **Clear Parent (Keep Transform)**. Parent creation respects transforms; repeated parenting doesn't overwrite painted weights.
-- Explicitly selected meshes take precedence over an older remembered mesh/rig pair, and the same Parent controls are exposed in the compact Model and expanded Workflow desktop panels.
-- Entering Weight Paint does **not** silently parent your mesh. A paired rig supplies missing bone groups, or the user can paint an independent vertex group when no rig is selected.
-- Added four-version Blender tests for the native mode picker, painting/erasing, actual parenting and clearing, preserved transforms and selecting a new target mesh.
-- Still **0.7.6** in draft PR #18; physical headset tests remain required.
+### Blender-style VR selection and transforms
 
+- Consolidated mesh and armature picking into **one context-sensitive Select tool**. Depending on Blender mode, it can select objects, mesh vertices/edges/faces, edit bones or pose bones. Removed redundant Select Mesh / Select Rig buttons.
+- Improved controller-ray picking of armatures inside meshes and nearby or loose vertices and edges that may not intersect a polygon.
+- Enabled controller **Grip** to grab and move selected geometry or objects, and **Trigger** with Move / Scale / Rotate tools to manipulate objects, vertices, edges, faces, armatures and bones.
+- Added controller scale and rotation for edit bones, and a compact Pose Bones workspace with Select, Move, Scale, Rotate and Finish Pose.
+- Extended session-local Undo/Redo to controller mesh-element, edit-bone and pose-bone transforms; cancelling a transform restores its original state.
+- Preserved existing mesh Edit Mode operations, multi-selection and mesh-to-mesh switching.
 
-### Context-sensitive controller selection and transforms
+### Freeform rigging and armature editing
 
-- Removed the redundant **Select Rig** and **Select Mesh** menu buttons. A single **Select** action detects meshes, vertices, edges, faces, armatures, edit bones and pose bones according to Blender's native mode. Repeated selection over overlapping mesh/bone targets cycles between the two without separate buttons.
-- Controller ray proximity now picks loose or small vertices/edges even if the ray did not intersect a polygon.
-- **Grip** grabs the pointed geometry or whole object and moves it with the controller; selected vertices, edges and faces preserve grouped selections. In the Move / Scale / Rotate tools, holding **Trigger** applies the appropriate transform while moving the controller.
-- Extended transformations to freeform armatures in Object Mode, bones in Armature Edit Mode, and pose bones in Pose Mode. Added dedicated **Rotate** tools and a compact **Pose Bones** menu with Select, Move, Scale, Rotate and Exit.
-- Native mesh Edit Mode face/extrude/inset/bevel and mesh-to-mesh switching remain available. Removed overlapping UI commands without dropping previous edit operations.
-- Controller vertex, bone and pose transforms participate in Mesh XR's VR-local Undo/Redo history. Cancel restores original geometry.
-- Added four-version Blender compatibility tests covering controller transform mathematics, history, menu icon mappings and duplicate action checks.
-- Version stays **0.7.6**, PR stays draft, physical OpenXR usability testing is still required.
+- Replaced the proportion-restricted humanoid starter rig with normal Blender armatures that work with **any mesh shape**, including wide or flat models, and can be created without a mesh.
+- Added Create Armature, Edit Bones, Add Bone and Finish Bones workflows; bones can be picked and manipulated using VR controllers.
+- Exposed armature selection, parenting, extrusion, duplication, subdivision, symmetry, roll, visibility, naming and other native edit actions through organized tools and Blender's original menus.
+- Remembered the relationship between an armature and its source mesh through Object, Edit, Pose and Weight Paint modes, without requiring redundant selection buttons.
 
+### Weight Paint as a native Blender mode
 
-### Rigging, object selection and native weight groups (VR usability repair)
+- Added **Weight Paint** alongside Object and Edit in the standard headset **Mode** selector. Selecting it activates Blender's actual `WEIGHT_PAINT` mode and displays dedicated painting controls.
+- Added controller-ray Paint / Erase on actual Blender vertex groups, including group switching and adjustable brush strength and radius.
+- Improved painting on armature-deformed and low-poly meshes by using evaluated mesh hits when available, falling back to the nearest vertex where appropriate.
+- Refreshes mesh data after painting and shows **NO SURFACE HIT** feedback when the controller misses the mesh, instead of appearing unresponsive.
+- Automatically selects a valid active vertex group and supports independent mesh weight painting without silently changing parenting.
+- Avoids resetting existing painted weights when binding again or adding bone-named groups.
 
-- Fixed the selection-state dead end: selecting an armature used to deselect the mesh, leaving Bind Empty Groups/Auto Weights unable to find it. Mesh XR now remembers the mesh paired with each rig and allows Select Rig / Select Mesh without manual desktop Shift-select.
-- On rig creation the originating mesh is remembered; the relationship survives Edit Bones, Object Mode, Weight Paint and Pose Mode changes. Grip+Trigger also extends Object Mode selection like Blender multiselect.
-- From the headset Rigging menu, Bind Empty Groups/Auto Weights resolve both objects automatically. Select Rig can discover newly created unbound rigs even when their bones lie within the mesh.
-- Entering Weight Paint ensures a valid active vertex group; if a rig exists but no groups have been created yet, entering Weight Paint first binds empty groups for manual painting.
-- Added a true controller-ray weight brush (native vertex-group writes), paint/erase, previous/next group, brush strength and radius with icon-led headset controls. On sparse low-poly meshes, the nearest vertex is painted if none fall inside the brush circle.
-- Added explicit exit for weight painting and Pose Mode toggle. Existing mesh Object/Edit workflows are preserved and covered by an integrated Blender regression.
-- Still **0.7.6**; draft PR and real headset acceptance are required before release.
+### Blender-style parenting
 
+- Added **Rigging → Parent** with standard Blender Ctrl+P options: Automatic Weights, Empty Groups, Envelope Weights, Armature Deform and Object Parent.
+- Added **Clear Parent (Keep Transform)** and the same parenting controls in Blender's Model and Workflow panels.
+- Prioritizes an explicitly selected mesh and armature over a previously remembered pairing; guards repeated parenting from overwriting painted weights.
 
-### Armature edit-mode VR interaction (test candidate)
+### Interface and compatibility
 
-- Fixed controller selection of armatures: Blender's scene ray-cast hits mesh surfaces but not bones, so Mesh XR now ray-picks visible armature bones directly. Armatures displayed in front of skinned meshes remain selectable.
-- Added a direct **Select Rig** button in the desktop Model workspace and VR Rigging page. It chooses the armature linked to the active mesh, or the only visible rig; it refuses to guess when multiple rigs are ambiguous.
-- Added **Edit Bones** / **Finish Bones** in the headset, a bone-selection ray, controller-driven move of a bone or its head/tail, and organized pages for selecting, editing, naming, parenting, roll and visibility.
-- Kept Blender's native Edit Armature and bone Select menus available inside the desktop Mesh XR panel, including operations not exposed by the compact headset pages.
-- Added an armature-specific Blender regression suite to protect mesh selection and object editing from unintended changes; real headset device acceptance remains required.
-- Still **v0.7.6**, draft PR only, no merge.
+- Redesigned the desktop Blender XR sidebar into seven compact icon-led workspaces: **Session, Model, Material, UV, Travel, Project and Help**.
+- Added official Blender icon coverage, hover guidance and a fallback for headset icons that cannot be loaded.
+- Kept advanced Materials, UV and Workflow controls available in collapsible panels without removing existing modelling functions.
+- Expanded regression coverage for menu duplicates, selection, transformation, rig creation, mode switching, parenting, vertex weights, undo/redo and installable extension packaging.
+- The final merge candidate passed CI packaging and Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2** in [workflow run #40147094901](https://github.com/dedzedofficial/Blender-XR/actions/runs/40147094901).
 
-
-### Normal armature and manual weight painting (test revision)
-
-- Replaced the upright-humanoid-only starter rig with a normal Blender armature containing one editable bone, sized around any selected mesh regardless of its orientation, aspect ratio or thickness; an armature can also be created without a mesh at the 3D cursor.
-- Added Add Bone, Edit Bones and Finish Bones controls to the desktop rigging workspace. Blender's native Armature Edit Mode handles positioning, extruding, parenting, mirroring and renaming bones.
-- Added Bind Empty Groups so artists can hand-paint vertex-group weights without automatic weight calculations. Automatic Weights remains optional.
-- Added Add Bone and Empty Groups actions to the VR rigging menu, using existing Blender icon textures. Desktop Edit Mode is needed for precise bone positioning.
-- Expanded regression tests for wide, flat and empty-scene armature creation, new bones, empty vertex groups and Weight Paint entry. The version stays **0.7.6**; no merge to main pending headset testing.
-
-
-### Complete icon coverage candidate (same 0.7.6 version)
-
-- Fixed an inherited XR menu layer painting opaque backgrounds over the newly drawn controller icons on core pages.
-- Added Blender-native icons to remaining controls in all seven desktop workspaces, plus advanced Materials, UV and Workflow subpanels.
-- Added a vector icon fallback whenever a VR menu's PNG or GPU texture is unavailable; HSL slider cells are intentionally not buttons.
-- Expanded Blender regression checks to validate every visible desktop control icon, native Blender icon name, active XR menu mapping and packaged icon PNG.
-- Keep the version at **0.7.6** and the pull request in draft until headset and user acceptance tests are complete.
-
-- Reorganised the Blender XR sidebar into seven compact icon-led workspaces, using native Blender icons and hover tooltips.
-- Kept session start/stop and status visible above the workspace selector.
-- Grouped advanced Materials, UV and Workflow panels as collapsed children of the main panel, preserving their operators.
-- Centralised the new desktop UI in `ui_v076.py`, without replacing the controller-driven XR runtime.
-- Added workspace smoke tests, packaging checks and a pull-request-only test installer artifact.
-- This is a test build: physical headset, controller, haptics and mirror verification is still outstanding, and the future roadmap remains future work.
-
-This file records shipped user-facing changes. Planned work belongs in [ROADMAP.md](ROADMAP.md).
+**Validation note:** Automated Blender tests and packaging passed. Real OpenXR headset ergonomics, controller ray accuracy and tracked-device painting behaviour cannot be established by those tests alone.
 
 ## v0.7.5 — PC View Mode (development)
 
