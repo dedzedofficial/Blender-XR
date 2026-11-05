@@ -71,6 +71,8 @@ class HandBridge:
             joint_data = []
             levels = []
             for hand in hands:
+                if not isinstance(hand, dict):
+                    return False
                 # Estimated skeletal poses are controller buttons, not tracked fingers.
                 if hand['tracked'] is not True or hand['level'] not in ('partial', 'full'):
                     raise ValueError('No tracked fingers')
