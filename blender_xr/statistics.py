@@ -29,8 +29,12 @@ def _cache_key(context, visible):
     for obj in visible:
         if obj.type == 'MESH':
             data = obj.data
-            mesh_signature.append((obj.name_full, len(data.vertices), len(data.edges), len(data.polygons), len(obj.material_slots)))
+            mesh_signature.append((
+                obj.name_full, len(data.vertices), len(data.edges), len(data.polygons),
+                tuple(slot.material.name_full if slot.material else None for slot in obj.material_slots),
+            ))
     return (
+        tuple((obj.name_full, obj.type) for obj in visible),
         tuple(mesh_signature),
         tuple(obj.name_full for obj in visible if obj.select_get()),
         active.name_full if active else None,
