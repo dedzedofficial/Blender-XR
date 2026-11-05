@@ -1,7 +1,11 @@
 # Blender UI icon artwork
 
-The SVG files in this directory are Blender UI icon artwork sourced from the
-Blender icon collection mirrored in the Bforartists project repository:
+The editable SVG source artwork lives in this repository's `blender_xr/icons_src`
+directory. Installable extensions contain the generated PNG runtime textures
+and this attribution notice, not redundant SVG files. Source artwork is available
+at https://github.com/dedzedofficial/Blender-XR/tree/main/blender_xr/icons_src
+
+The artwork comes from the Blender icon collection mirrored in Bforartists:
 https://github.com/Bforartists/Bforartists/tree/master/release/datafiles/icons_svg
 
 The artwork is used as transparent textures in Mesh XR's world-space VR menu.
