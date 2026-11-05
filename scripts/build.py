@@ -107,10 +107,8 @@ for source_path in sorted(SOURCE.glob('*.py')):
 
 output=ROOT/'dist'/('mesh-xr-v'+version+'.zip')
 output.parent.mkdir(exist_ok=True)
-# Keep the current installer only; source history remains in Git.
-for old in output.parent.glob('*xr-v*'):
-    if old.name not in {output.name,output.name+'.sha256'}:
-        old.unlink()
+# Keep the last complete installer until the replacement passes validation.
+temporary_output=output.with_name(output.name+'.tmp')
 
 package_names={'blender_manifest.toml','LICENSE','README.md'}
 manifest_wheels={Path(item.removeprefix('./')).as_posix() for item in manifest['wheels']}
@@ -126,30 +124,37 @@ for source_path in icon_sources:
     assert header[:8]==b'\x89PNG\r\n\x1a\n', f'Invalid PNG texture: {png_path.name}'
     width,height=struct.unpack('>II',header[16:24])
     assert (width,height)==(256,256), f'{png_path.name} is {width}x{height}, expected 256x256'
-with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED) as archive:
+with zipfile.ZipFile(temporary_output,'w',compression=zipfile.ZIP_DEFLATED) as archive:
     for path in sorted(SOURCE.rglob('*')):
         if not path.is_file():
             continue
         relative=path.relative_to(SOURCE).as_posix()
         is_icon_png=relative.startswith('icons/') and path.suffix=='.png'
-        is_icon_source=relative.startswith('icons_src/') and (path.suffix=='.svg' or path.name=='NOTICE.md')
-        if not (path.suffix=='.py' or relative in package_names or relative in manifest_wheels or is_icon_png or is_icon_source):
+        is_icon_notice=relative=='icons_src/NOTICE.md'
+        if not (path.suffix=='.py' or relative in package_names or relative in manifest_wheels or is_icon_png or is_icon_notice):
             continue
         item=zipfile.ZipInfo(relative,date_time=(2026,1,1,0,0,0))
         item.compress_type=zipfile.ZIP_DEFLATED
         item.external_attr=0o100644<<16
         archive.writestr(item,path.read_bytes())
 
-with zipfile.ZipFile(output) as archive:
+with zipfile.ZipFile(temporary_output) as archive:
     names=set(archive.namelist())
     assert 'wheels/'+OPENVR_WHEEL in names, 'OpenVR wheel missing from extension ZIP'
     assert 'blender_manifest.toml' in names and '__init__.py' in names
     assert 'icons/armature_data.png' in names, 'Rigging icon textures missing from extension ZIP'
     assert 'icons_src/NOTICE.md' in names, 'Icon source provenance notice missing from extension ZIP'
     assert all('icons/'+path.name in names for path in icon_pngs), 'One or more icon PNGs missing from extension ZIP'
-    assert all('icons_src/'+path.name in names for path in icon_sources), 'One or more SVG sources missing from extension ZIP'
+    # Vector originals stay in Git for editing; only runtime PNGs ship in the installer.
+    assert not any(name.endswith('.svg') for name in names), 'Non-runtime SVG in extension ZIP'
+    assert archive.testzip() is None, 'Extension ZIP failed CRC verification'
 
-checksum=hashlib.sha256(output.read_bytes()).hexdigest()
+checksum=hashlib.sha256(temporary_output.read_bytes()).hexdigest()
+temporary_output.replace(output)
 Path(str(output)+'.sha256').write_text(checksum+'  '+output.name+'\n')
+# Prune stale installer artifacts only after the new one is complete.
+for old in output.parent.glob('*xr-v*'):
+    if old.name not in {output.name,output.name+'.sha256'}:
+        old.unlink()
 print(output)
 print(checksum)
