@@ -130,7 +130,8 @@ def ensure_object_mode(context):
 
 def _deselect_selected(context):
     """Clear native Blender selection before changing the active rig/mesh."""
-    _deselect_selected(context)
+    for selected in context.selected_objects:
+        selected.select_set(False)
 
 
 def paired_selection(context, arm, target, *, mesh_active=False):
