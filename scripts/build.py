@@ -153,8 +153,8 @@ checksum=hashlib.sha256(temporary_output.read_bytes()).hexdigest()
 temporary_output.replace(output)
 Path(str(output)+'.sha256').write_text(checksum+'  '+output.name+'\n')
 # Prune stale installer artifacts only after the new one is complete.
-for old in output.parent.glob('*xr-v*'):
-    if old.name not in {output.name,output.name+'.sha256'}:
+for old in output.parent.glob('mesh-xr-v*.zip*'):
+    if old.is_file() and old.name not in {output.name, output.name+'.sha256'}:
         old.unlink()
 print(output)
 print(checksum)
