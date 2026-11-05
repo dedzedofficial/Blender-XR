@@ -30,6 +30,25 @@ def run():
         assert [tuple(v.co) for v in obj.data.vertices] == original
         assert set(bpy.data.objects.keys()) == names
 
+        # Weight audit must count positive influences, not zero-weight entries.
+        bpy.ops.object.armature_add()
+        rig = bpy.context.object
+        bpy.context.view_layer.objects.active = obj
+        arm = obj.modifiers.new('Quality test armature', 'ARMATURE')
+        arm.object = rig
+        for index in range(5):
+            group = obj.vertex_groups.new(name='Quality group %d' % index)
+            group.add([0], 0.2, 'REPLACE')
+        findings = quality_v080.pre_export_findings(obj)
+        assert ('WARNING', '7 unweighted vertices') in findings, findings
+        assert ('WARNING', '1 vertices have more than 4 influences') in findings, findings
+        # Zero-weight entries are deliberately excluded from influence counts.
+        zero_group = obj.vertex_groups.new(name='Quality zero weight')
+        zero_group.add([1], 0.0, 'REPLACE')
+        findings = quality_v080.pre_export_findings(obj)
+        assert ('WARNING', '7 unweighted vertices') in findings, findings
+        assert ('WARNING', '1 vertices have more than 4 influences') in findings, findings
+
         bpy.ops.blender_xr.measure()
         assert 'dimensions' in settings.status
         bpy.ops.blender_xr.export_check()
