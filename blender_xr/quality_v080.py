@@ -70,13 +70,13 @@ def pre_export_findings(obj, budget=70000):
     if len(armatures) > 1:
         findings.append(('WARNING', '%d armature modifiers; check duplicates' % len(armatures)))
     if obj.vertex_groups:
-        weights = [[] for _ in obj.data.vertices]
-        for vert in obj.data.vertices:
-            for g in vert.groups:
-                if g.weight > 1e-6:
-                    weights[vert.index].append(g.weight)
-        unweighted = sum(not influences for influences in weights)
-        overloaded = sum(len(influences) > 4 for influences in weights)
+        # Count influences directly; no per-vertex weight lists are needed.
+        counts = (sum(group.weight > 1e-6 for group in vertex.groups)
+                  for vertex in data.vertices)
+        unweighted = overloaded = 0
+        for count in counts:
+            unweighted += count == 0
+            overloaded += count > 4
         if unweighted and armatures:
             findings.append(('WARNING', '%d unweighted vertices' % unweighted))
         if overloaded:
