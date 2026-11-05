@@ -52,6 +52,11 @@ class Tests(unittest.TestCase):
         self.assertFalse(bridge.accept(packet(0, key='wrong'), local))
         self.assertFalse(bridge.accept(packet(0, pinch=float('nan')), local))
         self.assertFalse(bridge.accept(packet(0, hands=[{}]), local))
+        # An authenticated but malformed UDP packet must never crash the modal timer.
+        for invalid in (None, 0, 'hand', [], True):
+            self.assertFalse(bridge.accept(packet(0, hands=[invalid, invalid]), local))
+        self.assertIsNone(bridge.hands)
+        self.assertEqual(bridge.sequence, -1)
         self.assertFalse(bridge.accept(b'[' * 2049, local))
         self.assertTrue(bridge.accept(packet(0, pinch=.01), local))
         self.assertIsNone(bridge.read())  # initially held hands cannot start edits
