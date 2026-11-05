@@ -21,6 +21,10 @@ with zipfile.ZipFile(installer) as archive:
                    'radial_logic_v080.py', 'steamvr_hand_bridge.py'):
         assert module in names, module
     assert not any(name.endswith(('.exe','.dll','.dylib','.so')) for name in names)
+    # Generated textures are runtime assets; editable SVG originals remain in Git.
+    assert 'icons_src/NOTICE.md' in names
+    assert 'icons/armature_data.png' in names
+    assert not any(name.endswith('.svg') for name in names)
 
 digest = hashlib.sha256(installer.read_bytes()).hexdigest()
 checksum = Path(str(installer) + '.sha256').read_text().split()[0]
