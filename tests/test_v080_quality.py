@@ -33,6 +33,8 @@ def run():
         # Weight audit must count positive influences, not zero-weight entries.
         bpy.ops.object.armature_add()
         rig = bpy.context.object
+        rig.select_set(False)
+        obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
         arm = obj.modifiers.new('Quality test armature', 'ARMATURE')
         arm.object = rig
