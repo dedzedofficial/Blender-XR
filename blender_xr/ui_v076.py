@@ -20,7 +20,6 @@ UI_SECTION_ITEMS = [
     ('PROJECT', 'Project', 'Save files and inspect scene statistics', 'FILE_BLEND', 5),
     ('HELP', 'Help', 'Controller controls and useful Blender tools', 'QUESTION', 6),
 ]
-_SECTION_META = {key: (label, icon) for key, label, _description, icon, _number in UI_SECTION_ITEMS}
 
 
 def _operator(row, identifier, label, icon, **properties):
@@ -300,7 +299,6 @@ def draw_panel(panel, context):
     # Full labels and translated tooltips remain on hover.
     row = layout.row(align=True)
     row.prop(settings, 'ui_section', text='', expand=True, icon_only=True)
-    label, icon = _SECTION_META.get(settings.ui_section, _SECTION_META['SESSION'])
     box = layout.box()
     if settings.ui_section == 'SESSION':
         _session(box, context, settings, active)
