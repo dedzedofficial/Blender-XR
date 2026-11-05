@@ -128,6 +128,11 @@ def ensure_object_mode(context):
         if 'FINISHED' not in result:
             raise ValueError('Could not leave ' + current.mode + ' mode')
 
+def _deselect_selected(context):
+    """Clear native Blender selection before changing the active rig/mesh."""
+    _deselect_selected(context)
+
+
 def paired_selection(context, arm, target, *, mesh_active=False):
     """Atomic Blender-style Object Mode selection for the two rigging targets."""
     ensure_object_mode(context)
@@ -135,8 +140,7 @@ def paired_selection(context, arm, target, *, mesh_active=False):
         raise ValueError('A visible mesh and armature are required')
     if arm.library or arm.data.library or target.library or target.data.library:
         raise ValueError('Linked assets cannot be rigged')
-    for obj in context.selected_objects:
-        obj.select_set(False)
+    _deselect_selected(context)
     arm.select_set(True)
     target.select_set(True)
     context.view_layer.objects.active = target if mesh_active else arm
@@ -148,8 +152,7 @@ def select_mesh(context):
     arm = active if _valid(context, active, 'ARMATURE') else None
     target = mesh_for_rig(context, arm)
     ensure_object_mode(context)
-    for obj in context.selected_objects:
-        obj.select_set(False)
+    _deselect_selected(context)
     target.select_set(True)
     if arm:
         arm.select_set(True)
@@ -214,8 +217,7 @@ def clear_mesh_parent(context):
     target = mesh_for_rig(context)
     if target.parent is None:
         raise ValueError('Selected mesh has no parent')
-    for obj in context.selected_objects:
-        obj.select_set(False)
+    _deselect_selected(context)
     target.select_set(True)
     context.view_layer.objects.active = target
     result = bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
