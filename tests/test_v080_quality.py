@@ -1,6 +1,8 @@
 """Blender integration checks for Mesh XR v0.8 quality, calibration and recovery."""
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import bpy
@@ -78,6 +80,25 @@ def run():
             raise AssertionError('Locked object unexpectedly transformed')
         bpy.ops.blender_xr.object_lock()
         assert not obj.hide_select
+
+        # A checkpoint removed between glob and stat must not break UI/poll.
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            older = folder / 'meshxr-old.blend'
+            newer = folder / 'meshxr-new.blend'
+            older.write_bytes(b'old')
+            newer.write_bytes(b'new')
+            original_stat = Path.stat
+
+            def stat_with_missing(path, *args, **kwargs):
+                if path == older:
+                    raise FileNotFoundError(str(path))
+                return original_stat(path, *args, **kwargs)
+
+            with patch.object(recovery_v080, 'folder', return_value=folder):
+                with patch.object(Path, 'stat', stat_with_missing):
+                    assert recovery_v080.checkpoints() == [newer]
+                assert set(recovery_v080.checkpoints()) == {older, newer}
 
         assert recovery_v080.safe_to_save(bpy.context) is False, 'Headless test cannot checkpoint'
         assert settings.recovery_enabled
