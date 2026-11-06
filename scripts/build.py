@@ -139,7 +139,9 @@ with zipfile.ZipFile(temporary_output,'w',compression=zipfile.ZIP_DEFLATED) as a
         archive.writestr(item,path.read_bytes())
 
 with zipfile.ZipFile(temporary_output) as archive:
-    names=set(archive.namelist())
+    entries=archive.namelist()
+    assert len(entries)==len(set(entries)), 'Duplicate extension ZIP entries'
+    names=set(entries)
     assert 'wheels/'+OPENVR_WHEEL in names, 'OpenVR wheel missing from extension ZIP'
     assert 'blender_manifest.toml' in names and '__init__.py' in names
     assert 'icons/armature_data.png' in names, 'Rigging icon textures missing from extension ZIP'
