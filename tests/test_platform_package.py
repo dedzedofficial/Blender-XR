@@ -36,7 +36,7 @@ with zipfile.ZipFile(installer) as archive:
     assert not any(name.endswith('.svg') for name in names)
     for icon in source_icons:
         header = archive.read(icon)[:24]
-        assert len(header) == 24 and header[:8] == b'\x89PNG\r\n\x1a\n' and header[12:16] == b'IHDR', icon
+        assert len(header) == 24 and header[:8] == b'\x89PNG\r\n\x1a\n' and header[8:12] ==(13).to_bytes(4, 'big') and header[12:16] == b'IHDR', icon
         assert int.from_bytes(header[16:20], 'big') == 256 and int.from_bytes(header[20:24], 'big') == 256, icon
 
 digest = hashlib.sha256(installer.read_bytes()).hexdigest()
