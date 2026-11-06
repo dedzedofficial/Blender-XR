@@ -22,7 +22,15 @@ def folder():
 
 
 def checkpoints():
-    return sorted(folder().glob('meshxr-*.blend'), key=lambda p: p.stat().st_mtime, reverse=True)
+    """List existing copies, tolerating files removed during enumeration."""
+    found = []
+    for path in folder().glob('meshxr-*.blend'):
+        try:
+            found.append((path.stat().st_mtime, path))
+        except FileNotFoundError:
+            continue
+    found.sort(key=lambda entry: entry[0], reverse=True)
+    return [path for _, path in found]
 
 
 def safe_to_save(context):
