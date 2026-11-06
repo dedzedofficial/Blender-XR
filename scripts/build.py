@@ -142,6 +142,7 @@ with zipfile.ZipFile(temporary_output) as archive:
     entries=archive.namelist()
     assert len(entries)==len(set(entries)), 'Duplicate extension ZIP entries'
     names=set(entries)
+    assert all('\\' not in name and ':' not in name and not name.startswith('/') and all(part not in ('', '.', '..') for part in name.split('/')) for name in entries), 'Unsafe extension ZIP path'
     assert 'wheels/'+OPENVR_WHEEL in names, 'OpenVR wheel missing from extension ZIP'
     assert 'blender_manifest.toml' in names and '__init__.py' in names
     assert 'icons/armature_data.png' in names, 'Rigging icon textures missing from extension ZIP'
