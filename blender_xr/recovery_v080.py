@@ -187,8 +187,8 @@ def draw(layout, settings):
     if candidates:
         layout.label(text='Latest: ' + candidates[0].name[:40], icon='FILE_BLEND')
         row = layout.row(align=True)
-        row.enabled = bpy.context.scene is not None and __import__(
-            __package__ + '.runtime', fromlist=['CURRENT']).CURRENT is None
+        from . import runtime
+        row.enabled = bpy.context.scene is not None and runtime.CURRENT is None
         row.operator('blender_xr.recovery_restore', text='Open recovery copy', icon='RECOVER_LAST')
     layout.label(text='Copies are private and never overwrite your project', icon='INFO')
 
