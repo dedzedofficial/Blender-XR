@@ -3,8 +3,6 @@
 import math
 from pathlib import Path
 import bpy
-from mathutils import Vector
-from bpy.props import EnumProperty
 
 
 def measurement(context):
