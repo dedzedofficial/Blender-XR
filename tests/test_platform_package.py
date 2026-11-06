@@ -13,6 +13,7 @@ with zipfile.ZipFile(installer) as archive:
     assert archive.testzip() is None
     entries = archive.namelist()
     assert len(entries) == len(set(entries)), 'Duplicate extension ZIP entries'
+    assert all((info.external_attr >> 16) & 0o170000 == 0o100000 for info in archive.infolist()), 'Non-regular file in extension ZIP'
     names = set(entries)
     assert all('\\' not in name and ':' not in name and not name.startswith('/') and all(part not in ('', '.', '..') for part in name.split('/')) for name in entries), 'Unsafe extension ZIP path'
     built = tomllib.loads(archive.read('blender_manifest.toml').decode())
