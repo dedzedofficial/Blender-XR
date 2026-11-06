@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 import shutil
 import time
 import bpy
-from bpy.props import BoolProperty
 
 _LAST = 0.0
 _LAST_FILE = ''
