@@ -11,7 +11,9 @@ installer = ROOT / 'dist' / ('mesh-xr-v' + version + '.zip')
 assert installer.exists(), installer
 with zipfile.ZipFile(installer) as archive:
     assert archive.testzip() is None
-    names = set(archive.namelist())
+    entries = archive.namelist()
+    assert len(entries) == len(set(entries)), 'Duplicate extension ZIP entries'
+    names = set(entries)
     built = tomllib.loads(archive.read('blender_manifest.toml').decode())
     assert built['version'] == version
     assert set(built['platforms']) == {
