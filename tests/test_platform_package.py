@@ -30,7 +30,9 @@ with zipfile.ZipFile(installer) as archive:
     assert not any(name.endswith(('.exe','.dll','.dylib','.so')) for name in names)
     # Generated textures are runtime assets; editable SVG originals remain in Git.
     assert 'icons_src/NOTICE.md' in names
-    assert 'icons/armature_data.png' in names
+    source_icons = {f'icons/{path.stem}.png' for path in (ROOT / 'blender_xr' / 'icons_src').glob('*.svg')}
+    assert len(source_icons) == 46, 'Unexpected source icon inventory'
+    assert {name for name in names if name.startswith('icons/') and name.endswith('.png')} == source_icons, 'Runtime icon inventory differs from SVG sources'
     assert not any(name.endswith('.svg') for name in names)
 
 digest = hashlib.sha256(installer.read_bytes()).hexdigest()
