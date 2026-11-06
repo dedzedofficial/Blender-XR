@@ -14,7 +14,7 @@ with zipfile.ZipFile(installer) as archive:
     entries = archive.namelist()
     assert len(entries) == len(set(entries)), 'Duplicate extension ZIP entries'
     names = set(entries)
-    assert all(not name.startswith('/') and all(part not in ('', '.', '..') for part in name.split('/')) for name in entries), 'Unsafe extension ZIP path'
+    assert all('\\' not in name and ':' not in name and not name.startswith('/') and all(part not in ('', '.', '..') for part in name.split('/')) for name in entries), 'Unsafe extension ZIP path'
     built = tomllib.loads(archive.read('blender_manifest.toml').decode())
     assert built['version'] == version
     assert set(built['platforms']) == {
