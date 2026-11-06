@@ -37,8 +37,11 @@ def without_snapshots(history):
         for entry in (history.undo + history.redo) if history else ():
             ids = entry[3:5] if entry[0] == 'MESH' else (entry[3],) if entry[0] == 'CREATE' else ()
             for item in ids:
-                if item is not None and item.as_pointer() not in seen:
-                    seen.add(item.as_pointer())
+                if item is None:
+                    continue
+                pointer = item.as_pointer()
+                if pointer not in seen:
+                    seen.add(pointer)
                     flags.append((item, item.use_fake_user))
                     item.use_fake_user = False
         yield
