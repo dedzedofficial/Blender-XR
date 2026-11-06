@@ -50,6 +50,11 @@ class Tests(unittest.TestCase):
         local = ('127.0.0.1', 1234)
         self.assertFalse(bridge.accept(packet(0), ('10.0.0.1', 1234)))
         self.assertFalse(bridge.accept(packet(0, key='wrong'), local))
+        # JSON booleans compare equal to integers in Python but are not protocol versions.
+        for invalid_version in (True, False, 1.0, '1', None):
+            self.assertFalse(bridge.accept(packet(0, v=invalid_version), local))
+        self.assertEqual(bridge.sequence, -1)
+        self.assertIsNone(bridge.hands)
         self.assertFalse(bridge.accept(packet(0, pinch=float('nan')), local))
         self.assertFalse(bridge.accept(packet(0, hands=[{}]), local))
         # An authenticated but malformed UDP packet must never crash the modal timer.
