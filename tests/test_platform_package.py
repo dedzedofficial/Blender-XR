@@ -27,6 +27,8 @@ with zipfile.ZipFile(installer) as archive:
     for module in ('__init__.py', 'platform_support.py', 'hands_v080.py',
                    'radial_logic_v080.py', 'steamvr_hand_bridge.py'):
         assert module in names, module
+    source_modules = {path.name for path in (ROOT / 'blender_xr').glob('*.py')}
+    assert {name for name in names if name.endswith('.py')} == source_modules, 'Python module inventory differs from source'
     assert not any(name.endswith(('.exe','.dll','.dylib','.so')) for name in names)
     # Generated textures are runtime assets; editable SVG originals remain in Git.
     assert 'icons_src/NOTICE.md' in names
