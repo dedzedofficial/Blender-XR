@@ -17,7 +17,7 @@ def selected(kind):
 
 
 def material_assigned(material_name, face_count):
-    return f'{face_count} FACE' + ('' if face_count == 1 else 'S') + ' → ' + material_name
+    return f'{face_count} FACE{"" if face_count == 1 else "S"} → {material_name}'
 
 
 def operation(label):
