@@ -38,6 +38,11 @@ with zipfile.ZipFile(installer) as archive:
     assert len(source_icons) == 46, 'Unexpected source icon inventory'
     assert {name for name in names if name.startswith('icons/') and name.endswith('.png')} == source_icons, 'Runtime icon inventory differs from SVG sources'
     assert not any(name.endswith('.svg') for name in names)
+    expected_entries = source_modules | source_icons | {
+        'blender_manifest.toml', 'LICENSE', 'README.md',
+        'icons_src/NOTICE.md', wheel_name,
+    }
+    assert names == expected_entries, 'Installer contains missing or unexpected files'
     for icon in source_icons:
         header = archive.read(icon)[:24]
         assert len(header) == 24 and header[:8] == b'\x89PNG\r\n\x1a\n' and header[8:12] ==(13).to_bytes(4, 'big') and header[12:16] == b'IHDR', icon
