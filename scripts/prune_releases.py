@@ -47,7 +47,7 @@ def main():
     for page in pages:
         for artifact in page.get('artifacts',[]):
             if (artifact['name'].startswith('mesh-xr-') and
-                    artifact.get('workflow_run',{}).get('head_sha') != sha):
+                    (artifact.get('workflow_run') or {}).get('head_sha') != sha):
                 print('Remove older installer artifact',artifact['id'],flush=True)
                 gh('api','--method','DELETE','repos/'+repository+'/actions/artifacts/'+str(artifact['id']))
     print('Only current Mesh XR release downloads retained:',current)
