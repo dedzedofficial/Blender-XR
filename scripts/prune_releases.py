@@ -20,6 +20,7 @@ def version(tag):
 def main():
     manifest=tomllib.loads((ROOT/'blender_xr/blender_manifest.toml').read_text())
     current='v'+manifest['version']
+    current_version=version(current)
     installer='mesh-xr-'+current+'.zip'
     repository=os.environ['GITHUB_REPOSITORY']
     sha=os.environ['GITHUB_SHA']
@@ -35,7 +36,7 @@ def main():
     releases=json.loads(gh('release','list','--repo',repository,'--limit','1000','--json','tagName'))
     for release in releases:
         tag=release['tagName']
-        if version(tag) is not None and version(tag)<version(current):
+        if version(tag) is not None and version(tag)<current_version:
             print('Remove older release',tag,flush=True)
             gh('release','delete',tag,'--repo',repository,'--yes','--cleanup-tag')
     # Installer artifacts from previous commits are older downloads as well.
