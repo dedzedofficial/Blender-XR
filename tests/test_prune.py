@@ -20,12 +20,12 @@ with tempfile.TemporaryDirectory() as folder:
         elif args[:2]==('release','list'):
             return json.dumps([{'tagName':v} for v in ['v0.4.3','v0.4.4','v0.4.5','other']])
         elif args[:3]==('api','--paginate','--slurp'):
-            return json.dumps([{'artifacts':[{'id':1,'name':'mesh-xr-old','workflow_run':{'head_sha':'old'}},{'id':2,'name':'mesh-xr-current','workflow_run':{'head_sha':'current'}},{'id':3,'name':'other','workflow_run':{'head_sha':'old'}}]}])
+            return json.dumps([{'artifacts':[{'id':1,'name':'mesh-xr-old','workflow_run':{'head_sha':'old'}},{'id':2,'name':'mesh-xr-current','workflow_run':{'head_sha':'current'}},{'id':3,'name':'other','workflow_run':{'head_sha':'old'}},{'id':4,'name':'mesh-xr-orphan','workflow_run':None}]}])
         return ''
     prune.gh=gh
     prune.main()
     assert [c[2] for c in calls if c[:2]==('release','delete')]==['v0.4.3']
-    assert [c[-1] for c in calls if c[:3]==('api','--method','DELETE')]==['repos/example/test/actions/artifacts/1']
+    assert [c[-1] for c in calls if c[:3]==('api','--method','DELETE')]==['repos/example/test/actions/artifacts/1','repos/example/test/actions/artifacts/4']
     calls.clear();corrupt[0]=True
     try:prune.main()
     except RuntimeError:pass
