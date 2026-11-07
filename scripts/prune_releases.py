@@ -31,8 +31,10 @@ def main():
         gh('release','download',current,'--repo',repository,'--dir',folder,
            '--pattern',installer,'--pattern',installer+'.sha256')
         check=(Path(folder)/(installer+'.sha256')).read_text().split()
-        digest=hashlib.sha256((Path(folder)/installer).read_bytes()).hexdigest()
-        local_digest=hashlib.sha256((ROOT/'dist'/installer).read_bytes()).hexdigest()
+        # Stream potentially large installers instead of loading both ZIPs into memory.
+        with (Path(folder)/installer).open('rb') as published, (ROOT/'dist'/installer).open('rb') as local:
+            digest=hashlib.file_digest(published,'sha256').hexdigest()
+            local_digest=hashlib.file_digest(local,'sha256').hexdigest()
         if len(check)!=2 or check[1]!=installer or check[0]!=digest or digest!=local_digest:
             raise RuntimeError('Current release verification failed; older releases retained')
     releases=json.loads(gh('release','list','--repo',repository,'--limit','1000','--json','tagName'))
