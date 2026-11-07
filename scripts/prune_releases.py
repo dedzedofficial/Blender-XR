@@ -21,6 +21,8 @@ def main():
     manifest=tomllib.loads((ROOT/'blender_xr/blender_manifest.toml').read_text())
     current='v'+manifest['version']
     current_version=version(current)
+    if current_version is None:
+        raise ValueError('Invalid current release version; older releases retained')
     installer='mesh-xr-'+current+'.zip'
     repository=os.environ['GITHUB_REPOSITORY']
     sha=os.environ['GITHUB_SHA']
