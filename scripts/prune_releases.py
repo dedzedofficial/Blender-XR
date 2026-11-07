@@ -36,7 +36,8 @@ def main():
     releases=json.loads(gh('release','list','--repo',repository,'--limit','1000','--json','tagName'))
     for release in releases:
         tag=release['tagName']
-        if version(tag) is not None and version(tag)<current_version:
+        parsed_version=version(tag)
+        if parsed_version is not None and parsed_version<current_version:
             print('Remove older release',tag,flush=True)
             gh('release','delete',tag,'--repo',repository,'--yes','--cleanup-tag')
     # Installer artifacts from previous commits are older downloads as well.
