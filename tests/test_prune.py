@@ -64,9 +64,22 @@ with tempfile.TemporaryDirectory() as folder:
     assert not any(c[:2]==('release','delete') or c[:3]==('api','--method','DELETE') for c in calls)
     prune.gh=original_gh
     calls.clear()
+    def wrong_checksum_filename(*args):
+        result=original_gh(*args)
+        if args[:2]==('release','download'):
+            (Path(args[args.index('--dir')+1])/(installer+'.sha256')).write_text(
+                hashlib.sha256(payload).hexdigest()+'  unexpected-installer.zip')
+        return result
+    prune.gh=wrong_checksum_filename
+    try:prune.main()
+    except RuntimeError:pass
+    else:raise AssertionError('Checksum for another installer was allowed')
+    assert not any(c[:2]==('release','delete') or c[:3]==('api','--method','DELETE') for c in calls)
+    prune.gh=original_gh
+    calls.clear()
     (prune.ROOT/'blender_xr/blender_manifest.toml').write_text('version="invalid"')
     try:prune.main()
     except ValueError:pass
     else:raise AssertionError('Invalid current version was allowed')
     assert not calls, 'Invalid version should fail before any GitHub operations'
-print('PASS verified release pruning, corrupt/mismatched installer retention, missing/malformed-checksum retention, and invalid-version safety')
+print('PASS verified release pruning, corrupt/mismatched installer retention, missing/malformed/wrong-filename checksum retention, and invalid-version safety')
