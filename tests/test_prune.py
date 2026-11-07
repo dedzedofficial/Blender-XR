@@ -39,9 +39,22 @@ with tempfile.TemporaryDirectory() as folder:
     assert not any(c[:2]==('release','delete') or c[:3]==('api','--method','DELETE') for c in calls)
     (prune.ROOT/'dist'/installer).write_bytes(payload)
     calls.clear()
+    original_gh=prune.gh
+    def missing_checksum(*args):
+        result=original_gh(*args)
+        if args[:2]==('release','download'):
+            (Path(args[args.index('--dir')+1])/(installer+'.sha256')).unlink()
+        return result
+    prune.gh=missing_checksum
+    try:prune.main()
+    except FileNotFoundError:pass
+    else:raise AssertionError('Missing checksum was allowed')
+    assert not any(c[:2]==('release','delete') or c[:3]==('api','--method','DELETE') for c in calls)
+    prune.gh=original_gh
+    calls.clear()
     (prune.ROOT/'blender_xr/blender_manifest.toml').write_text('version="invalid"')
     try:prune.main()
     except ValueError:pass
     else:raise AssertionError('Invalid current version was allowed')
     assert not calls, 'Invalid version should fail before any GitHub operations'
-print('PASS verified release pruning, corrupt and mismatched installer retention, and invalid-version safety')
+print('PASS verified release pruning, corrupt/mismatched installer retention, missing-checksum retention, and invalid-version safety')
