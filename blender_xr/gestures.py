@@ -56,7 +56,7 @@ class HandBridge:
             data = json.loads(payload)
             seq = data['seq']
             version = data['v']
-            if version not in (1, 2) or data['key'] != self.key:
+            if type(version) is not int or version not in (1, 2) or data['key'] != self.key:
                 return False
             # Retain the exact original size restriction for protocol v1.
             if version == 1 and len(payload) > 2048:
@@ -71,6 +71,8 @@ class HandBridge:
             joint_data = []
             levels = []
             for hand in hands:
+                if not isinstance(hand, dict):
+                    return False
                 # Estimated skeletal poses are controller buttons, not tracked fingers.
                 if hand['tracked'] is not True or hand['level'] not in ('partial', 'full'):
                     raise ValueError('No tracked fingers')

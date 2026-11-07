@@ -181,7 +181,7 @@ https://extensions.blender.org/add-ons/blender-xr/
 ### GitHub package
 
 1. Open [Latest Releases](https://github.com/dedzedofficial/Blender-XR/releases/latest).
-2. Download `mesh-xr-v0.7.1.zip`.
+2. Download the ZIP for the release you intend to install (the latest stable release is separate from the v0.8 development alpha).
 3. In Blender open **Edit > Preferences > Add-ons / Extensions**.
 4. Choose **Install from Disk** and select the ZIP.
 5. Enable **Mesh XR**.
@@ -216,7 +216,7 @@ Mesh XR ships the required OpenVR Python wheel inside the Blender Extension pack
 - VR Undo/Redo is session-local. UV operations, slot assignments, mesh changes, transforms, duplication and Mesh XR-managed modifier changes are tracked; not every material or texture edit has its own history entry.
 - Texture management currently targets a practical single Base Color image workflow rather than arbitrary shader-node authoring.
 - Custom text naming and browsing arbitrary files use Blender's desktop dialogs; VR provides auto-name and image cycling instead.
-- Rigging, weight painting, animation, full numeric transforms, direct controller edit manipulation and generic third-party modifier management remain future roadmap features.
+- Full animation editing, full numeric transforms, direct controller edit manipulation and generic third-party modifier management remain future roadmap features. Basic armature editing, rigging and Weight Paint tools are already available.
 - Physical headset/runtime behavior can vary even when automated Blender tests pass.
 
 ## Development

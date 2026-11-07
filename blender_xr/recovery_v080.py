@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 import shutil
 import time
 import bpy
-from bpy.props import BoolProperty
 
 _LAST = 0.0
 _LAST_FILE = ''
@@ -23,7 +22,15 @@ def folder():
 
 
 def checkpoints():
-    return sorted(folder().glob('meshxr-*.blend'), key=lambda p: p.stat().st_mtime, reverse=True)
+    """List existing copies, tolerating files removed during enumeration."""
+    found = []
+    for path in folder().glob('meshxr-*.blend'):
+        try:
+            found.append((path.stat().st_mtime, path))
+        except FileNotFoundError:
+            continue
+    found.sort(key=lambda entry: entry[0], reverse=True)
+    return [path for _, path in found]
 
 
 def safe_to_save(context):
@@ -180,8 +187,8 @@ def draw(layout, settings):
     if candidates:
         layout.label(text='Latest: ' + candidates[0].name[:40], icon='FILE_BLEND')
         row = layout.row(align=True)
-        row.enabled = bpy.context.scene is not None and __import__(
-            __package__ + '.runtime', fromlist=['CURRENT']).CURRENT is None
+        from . import runtime
+        row.enabled = bpy.context.scene is not None and runtime.CURRENT is None
         row.operator('blender_xr.recovery_restore', text='Open recovery copy', icon='RECOVER_LAST')
     layout.label(text='Copies are private and never overwrite your project', icon='INFO')
 
