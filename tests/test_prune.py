@@ -31,4 +31,10 @@ with tempfile.TemporaryDirectory() as folder:
     except RuntimeError:pass
     else:raise AssertionError('Corrupt release was allowed')
     assert not any(c[:2]==('release','delete') or c[:3]==('api','--method','DELETE') for c in calls)
-print('PASS verified release pruning and corrupt-release retention')
+    calls.clear()
+    (prune.ROOT/'blender_xr/blender_manifest.toml').write_text('version="invalid"')
+    try:prune.main()
+    except ValueError:pass
+    else:raise AssertionError('Invalid current version was allowed')
+    assert not calls, 'Invalid version should fail before any GitHub operations'
+print('PASS verified release pruning, corrupt-release retention, and invalid-version safety')
