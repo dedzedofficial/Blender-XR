@@ -31,7 +31,7 @@ def main():
         gh('release','download',current,'--repo',repository,'--dir',folder,
            '--pattern',installer,'--pattern',installer+'.sha256')
         check=(Path(folder)/(installer+'.sha256')).read_text().split()
-        if len(check)!=2 or check[1]!=installer:
+        if len(check)!=2 or check[1]!=installer or not re.fullmatch(r'[0-9a-fA-F]{64}',check[0]):
             raise RuntimeError('Current release verification failed; older releases retained')
         # Stream potentially large installers instead of loading both ZIPs into memory.
         with (Path(folder)/installer).open('rb') as published, (ROOT/'dist'/installer).open('rb') as local:
