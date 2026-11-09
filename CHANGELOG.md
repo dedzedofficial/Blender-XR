@@ -1,5 +1,44 @@
 # Mesh XR changelog
 
+## v0.8.0 — alpha 2 safety, precision and diagnostics test build
+
+- Added opt-in controller-hand position calibration (X/Y/Z offsets, hand size and reset) with persisted local settings; visual-only, never moves scene geometry or the editing ray.
+- Added Precision Grab control for fine object/mesh/rig transforms; movement, rotation and scaling use a stable per-gesture sensitivity value.
+- Added bounded local main-thread .blend recovery checkpoints with Object Mode / active gesture guards, retention, and explicit restore to a **new copy**, not the original project.
+- Added read-only Pre-Export Check for triangle budgets, materials, missing textures, rig modifiers, transforms, unweighted vertices and bone influence counts, plus object measurements.
+- Added a native object Quick Inspector, selection locks and lock-enforcement checks, plus local tracking/controller diagnostics.
+- Cached short-lived Weight Paint KD lookups, avoided stale SteamVR grip packet indexing and hardened radial-menu input rearm after tracking loss.
+- Added new Blender integration tests for safe recovery guards, read-only export auditing, precision transformation, object locks, calibration reset and spatial lookup reuse.
+- **Remaining:** physical Quest 3 validation, full per-joint optical tracking, deeper consolidated input router, Isolation/X-Ray, Weight Eyedropper, direct IK posing, Curve Draw and fuller game-readiness workflows.
+
+## v0.8.0 — alpha macOS desktop compatibility follow-up
+
+- Added macOS **Apple Silicon** (`macos-arm64`) and **Intel** (`macos-x64`) as desktop Blender extension targets, retaining the existing Windows x64 and Linux x64 support. No Windows ARM64 expansion is planned for this phase.
+- Added clear macOS host/Blender/OpenXR diagnostics in the Session UI and Start VR operator, including Intel Mac Blender 4.5 LTS guidance and experimental Blender 5.1+ OpenXR status on Apple Silicon.
+- Added native **Blender 4.5.15 Intel macOS** and **Blender 5.2.2 Apple Silicon** extension registration/UI, hand-geometry, mesh and rigging integration tests, plus ZIP packaging/checksum checks on each runner. All passed in [CI #40208950376](https://github.com/dedzedofficial/Blender-XR/actions/runs/40208950376). Existing Linux Blender 4.2/4.5/5.0/5.2 coverage remains.
+- Mac desktop installation is distinct from **real headset support**, which remains unverified. Removed iOS/iPadOS and standalone Quest companion application work from the active development scope.
+
+## v0.8.0 — alpha 1 (development, Quest 3 physical testing outstanding)
+
+### Input and menu
+- Implemented an eight-direction thumbstick radial menu driven **entirely by the non-dominant hand**. Hold that hand's Trigger, tilt its thumbstick to choose, recenter to cancel, release Trigger to apply. Recenter on a highlighted menu category to enter its submenu without dropping the Trigger.
+- Added center/deadzone hysteresis, paging and a capture path that temporarily stops locomotion, turning and modelling actions while the menu is open.
+- Retained the classic controller-ray menu for users who prefer it and as a fallback when thumbstick input is unavailable or the SteamVR hand-only bridge is active.
+
+### 3D hands and skeletal data
+- Added lightweight, non-scene 3D XR hand geometry (palm, wrist, thumb and articulated fingers) drawn with Blender's XR GPU overlay rather than the old controller markers; hand size is configurable.
+- Trigger and Grip animate **estimated** finger curls on ordinary Touch controllers. This is not optical individual-joint hand tracking.
+- Updated the authenticated, loopback-only SteamVR skeletal bridge to version 2 with independent five-finger curl readings and 26 local joint positions per hand when supplied by compatible hardware. Version 1 pinch/curl packets remain supported.
+- Added tracking-data size/sequence/finite-value validation and stale-packet cleanup. Animated hand fingers use v2 individual curls when available.
+- Added preference options for animated Hands, Native controllers, Pointers only, radial/classic menus, and adjustable hand scale.
+
+### Quality and compatibility
+- Added radial 8-way input unit tests including deadzones, boundary hysteresis, submenu recentering, cancellation, one-time selection and paging.
+- Added Blender-based hand-geometry/add-on-settings regression tests, plus SteamVR v2 protocol validation and original modelling/rigging tests.
+- CI succeeded on Blender **4.2.0, 4.5.0, 5.0.0 and 5.2.2** and built a valid installable extension ZIP in [run #40204941450](https://github.com/dedzedofficial/Blender-XR/actions/runs/40204941450).
+
+**Limitations:** Physical Quest 3 PC-VR controller feel, stereo alignment, real tracking quality, optical hand input and radial selection comfort have not been verified. Full 0.8 modelling features (Isolation/X-Ray, Weight Eyedropper, direct IK posing, Curve Draw and Cleanup/Repair) are subsequent milestones, not yet shipped.
+
 ## v0.7.6 — Unified VR modelling, freeform armatures and native Weight Paint
 
 *Compared with v0.7.5. Merged into `main` on 25 October 2026 via [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18); the [v0.7.6 GitHub release](https://github.com/dedzedofficial/Blender-XR/releases/tag/v0.7.6) and installer ZIP were published shortly afterward. Blender Extensions publication status has not been separately verified.*

@@ -11,6 +11,28 @@ from mathutils import Vector
 from mathutils.kdtree import KDTree
 from . import armature_v076, menus
 
+# Retain one short-lived spatial lookup while successive weight brush samples
+# hit the same unmodified mesh. Edit Mode cannot change topology during a
+# Weight Paint stroke. A small TTL bounds stale vertex-position risk.
+_WEIGHT_SPATIAL_CACHE = {'key': None, 'tree': None, 'expires': 0.0}
+
+
+def cached_weight_tree(obj):
+    data = obj.data
+    key = (data.as_pointer(), len(data.vertices))
+    now = time.monotonic()
+    cache = _WEIGHT_SPATIAL_CACHE
+    if cache['key'] == key and cache['tree'] is not None and now < cache['expires']:
+        return cache['tree']
+    verts = data.vertices
+    tree = KDTree(len(verts))
+    for vert in verts:
+        tree.insert(vert.co, vert.index)
+    tree.balance()
+    cache.update(key=key, tree=tree, expires=now + 0.20)
+    return tree
+
+
 WEIGHT_PAGE = (
     ('PAINT', 'WEIGHT_BRUSH'), ('ERASE', 'WEIGHT_ERASE'),
     ('GROUP -', 'WEIGHT_GROUP_PREV'), ('GROUP +', 'WEIGHT_GROUP_NEXT'),
@@ -106,6 +128,12 @@ def ensure_object_mode(context):
         if 'FINISHED' not in result:
             raise ValueError('Could not leave ' + current.mode + ' mode')
 
+def _deselect_selected(context):
+    """Clear native Blender selection before changing the active rig/mesh."""
+    for selected in context.selected_objects:
+        selected.select_set(False)
+
+
 def paired_selection(context, arm, target, *, mesh_active=False):
     """Atomic Blender-style Object Mode selection for the two rigging targets."""
     ensure_object_mode(context)
@@ -113,8 +141,7 @@ def paired_selection(context, arm, target, *, mesh_active=False):
         raise ValueError('A visible mesh and armature are required')
     if arm.library or arm.data.library or target.library or target.data.library:
         raise ValueError('Linked assets cannot be rigged')
-    for obj in context.selected_objects:
-        obj.select_set(False)
+    _deselect_selected(context)
     arm.select_set(True)
     target.select_set(True)
     context.view_layer.objects.active = target if mesh_active else arm
@@ -126,8 +153,7 @@ def select_mesh(context):
     arm = active if _valid(context, active, 'ARMATURE') else None
     target = mesh_for_rig(context, arm)
     ensure_object_mode(context)
-    for obj in context.selected_objects:
-        obj.select_set(False)
+    _deselect_selected(context)
     target.select_set(True)
     if arm:
         arm.select_set(True)
@@ -192,8 +218,7 @@ def clear_mesh_parent(context):
     target = mesh_for_rig(context)
     if target.parent is None:
         raise ValueError('Selected mesh has no parent')
-    for obj in context.selected_objects:
-        obj.select_set(False)
+    _deselect_selected(context)
     target.select_set(True)
     context.view_layer.objects.active = target
     result = bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
@@ -253,6 +278,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     """
     if obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
         raise ValueError('Activate a mesh in Blender Weight Paint mode')
+    if getattr(obj, 'hide_select', False):
+        raise ValueError('Unlock the object before painting weights')
     group = active_group(obj)
     inv = obj.matrix_world.inverted_safe()
     local_origin = inv @ Vector(world_origin)
@@ -278,10 +305,7 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     verts = obj.data.vertices
     if not verts:
         return 0
-    tree = KDTree(len(verts))
-    for vert in verts:
-        tree.insert(vert.co, vert.index)
-    tree.balance()
+    tree = cached_weight_tree(obj)
     scale = max(1e-6, min(abs(v) for v in obj.matrix_world.to_scale()))
     search_radius = radius / scale
     changes = 0

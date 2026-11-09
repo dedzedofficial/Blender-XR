@@ -4,6 +4,9 @@ import bpy
 import bmesh
 
 SELECT_MODES = ('VERT', 'EDGE', 'FACE')
+_SELECTION_FLAGS = {mode: tuple(mode == candidate for candidate in SELECT_MODES)
+                    for mode in SELECT_MODES}
+_BM_COLLECTIONS = {'VERT': 'verts', 'EDGE': 'edges', 'FACE': 'faces'}
 
 
 def mode(context=None):
@@ -19,15 +22,11 @@ def mode(context=None):
 def set_mode(context, selection_mode):
     if selection_mode not in SELECT_MODES:
         raise ValueError('Unknown mesh selection mode')
-    context.tool_settings.mesh_select_mode = {
-        'VERT': (True, False, False),
-        'EDGE': (False, True, False),
-        'FACE': (False, False, True),
-    }[selection_mode]
+    context.tool_settings.mesh_select_mode = _SELECTION_FLAGS[selection_mode]
     obj = context.view_layer.objects.active
     if obj and obj.type == 'MESH' and obj.mode == 'EDIT':
         bm = bmesh.from_edit_mesh(obj.data)
-        bm.select_mode = {'VERT': {'VERT'}, 'EDGE': {'EDGE'}, 'FACE': {'FACE'}}[selection_mode]
+        bm.select_mode = {selection_mode}
         bm.select_flush_mode()
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
 
@@ -36,7 +35,7 @@ def selected_indices(obj, selection_mode):
     if not obj or obj.type != 'MESH' or obj.mode != 'EDIT':
         return []
     bm = bmesh.from_edit_mesh(obj.data)
-    collection = {'VERT': bm.verts, 'EDGE': bm.edges, 'FACE': bm.faces}[selection_mode]
+    collection = getattr(bm, _BM_COLLECTIONS[selection_mode])
     collection.ensure_lookup_table()
     collection.index_update()
     return [item.index for item in collection if item.is_valid and item.select and not item.hide]
@@ -46,20 +45,17 @@ def restore_indices(obj, selection_mode, indices):
     if not obj or obj.type != 'MESH' or obj.mode != 'EDIT':
         return
     bm = bmesh.from_edit_mesh(obj.data)
-    for vert in bm.verts:
-        vert.select_set(False)
-    for edge in bm.edges:
-        edge.select_set(False)
-    for face in bm.faces:
-        face.select_set(False)
-    collection = {'VERT': bm.verts, 'EDGE': bm.edges, 'FACE': bm.faces}[selection_mode]
+    for collection in (bm.verts, bm.edges, bm.faces):
+        for item in collection:
+            item.select_set(False)
+    collection = getattr(bm, _BM_COLLECTIONS[selection_mode])
     collection.ensure_lookup_table()
     for index in indices:
         if 0 <= index < len(collection):
             item = collection[index]
             if item.is_valid and not item.hide:
                 item.select_set(True)
-    bm.select_mode = {'VERT': {'VERT'}, 'EDGE': {'EDGE'}, 'FACE': {'FACE'}}[selection_mode]
+    bm.select_mode = {selection_mode}
     bm.select_flush_mode()
     bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
 

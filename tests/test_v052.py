@@ -84,5 +84,39 @@ stats = v052.scene_stats(bpy.context)
 assert stats['objects'] == 2
 assert stats['meshes'] == 2
 assert stats['materials'] == 2
+# Active-object counts must reflect the active mesh, not the scene-wide totals.
+assert stats['active']['vertices'] == 4
+assert stats['active']['faces'] == 1
+assert stats['active']['triangles'] == 2
+bpy.context.view_layer.objects.active = cone
+stats = v052.scene_stats(bpy.context)
+assert stats['active']['vertices'] == len(cone.data.vertices)
+assert stats['active']['triangles'] == sum(max(0, len(poly.vertices) - 2) for poly in cone.data.polygons)
+assert stats['triangles'] > stats['active']['triangles']
+
+# Cache keys must track visible non-mesh objects and material identity, not only mesh counts.
+from blender_xr import statistics
+statistics.invalidate()
+base = statistics.scene_stats(bpy.context, max_age=3600)
+bpy.ops.object.empty_add(location=(5, 0, 0))
+empty = bpy.context.object
+with_empty = statistics.scene_stats(bpy.context, max_age=3600)
+assert with_empty['objects'] == base['objects'] + 1
+empty.hide_set(True)
+without_empty = statistics.scene_stats(bpy.context, max_age=3600)
+assert without_empty['objects'] == base['objects']
+empty.hide_set(False)
+
+# Replacing a material in an existing slot must refresh unique-material counts.
+statistics.invalidate()
+before_material = statistics.scene_stats(bpy.context, max_age=3600)
+plane = next(obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and obj.name.startswith('Plane'))
+plane.data.materials.append(orange)
+with_material = statistics.scene_stats(bpy.context, max_age=3600)
+assert with_material['materials'] == before_material['materials']
+unique = bpy.data.materials.new('StatisticsCacheUniqueMaterial')
+plane.data.materials[0] = unique
+after_material = statistics.scene_stats(bpy.context, max_age=3600)
+assert after_material['materials'] == before_material['materials'] + 1
 
 print('PASS v0.5.2 object color, per-face materials, shading and scene statistics')

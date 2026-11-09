@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, ui_v076, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, recovery_v080, quality_v080, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -21,6 +21,7 @@ rigging_v076.install_pages()
 rigging_v076.patch_runtime(runtime.Runtime)
 interaction_v076.install_pages()
 interaction_v076.patch_runtime(runtime.Runtime)
+input_v080.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Blender XR'
@@ -50,6 +51,23 @@ class BXR_Settings(bpy.types.PropertyGroup):
     input_source: EnumProperty(name='Input', items=[
         ('CONTROLLERS','Controllers','Use trigger and grip controls'),
         ('STEAMVR_HANDS','Finger bridge (experimental)','Requires external SteamVR skeletal bridge and tracked hand poses')], default='CONTROLLERS',update=_persist_setting)
+    menu_style: EnumProperty(name='VR Menu',items=[
+        ('RADIAL','Offhand radial','Hold non-dominant Trigger; select with the same hand thumbstick'),
+        ('CLASSIC','Classic ray menu','Original ray-and-trigger grid')],default='RADIAL',update=_persist_setting)
+    hand_display: EnumProperty(name='VR Hands',items=[
+        ('HANDS','Animated hands','Show low-poly articulated controller hands in XR'),
+        ('CONTROLLERS','Native controllers','Use the Blender OpenXR controller visuals'),
+        ('POINTERS','Pointers only','Only show Mesh XR rays and tool markers')],default='HANDS',update=_persist_setting)
+    hand_scale: FloatProperty(name='Hand size',default=1.0,min=0.65,max=1.5,update=_persist_setting)
+    hand_offset_x: FloatProperty(name='Hand X offset',default=0.0,min=-0.20,max=0.20,precision=3,update=_persist_setting)
+    hand_offset_y: FloatProperty(name='Hand Y offset',default=0.0,min=-0.20,max=0.20,precision=3,update=_persist_setting)
+    hand_offset_z: FloatProperty(name='Hand Z offset',default=0.0,min=-0.20,max=0.20,precision=3,update=_persist_setting)
+    fine_grab_enabled: BoolProperty(name='Fine Grab',default=False,description='Slow direct controller transformations for precise adjustment',update=_persist_setting)
+    fine_grab_factor: FloatProperty(name='Fine movement factor',default=0.20,min=0.02,max=1.0,precision=2,update=_persist_setting)
+    show_diagnostics: BoolProperty(name='Controller diagnostics',default=False,update=_persist_setting)
+    recovery_enabled: BoolProperty(name='Safe recovery',default=True,description='Write recoverable .blend copies only between completed edits',update=_persist_setting)
+    recovery_minutes: IntProperty(name='Checkpoint interval',default=5,min=1,max=120,update=_persist_setting)
+    recovery_keep: IntProperty(name='Recovery copies retained',default=8,min=1,max=50,update=_persist_setting)
     finger_touch: BoolProperty(name='Finger-touch shortcuts', default=False,
         description='Hold trigger-touch and thumbstick-touch for 0.7 seconds: other hand menu/cancel, dominant hand cancel',update=_persist_setting)
     bridge_port: IntProperty(name='Local bridge port', default=39540, min=1024, max=65535,update=_persist_setting)
@@ -117,8 +135,10 @@ class BXR_OT_session(bpy.types.Operator):
             return {'FINISHED'}
         preferences.ensure(context.scene.blender_xr, context)
         preferences.capture(context.scene.blender_xr, context)
-        if not bpy.app.build_options.xr_openxr:
-            self.report({'ERROR'},'This Blender build has no OpenXR support')
+        capabilities = platform_support.current_info(bpy)
+        if not capabilities['desktop'] or not capabilities['vr']:
+            self.report({'ERROR'}, capabilities['message'])
+            context.scene.blender_xr.status = capabilities['message']
             return {'CANCELLED'}
         if bpy.app.version[:3] == (5,0,1):
             self.report({'ERROR'},'Blender 5.0.1 has a known VR crash. Use another Blender version.')
@@ -346,7 +366,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES
 
 def register():
     for cls in CLASSES:
@@ -355,9 +375,11 @@ def register():
     bpy.types.VIEW3D_MT_view.append(draw_view_menu)
     bpy.app.handlers.xr_session_start_pre.append(runtime.session_pre)
     bpy.app.handlers.load_pre.append(load_pre)
+    recovery_v080.register_timer()
 
 
 def unregister():
+    recovery_v080.unregister_timer()
     load_pre()
     try:
         bpy.types.VIEW3D_MT_view.remove(draw_view_menu)

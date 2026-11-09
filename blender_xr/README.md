@@ -1,4 +1,32 @@
-# Mesh XR v0.7.6
+# Mesh XR v0.8.0
+
+**macOS desktop support:** Both **macOS Apple Silicon** and **macOS Intel** desktop Blender builds are targeted, alongside the preserved Windows x64/Linux x64 add-on. Intel Macs use Blender 4.5 LTS or earlier. Mac VR is experimental (Blender 5.1+ for preliminary OpenXR), and actual headset support is not verified. No iOS/iPadOS or standalone mobile app is part of this project. See [Mac Compatibility](https://github.com/dedzedofficial/Blender-XR/blob/dev/v0.8.0/PLATFORM_COMPATIBILITY.md).
+
+## v0.8 alpha 2 — quality-of-life test build
+
+**Included in this alpha (desktop controls and headset-safe data paths):**
+
+- **Calibrate hands:** Session panel → Hands → size and X/Y/Z visual offsets; Reset Hand Alignment. These adjust visible hands only; they do not move meshes or change the precise selection ray. Calibration preferences persist across .blend files.
+- **Precision Grab:** Model → Precision Grab + Fine Sensitivity. The sampled sensitivity scales translation, rotation and scaling during the next controller transform, without changing the non-dominant thumbstick radial menu.
+- **Object protection and Quick Inspector:** Model panel exposes native Blender Rename, Hide and Lock. Grabs and VR Weight Paint reject locked targets. The inspector is not an asset/file browser.
+- **Measure Selection:** Model → Measure Selection reports dimensions, distance between two selected object origins or the angle between three. Results use Blender scene-unit scale; measurement is read-only.
+- **Pre-Export Check:** Model → Pre-Export Check scans triangle budget, transforms, materials/missing textures, rig links, duplicate armature modifiers, unweighted vertices and vertices with over four bone influences. Findings do not automatically fix or export the mesh.
+- **Recovery checkpoints:** Project → Safe Recovery toggles automatic, time-separated timestamped .blend copies. The timer only saves when no modal transform/paint/VR menu is active and Blender is in Object Mode. Checkpoint Now and confirmed Open Recovery Copy are available in Project. The original project path is not replaced by the copy operation.
+- **Diagnostics:** Session → Controller Diagnostics provides active input, dominant-hand mapping and menu/SteamVR finger state without uploading tracking data.
+- **Performance:** Short-lived cached vertex spatial lookups reduce rebuilds during rapid Weight Paint samples; scene geometry quality is never changed for speed.
+- **Tracking interruption:** Stale SteamVR packets are handled without unsafe array indexing; radial menu capture requires a neutral release after tracking loss.
+
+**Still requires real headset validation:** hand orientation and contact points, headset frame timing, menu selection feel, and full Quest optical joints. The ongoing 0.8 plan still includes Isolation/X-Ray, Weight Eyedropper, direct IK posing, controller Curve Draw and deeper input-system consolidation. Those larger features are **not implemented by alpha 2**.
+
+## v0.8 alpha 1 — offhand radial menu and articulated controller hands
+
+- **Radial menu:** hold the **non-dominant Trigger** and point that **same hand's thumbstick** at a tool. Release Trigger to activate, or recenter the stick and release to cancel. Returning to thumbstick centre after highlighting a category opens that submenu while still holding Trigger. The dominant hand stays free for editing.
+- **Navigation safety:** while the radial menu captures input, movement, turning and old trigger selection are suspended. Right-handed users control the menu with their left controller; left-handed users with their right controller.
+- **Hands instead of controller spheres:** light, articulated left/right 3D hands render only in the XR overlay and never create Blender mesh objects. Grip and Trigger drive **estimated** finger curls. Tracking individual physical finger joints is not yet implemented by this hand visual feature.
+- **Fallbacks:** choose **Classic ray menu** and **Native controllers** or **Pointers only** from the Session workspace. The experimental SteamVR finger bridge continues to use classic controls when no thumbstick is available.
+- **Availability:** early alpha, automated Blender tests are required, and physical Quest 3 PC-VR testing is outstanding. Real optical hand tracking and upgraded SteamVR per-joint streaming are future milestones of 0.8.
+
+## Previous v0.7.6 capabilities
 
 ## 0.7.6 native Weight Paint Mode and Blender parenting
 
