@@ -119,3 +119,22 @@ def patch_runtime(Runtime):
 
     Runtime.command = command
     Runtime._v080_command_guard_patched = True
+
+
+def cancel_session_loss(session):
+    """Roll back a held gesture when the OpenXR session stops unexpectedly.
+
+    The legacy tick can stop before its tracking-loss branch is reached.
+    This transition is idempotent: do not repeatedly cancel a released
+    gesture, and require neutral controls if the session is restarted.
+    """
+    current = owner(session)
+    if current in {'IDLE', 'REARM'}:
+        return False
+    session.cancel_work()
+    radial = getattr(session, 'radial', None)
+    if radial is not None:
+        radial.reset(require_release=True)
+    session._xr_rearm_required = True
+    session.status = 'XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
+    return True

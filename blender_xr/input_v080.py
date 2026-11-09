@@ -38,10 +38,11 @@ def patch_runtime(Runtime):
             # lightweight simulated context, not a native bpy.Context.
             return old_tick(self, context)
         if not running:
-            if hasattr(self, 'radial'):
+            # A stopped session can bypass pose-loss handling entirely.
+            # Roll back every live mutation, not just the paint brush.
+            cancelled = input_ownership_v080.cancel_session_loss(self)
+            if hasattr(self, 'radial') and not cancelled:
                 self.radial.reset()
-            if getattr(self, '_weight_stroke', None) is not None:
-                self.cancel_work()
             return old_tick(self, context)
 
         # Tracking-loss rearm: after a lost pose, do not act upon a still-held
