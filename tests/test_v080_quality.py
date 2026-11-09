@@ -53,6 +53,61 @@ def run():
         assert ('WARNING', '7 unweighted vertices') in findings, findings
         assert ('WARNING', '1 vertices have more than 4 influences') in findings, findings
 
+        # A full held-trigger stroke is one atomic history entry. Verify
+        # absent group assignments are restored as *absent*, not zero.
+        from blender_xr import mesh
+        paint_group = obj.vertex_groups.get('Quality group 0')
+        obj.vertex_groups.active_index = paint_group.index
+        def weight_at(index):
+            return rigging_v076._vertex_weight(paint_group, index)
+
+        assert weight_at(2) is None and weight_at(3) is None
+        history = mesh.History()
+        stroke = rigging_v076.WeightStroke(obj)
+        for index, value in ((2, .25), (3, .8), (2, .65)):
+            stroke.record(index)
+            rigging_v076._write_weight(paint_group, index, value)
+        entry = stroke.finish()
+        assert entry is not None and len(entry[4]) == 2
+        history.push(entry)
+        assert len(history.undo) == 1 and not history.redo
+        for _ in range(30):
+            assert history.step(True)
+            assert weight_at(2) is None and weight_at(3) is None
+            assert history.step(False)
+            assert abs(weight_at(2) - .65) < 1e-5
+            assert abs(weight_at(3) - .8) < 1e-5
+        assert len(history.undo) == 1 and not history.redo
+
+        # An interrupted stroke must restore its exact prior assignments
+        # without adding a history entry or altering the previous stroke.
+        cancelled = rigging_v076.WeightStroke(obj)
+        cancelled.record(2)
+        cancelled.record(4)
+        rigging_v076._write_weight(paint_group, 2, .12)
+        rigging_v076._write_weight(paint_group, 4, .55)
+        cancelled.cancel()
+        assert abs(weight_at(2) - .65) < 1e-5
+        assert weight_at(4) is None
+        assert len(history.undo) == 1
+
+        # Stale weights cannot be overwritten by XR Undo: detect the
+        # conflicting external edit before changing either touched vertex.
+        rigging_v076._write_weight(paint_group, 3, .33)
+        try:
+            history.step(True)
+        except ValueError as exc:
+            assert 'outside XR history' in str(exc)
+        else:
+            raise AssertionError('Stale paint history overwrote external weights')
+        assert abs(weight_at(2) - .65) < 1e-5
+        assert abs(weight_at(3) - .33) < 1e-5
+        assert len(history.undo) == 1 and not history.redo
+        rigging_v076._write_weight(paint_group, 3, .8)
+        assert history.step(True)
+        assert weight_at(2) is None and weight_at(3) is None
+        history.clear()
+
         bpy.ops.blender_xr.measure()
         assert 'dimensions' in settings.status
         bpy.ops.blender_xr.export_check()
