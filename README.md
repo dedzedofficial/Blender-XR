@@ -9,6 +9,24 @@ Lightweight animated hands replace Blender controller indicators when **Hands** 
 
 This is an **alpha development build**, not the published 0.7.6 release. It still requires real Quest 3 PC-VR acceptance testing.
 
+
+### Creator Hub — unified v0.8 addon
+
+Use **Creator** in the headset's main menu for quick access to **Travel,
+Scene Focus/X-Ray, Quick Layout, Object Tools, Modifiers, Rigging, Weight
+Paint, Shapes, Materials and UV**, plus undo and Back. These point to
+the existing Blender-native tools, not duplicate implementations or separate
+addons. Category Back returns to Creator when launched from the hub. The
+12-cell menu cap is enforced so Quick Layout is no longer hidden below the
+Object Tools button grid.
+
+The alpha installer ZIP builds all current development features together,
+including atomic VR Weight Paint Undo, tracking-loss neutral rearm,
+Input State, Scene Pulse, read-only Weight Probe and the articulated/radial
+interface. A successful automated package build is not hardware VR
+certification.
+
+
 ## New in 0.8 alpha 2 — for testing
 
 - Calibrate the 3D hands from Session; enable fine controller grabs from Model.
