@@ -47,7 +47,12 @@ def patch_runtime(Runtime):
     original = Runtime.command
 
     def command(self, context, action):
-        page = self.menu.page
+        # Some Blender operators invoke command on a bare test/runtime proxy
+        # before an XR menu exists. Preserve the old dispatch for those calls.
+        menu = getattr(self, 'menu', None)
+        if menu is None:
+            return original(self, context, action)
+        page = menu.page
         if action == 'CREATOR_MENU':
             if input_ownership_v080.is_editing(self):
                 raise ValueError('Finish the current edit before opening Creator Hub')
