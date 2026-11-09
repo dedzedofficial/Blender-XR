@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import bpy
 from mathutils import Vector, Quaternion
 import blender_xr
-from blender_xr import quality_v080, recovery_v080, interaction_v076, rigging_v076
+from blender_xr import quality_v080, recovery_v080, interaction_v076, rigging_v076, input_ownership_v080
 
 
 def run():
@@ -99,6 +99,28 @@ def run():
                 with patch.object(Path, 'stat', stat_with_missing):
                     assert recovery_v080.checkpoints() == [newer]
                 assert set(recovery_v080.checkpoints()) == {older, newer}
+
+        # Shared menu/recovery ownership arbitration is deterministic and
+        # must refuse checkpoints during a held stroke or lost tracking.
+        from types import SimpleNamespace
+        owner = input_ownership_v080.owner
+        stub = SimpleNamespace()
+        assert owner(stub) == 'IDLE'
+        stub._weight_stroke = object()
+        assert owner(stub) == 'WEIGHT_STROKE'
+        assert input_ownership_v080.is_editing(stub)
+        stub.radial = SimpleNamespace(active=True)
+        assert owner(stub) == 'RADIAL'
+        stub.radial.active = False
+        stub._xr_rearm_required = True
+        assert owner(stub) == 'REARM'
+        stub._xr_rearm_required = False
+        stub._weight_stroke = None
+        stub.transaction = object()
+        assert owner(stub) == 'MESH_EDIT'
+        stub.transaction = None
+        assert owner(stub) == 'IDLE'
+        assert 'INPUT / IDLE' == input_ownership_v080.diagnostic(stub)
 
         assert recovery_v080.safe_to_save(bpy.context) is False, 'Headless test cannot checkpoint'
         assert settings.recovery_enabled
