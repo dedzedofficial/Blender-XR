@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import bpy
 import blender_xr
-from blender_xr import armature_v076, drawing, menus, rigging_v076, runtime
+from blender_xr import armature_v076, drawing, menus, rigging_v076, runtime, mesh as xr_mesh, focus_v080
 
 
 def main():
@@ -119,6 +119,70 @@ def main():
         # Normal paint and erase actions remain operational after probing.
         count = rigging_v076.paint_vertices(obj, origin, direction, 1.0, 0.5, erase=True)
         assert count > 0
+
+        # One held stroke with repeated samples produces one history item.
+        # Undo and redo restore the exact active native group's assignments.
+        def weights(vertex_group):
+            return tuple(rigging_v076._vertex_weight(vertex_group, v.index)
+                         for v in obj.data.vertices)
+
+        before_stroke = weights(group)
+        stroke = rigging_v076.WeightStroke(obj)
+        for _ in range(3):
+            assert rigging_v076.paint_vertices(
+                obj, origin, direction, 1.5, .45, recorder=stroke) > 0
+        changed = weights(group)
+        assert changed != before_stroke
+        entry = stroke.finish()
+        assert entry[0] == 'WEIGHT_STROKE' and len(entry[4]) > 0
+        history = xr_mesh.History()
+        history.push(entry)
+        assert len(history.undo) == 1
+        assert history.step(True)
+        assert weights(group) == before_stroke
+        assert history.step(False)
+        assert weights(group) == changed
+        assert history.step(True)
+        assert weights(group) == before_stroke
+
+        # Interrupted stroke rolls back, without adding an undo entry.
+        cancelled = rigging_v076.WeightStroke(obj)
+        rigging_v076.paint_vertices(
+            obj, origin, direction, 1.5, .55, recorder=cancelled)
+        assert weights(group) != before_stroke
+        cancelled.cancel()
+        assert weights(group) == before_stroke
+        assert len(history.undo) == 0
+
+        # A previously unassigned vertex must become *unassigned* on Undo.
+        absent = obj.vertex_groups.new(name='StrokeUnassignedTest')
+        obj.vertex_groups.active_index = absent.index
+        assert all(rigging_v076._vertex_weight(absent, v.index) is None
+                   for v in obj.data.vertices)
+        first_stroke = rigging_v076.WeightStroke(obj)
+        rigging_v076.paint_vertices(
+            obj, origin, direction, 1.5, .5, recorder=first_stroke)
+        entry = first_stroke.finish()
+        assert entry and any(before is None for _index, before, _after in entry[4])
+        history.push(entry)
+        assert history.step(True)
+        assert all(rigging_v076._vertex_weight(absent, v.index) is None
+                   for v in obj.data.vertices)
+        assert history.step(False)
+        assert any(rigging_v076._vertex_weight(absent, v.index) is not None
+                   for v in obj.data.vertices)
+        history.clear()
+        obj.vertex_groups.remove(absent)
+        obj.vertex_groups.active_index = group.index
+
+        group.lock_weight = True
+        try:
+            rigging_v076.WeightStroke(obj)
+            raise AssertionError('Locked group allowed painting')
+        except ValueError:
+            pass
+        group.lock_weight = False
+
         session.command(bpy.context, 'WEIGHT_GROUP_NEXT')
         assert obj.vertex_groups.active is not None
         session.command(bpy.context, 'WEIGHT_STRENGTH_UP')
@@ -147,6 +211,39 @@ def main():
         session.command(bpy.context, 'RIG_CLEAN')
         assert bpy.context.view_layer.objects.active == obj
         assert obj.mode == 'OBJECT'
+
+        # New creator scene focus isolates a bound mesh and its deform rig,
+        # then restores an unrelated object's original visibility exactly.
+        bpy.ops.mesh.primitive_cube_add(location=(6, 0, 0))
+        unrelated = bpy.context.object
+        unrelated.name = 'Focus unrelated'
+        for selected in bpy.context.selected_objects:
+            selected.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        state = focus_v080.FocusState()
+        assert 'SCENE / ' in focus_v080.scene_pulse(bpy.context)
+        assert state.isolate(bpy.context)
+        assert unrelated.hide_get()
+        assert not obj.hide_get() and not rig.hide_get()
+        assert not state.isolate(bpy.context)
+        assert not unrelated.hide_get()
+        unrelated.hide_set(True)
+        assert state.isolate(bpy.context)
+        state.restore()
+        assert unrelated.hide_get(), 'Original hidden state was lost'
+        unrelated.hide_set(False)
+
+        assert 'FOCUS_MENU' in [action for _, action in menus.PAGES['TRAVEL']]
+        assert len(menus.PAGES['FOCUS_MENU']) <= 12
+        for label, action in menus.PAGES['FOCUS_MENU']:
+            assert drawing._ICON_BY_ACTION.get(action), (label, action)
+        session.command(bpy.context, 'FOCUS_MENU')
+        assert session.menu.page == 'FOCUS_MENU'
+        session.command(bpy.context, 'FOCUS_STATS')
+        assert 'SCENE / ' in session.status
+        session.command(bpy.context, 'BACK')
+        assert session.menu.page == 'TRAVEL'
 
         # Original mesh editor still works after rigging has been active.
         for selected in bpy.context.selected_objects:
