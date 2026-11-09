@@ -5,7 +5,7 @@ When a radial menu is active this wrapper does NOT dispatch the legacy XR
 tick: locomotion, turning, picking and editing cannot run underneath the menu.
 """
 from mathutils import Vector, Quaternion
-from . import actions, radial_logic_v080
+from . import actions, radial_logic_v080, input_ownership_v080
 
 
 def patch_runtime(Runtime):
@@ -102,12 +102,9 @@ def patch_runtime(Runtime):
                 self.radial.reset()
             return old_tick(self, context)
 
-        # One owner per frame: painting is itself a captured gesture. Never
-        # start an offhand radial action halfway through a held brush stroke.
-        blocked = any((self.transaction, self.grab, self.axis_move,
-                       self.air_grab, self.two_hand_scale,
-                       getattr(self, '_xr_gesture', None),
-                       getattr(self, '_weight_stroke', None)))
+        # A single shared rule now owns arbitration for radial capture,
+        # recovery guards and the in-headset input diagnostic.
+        blocked = input_ownership_v080.owner(self) != 'IDLE'
         try:
             off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
             off_position = Vector(state.controller_grip_location_get(context, self.off))
