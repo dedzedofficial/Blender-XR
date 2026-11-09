@@ -42,6 +42,26 @@ def owner(session):
         return 'CONFLICT'
     return next(iter(active)) if active else 'IDLE'
 
+
+def cancel_conflict(session):
+    """Roll back incompatible concurrent gestures before another XR tick.
+
+    The legacy cancel_work chain restores mesh previews, object matrices,
+    bone drags and recorded paint samples. Require neutral controls before
+    accepting a new gesture so a still-held trigger cannot immediately
+    restart the interrupted operation.
+    """
+    if owner(session) != 'CONFLICT':
+        return False
+    session.cancel_work()
+    radial = getattr(session, 'radial', None)
+    if radial is not None:
+        radial.reset(require_release=True)
+    session._xr_rearm_required = True
+    session.status = 'INPUT CONFLICT / RELEASE BOTH HANDS TO REARM'
+    return True
+
+
 def is_editing(session):
     return owner(session) not in {'IDLE', 'RADIAL'}
 
