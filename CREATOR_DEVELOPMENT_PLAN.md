@@ -121,7 +121,157 @@ Horizon-style immediacy without turning Blender into another platform:
 - **Optional collaboration/behaviour prototyping:** research separately; do not claim native Blender is a multiplayer game runtime or silently generate Unity/VRChat behaviour code.
 - **Future sculpting study:** only after interaction/performance and undo are strong enough; excluded from v0.8.
 
-## 4. Actual development order and dependencies
+
+## 4. Expanded creator feature catalogue — keep all ideas, ship in safe slices
+
+**Decision (9 November 2026):** Keep **every feature already listed in Phases 0–5**
+(including isolation, X-Ray, advanced selection, stroke Undo/Redo, unified input,
+IK posing, numeric transforms, Surface Magnet, repeat stamping, scene hierarchy,
+Measure → Apply, weight/rig diagnostics, curve drawing, reference boards, UV/material
+overlays, collection assemblies, guided workflows, shape keys and animation).
+The additions below expand that full set; they do **not** replace earlier work.
+
+**Status vocabulary:** \`MAIN/ALPHA\` means implemented code, but not headset-proven;
+\`REQUIRED\` means accepted for a future milestone; \`CANDIDATE\` means worth
+exploring and prototyping before assigning a release. A roadmap entry is never
+proof that a tool exists. \`P0\` blocks stable release; \`P1\` improves core
+production use; \`P2\` is later feature breadth. No blanket claim that every P2
+item will fit into one version.
+
+### A. Precision editing and scene interaction (v0.8.x and v0.9)
+
+| Status / priority | Capability to add or finish | Concrete XR behavior / safety test |
+| --- | --- | --- |
+| REQUIRED / P1 | **Selection sets / recall** | Save/reselect named *native object or edit-element* sets for repeating edits; invalidate deleted indices safely and do not select hidden/locked objects. |
+| REQUIRED / P1 | **Cycle-overlap and focus selection** | Point through overlapping meshes, choose next candidate, highlight before activation, frame selection and restore the earlier selection if cancelled. Extends, not duplicates, current overlapping-object picking. |
+| REQUIRED / P1 | **Object-and-element snapping** | Grid, vertex, edge midpoint, face, surface normal and object-origin snapping with a visible source/target indicator and safe offset; never unexpectedly alter mesh topology. |
+| REQUIRED / P1 | **Origin/pivot placement** | Set origin to geometry, cursor or another picked origin with transform-safe preview; respect parent/constraint limitations and undo as one operation. |
+| REQUIRED / P1 | **Multi-object transform** | Move/rotate/scale deliberately selected objects as one group around chosen pivot; preserve world matrices, parents and linked/locked-object guards. |
+| REQUIRED / P1 | **Smart duplicate: linked vs independent** | Make the choice explicit in VR; linked duplicates share mesh data, independent clones copy it; protect edits to shared data and show this in the inspector. |
+| REQUIRED / P1 | **Proportional editing and falloff ring** | Radius adjustment from controller, affected-vertex preview, connected topology mode, exact commit/cancel and topology-aware performance cap. |
+| REQUIRED / P1 | **Contextual next-action hints (no favourites or pinning)** | Surface recent/valid operations as contextual suggestions without user-managed pinned rings or duplicate Select; capture/locomotion must stay exclusive. |
+| CANDIDATE / P2 | **Axis-aligned placement ruler and guides** | Temporarily draw alignment guides, level and normals around selected geometry; default to non-exported overlays. |
+| CANDIDATE / P2 | **Mirrored editing preview** | Preview symmetric mesh/bone edits across a chosen plane and reject non-matching selections rather than silently damage asymmetrical designs. |
+
+**Gate:** tiny/overlapping vertex selection and group transforms work in headset
+with correct lock behavior, frame time and one Undo per committed gesture.
+
+### B. More powerful real mesh modelling, without reimplementing Blender (v0.9)
+
+| Status / priority | Capability | XR implementation target / test |
+| --- | --- | --- |
+| REQUIRED / P1 | **Bridge Edge Loops and Fill** | Select two compatible loops, preview segment count and twist, create native BMesh faces, undo once; fail safely for incompatible loops. |
+| REQUIRED / P1 | **Edge Slide / Vertex Slide** | Direct controller slider follows valid mesh edges; constrained preview, cancel and symmetry-safe handling. |
+| REQUIRED / P1 | **Inset/Extrude improvements** | Extrude to controller target with normal, axis and numeric constraints, plus face-individual vs region modes; ghost topology only becomes real on commit. |
+| REQUIRED / P1 | **Knife / Cut Path in VR** | Draw a bounded cut over mesh polygons with preview and intersections; reject invalid/non-manifold cuts and avoid leaving loose fragments on cancel. |
+| REQUIRED / P1 | **Bevel/Chamfer control** | Live width/segments/affect-vertices selection, accurate generated topology counts, one Undo, avoid duplicated desktop modifier controls. |
+| REQUIRED / P1 | **Geometry cleanup report → selectable problems** | Detect non-manifold edges, internal faces, loose vertices, degenerate areas, flipped normals, duplicate vertices and long thin triangles; highlight offenders, preview repair and never automatically delete faces. |
+| CANDIDATE / P2 | **Retopology-over-surface tools** | Draw a poly strip, new quad patch or edge flow over an existing high-poly reference; preview face count and snapping, keep source mesh unchanged. Avoid promising automatic perfect retopology. |
+| CANDIDATE / P2 | **Topology flow and symmetry inspector** | Show quad percentage, triangle density, silhouette deviation and left/right topology differences; perform diagnostics before suggesting explicit fixes. |
+| CANDIDATE / P2 | **Selective decimate / LOD preview** | Report triangle reduction vs silhouette/UV/material/weight impact in a preview; non-destructive modifier or explicit duplicate output, never silent loss of shape keys. |
+| CANDIDATE / P2 | **Geometry Nodes parameter shelf** | Only expose *existing named modifier inputs* as XR sliders, no new proprietary node graph; modifier socket types checked per Blender version. |
+
+**Preservation rule:** the topology-changing commands must reject or explicitly
+stage meshes with shape keys, linked mesh data, unhandled custom attributes or
+unsafe weight/UV restoration. A report or preview is acceptable before a safe
+implementation; never promise to preserve all arbitrary attributes if the code
+cannot prove it.
+
+### C. Character/avatar production and quality control (v0.9+)
+
+| Status / priority | Capability | XR behavior / guardrail |
+| --- | --- | --- |
+| REQUIRED / P1 | **Weight stroke replay/smoothing and mirror** | Alongside atomic strokes, provide controlled blur/normalize/mirror, group locks and symmetry-axis diagnostics; absent weights remain absent after Undo. |
+| REQUIRED / P1 | **Rig and bone symmetry tools** | Preview matching L/R bones and copy or mirror an *explicit selection*, preserving intentional asymmetry and parent hierarchy. |
+| REQUIRED / P1 | **Bone roll, chains and naming helpers** | A native-armature editing shelf to inspect/adjust roll, connected parenting, deform toggles and symmetry names; one history entry per operation. |
+| REQUIRED / P1 | **Heatmap of influences and unweighted vertices** | Overlay the active bone's weights, gaps, excessive influences and locked groups without changing groups; clickable vertex diagnostic list. |
+| REQUIRED / P1 | **Pose shelf and limb endpoints** | Pose snapshot/compare, reset selected/all, IK/FK handling limited to existing/native Blender constraints, and reversible VR controller hand/foot drags. |
+| REQUIRED / P2 | **Shape-key sculpt-like vertex editing without Sculpt Mode** | Create Basis and corrective keys; manipulate selected vertices directly in Mesh Edit with keys, without applying invalid topology operations. |
+| CANDIDATE / P2 | **Viseme/blink/blendshape audit** | Compare requested names and ranges to actual Blender shape keys, flag missing/misnamed entries; do not auto-create quality-sensitive expressions. |
+| CANDIDATE / P2 | **Rig deformation stress preview** | Test extreme but bounded poses and highlight mesh intersections, stretching or unweighted deformation without changing saved rest pose. |
+| CANDIDATE / P2 | **Avatar platform checks** | Read-only target presets for VRChat/Unity or general PC/mobile budgets: poly count, material slots, textures, transparency, bones, influences, missing textures and performance warnings. Treat all third-party limits as versioned configuration, not universal truths; **do not build another exporter**. |
+
+**Gate:** test a human and an asymmetric creature rig, make edits, mirror only
+intentional data, save/reopen and compare native groups, UVs, rest bones and
+modifiers against the pre-edit snapshot.
+
+### D. Horizon-style world/scene building inside Blender (v0.9–v1.x)
+
+| Status / priority | Capability | XR creator scenario / implementation rule |
+| --- | --- | --- |
+| REQUIRED / P1 | **Surface Magnet and collision-aware placement** | Controller ghost snaps a selected mesh to surfaces, optionally aligns with surface normal, applies an editable offset, warns on intersection and commits one native object transform. |
+| REQUIRED / P1 | **Repeat Stamp / linked instance option** | Copy an object or selected assembly with trigger presses and predictable previews; choose linked vs full-copy before stamping; undo each placement or the entire confirmed batch. |
+| REQUIRED / P1 | **Modular snap connectors / kit dimensions** | Opt-in floor, wall, corner and doorway anchor gizmos with verified dimensions and grid units. Connectors are ordinary transforms or visible named empties, not proprietary geometry. |
+| REQUIRED / P1 | **Collection assembly manipulator** | Pick loaded collection instances and move/rotate/duplicate as coherent modules; do not break existing parent/collection link graphs. |
+| REQUIRED / P1 | **World scale and eye-height review** | A non-destructive player-scale mannequin or calibrated overlay and comfortable walk/fly view, with accurate meter/Blender unit readout; must not rescale the user's scene silently. |
+| REQUIRED / P1 | **Scene bookmarks / teleport for editing** | Save creator-facing navigation viewpoints, snap view to focus/object, and restore prior location; do not leave camera or viewport objects in export by default. |
+| CANDIDATE / P2 | **Repeat along path / radial array builder** | Drive native Array/Curve/Geometry Nodes controls through a compact VR interface and allow reverting to editable sources. |
+| CANDIDATE / P2 | **Architectural quick construction** | Draw a measured floor outline, extrude walls to a chosen height and cut door openings with normal mesh/curve operations; preview first. |
+| CANDIDATE / P2 | **Room readability / layout check** | Inspect passage width, reachability by walking/teleport mode, prop density and eye-level occlusion as visual warnings, not simulated gameplay or pathfinding guarantees. |
+| CANDIDATE / P2 | **Lighting and camera composition handles** | Reposition native light/camera targets from VR, preview what the viewport can display, maintain Blender-native render settings. |
+| CANDIDATE / P2 | **Native text/labels and spatial guides** | Place editable Text and Curve objects with compact text entry, choose whether helper labels are temporary overlay or intentional scene content. |
+| CANDIDATE / post-v1.0 | **Behaviour/prototype nodes** | Research a constrained, declarative, optional scene-interaction preview later. Blender XR is not a game runtime; do not claim Unity, VRChat or Horizon scripting interoperability. |
+
+**Gate:** build a simple room with aligned surfaces, repeated props and one
+editable collection from headset controls only. Save/reopen with native meshes,
+collections and modifiers intact; no unexplained helper clutter.
+
+### E. Materials, textures and visual authoring (v0.9+)
+
+| Status / priority | Capability | What is materially missing vs existing color/UV tools |
+| --- | --- | --- |
+| REQUIRED / P1 | **Material slot selection on the model** | Aim at a face or slot and inspect or assign the native material without mouse selection; show linked/shared material implications. |
+| REQUIRED / P1 | **PBR texture channels** | Compact mappings to existing Blender node properties for base colour, roughness, metallic, normal and emission, with missing-asset warnings. Keep actual Blender material/node data and existing files. |
+| REQUIRED / P1 | **UV seam/island live preview** | Highlight current seam boundaries, island orientation, distortions and texel-density hints in headset; explicit unwrap/smart UV/pack calls preserve original when cancelled. |
+| CANDIDATE / P2 | **Material/texture sampling** | Point at a surface to sample the material/slot and optionally apply it to another mesh/face with a preview; does not copy arbitrary shader graphs blindly. |
+| CANDIDATE / P2 | **Decal/sticker placement** | Snap a native plane/decal geometry overlay to a surface with offset and orientation while preserving original UVs; be explicit about transparency/performance cost. |
+| CANDIDATE / P2 | **Texture-path audit and relink assist** | Check broken packed/external images and offer Blender-native per-image relink rather than an intrusive new asset browser. |
+| CANDIDATE / post-v1.0 | **Full shader/node editor** | Feasibility research only after complete simple materials and input stability; Blender's node graph remains authoritative. |
+
+### F. Comfort, learning and accessibility (cross-cutting)
+
+- [ ] **Seated/standing and left-/right-handed profiles (P1):** accessible controls, calibrated hand offsets, adjustable interaction reach, gesture dead zones and one-hand fallback where possible.
+- [ ] **Scale-aware editing mode (P1):** world-scale review vs tiny-object work; changes affect XR navigation/view only, never scene geometry or imported armature scale.
+- [ ] **Haptic and readable feedback (P1):** subtle selectable haptic patterns for grab/commit/error, clear text sizes and colour-independent highlighting for selected/locked/invalid targets; no hidden auto-apply.
+- [ ] **Undo history visibility (P1):** recent user-readable edit names, grouping and warnings when Blender-global undo cannot safely be mixed with private XR history.
+- [ ] **Context help / first-session onboarding (P2):** short tasks for object select, edit mesh, paint weights, pose bone, build room; fully dismissible and never blocks skilled users.
+- [ ] **Safe voice commands (CANDIDATE):** optional, local where practical, with preview/confirmation for mutation; not a dependency and not a replacement for accessible controller operation.
+- [ ] **Session focus / anti-nausea options (P1):** snap vs smooth turn, comfort vignette where supported, adjustable motion speed and safe stationary editing mode; measured on real headsets.
+- [ ] **Control-map diagnostics (P0):** show the currently captured action, raw vs processed hand state, controller availability and neutral-release requirement without recording motion or transmitting telemetry.
+
+### G. Engineering, maintainability and performance (must accompany all phases)
+
+| Status / priority | Improvement | Check / safeguard |
+| --- | --- | --- |
+| REQUIRED / P0 | **Single command registry and input router** | One action identifier drives permission/valid-mode checks, menu label, icon, tooltip, XR dispatch, desktop adapter and testing. Replace wrappers gradually, never one giant unsafe rewrite. |
+| REQUIRED / P0 | **History correctness audit** | Inventory mutating paths (including material slots, parenting, rig constraints and weights) and explicitly mark atomic Undo/Redo, Blender global undo only, or read-only. Never silently drop history. |
+| REQUIRED / P0 | **Scene-data integrity tests** | Compare mesh vertices/UV layers/attributes, shape keys, material links, vertex-group assignments, parenting, bone transforms and modifiers before/after cancel/undo/save-reopen. |
+| REQUIRED / P0 | **VR input trace and deterministic replay tests** | Synthetic packet playback of offhand menu capture, selection, grabs, cancellation, hand loss and rearm with controlled time; optional local debug log with privacy-by-default. |
+| REQUIRED / P0 | **Install/uninstall and migration tests** | Preserve old Blender settings/Operator IDs, recover from partial installation, avoid duplicated handlers/timers and verify repeat enable/disable across Blender versions. |
+| REQUIRED / P0 | **Real headset acceptance matrix** | Quest Link/Air Link, SteamVR where available, controller tracking, actual radial input, dominant swap, eye-height, hand model and latency measured on stated hardware. macOS desktop CI is not XR headset certification. |
+| REQUIRED / P1 | **Spatial acceleration cache invalidation** | BVH/KD trees tied to topology, deformation and current evaluated geometry so editing/different mesh picks cannot use stale spatial information. |
+| REQUIRED / P1 | **Dynamic scene performance warnings** | Live triangle/material/texture and action-latency summaries when user requests them, low-overdraw overlays, no automatic destructive decimation or visual quality changes. |
+| REQUIRED / P1 | **Bounded auto-recovery verification** | Simulate write failure, low disk space, XR shutdown, abandoned stroke, disabled checkpoints and recovery-as-new; never overwrite an original project. |
+| CANDIDATE / P2 | **Feature flags and rollback switches** | Independently disable alpha IK, curves, optional overlays or new selection modes without downgrading the entire extension. |
+| CANDIDATE / P2 | **Scene test fixture library** | Small quad props, dense avatar, distorted UV mesh, multi-material building, asymmetrical bones, corrupted weights and occluded scenes; keep fixture assets license-safe and compact. |
+| CANDIDATE / P2 | **File/asset bloat review** | Remove unreachable menus, deprecated patches and duplicated docs only after automated proof and after preserving stable compatibility. Never equate fewer lines with fewer defects. |
+
+### H. Capability priority and edition boundaries
+
+| Release horizon | Required delivery intent | Explicitly deferred |
+| --- | --- | --- |
+| **v0.8 stabilisation** | Weight Paint atomic undo, exclusive VR input, recoverable edits, exact XR mode/selection handling, basic Isolation/X-Ray and precision interaction where safety gates pass. | Large new modelling suites, full sculpting, standalone Quest and multiplayer runtime. |
+| **v0.8.x / v0.9** | Full eyedropper/weight editing, bone selection, IK single-limb drag, surface snapping, object/collection hierarchy and creator scene layout; expand UV/material and native geometry tools in tested vertical slices. | Unverified live collaboration, full node editors, automatic perfect retopo or universal game-engine behaviour system. |
+| **v0.9 / v1.0** | Controller-drawn curves, repeat stamping, modular assembly, shape keys, pose presets, exact transforms, cleanup/reports and a complete headset-operable creation loop. | Feature work that would prevent first achieving reliable real-headset use. |
+| **After v1.0** | Consider advanced retopology, node-editor interaction, optional scene prototyping, sculpt, physics previews and collaboration **only** with benchmarks, explicit user priority and native Blender data model. | No obligation to ship every candidate: research may reject unsafe/duplicative ideas. |
+
+**Highest-value UX target:** within a headset, a creator should be able to
+**(1) build a room, (2) duplicate and snap props, (3) isolate and edit a mesh,
+(4) paint and inspect a rig's weights, (5) pose a limb, and (6) undo/recover
+every operation**, all without taking off the headset or sacrificing native
+Blender editability.
+
+## 5. Actual development order and dependencies
 
 | Order | Vertical slice | Depends on | Test and merge condition |
 | --- | --- | --- | --- |
@@ -140,7 +290,7 @@ manual headset acceptance where relevant → merge to current `main`.
 A PR can merge on green automation as **development code**, but **stable v0.8
 release** requires physical Quest 3/SteamVR test evidence and no blocking P0s.
 
-## 5. Definition of done for any new feature
+## 6. Definition of done for any new feature
 
 - The feature is **not already available in Mesh XR** as the same practical VR interaction.
 - It is reachable from a contextual VR menu and is documented with controls.
@@ -151,7 +301,7 @@ release** requires physical Quest 3/SteamVR test evidence and no blocking P0s.
 - Existing test matrix and extension packaging are green.
 - Real headset performance, controller behavior, tracking interruptions and comfort have been separately reviewed before labelling a production-ready stable version.
 
-## 6. No conflation of delivered vs planned work
+## 7. No conflation of delivered vs planned work
 
 - **Shipped to `main` as development code:** v0.8 alpha hands/radial work and safe packaging (PRs #20, #22), Quick Layout (PR #23), read-only Weight Probe (PR #24).
 - **Still proposed here:** stable input routing, complete Weight Paint stroke history, X-Ray/isolation, full advanced precision picking, controller IK and the Phase 3–5 extras.

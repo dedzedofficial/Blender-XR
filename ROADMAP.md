@@ -4,7 +4,10 @@
 > [Creator Capability Development Plan](CREATOR_DEVELOPMENT_PLAN.md).
 > This covers all required missing XR workflows (atomic Weight Paint undo,
 > unified input, Isolation/X-Ray, precision selection and controller IK),
-> plus modular world-building, placement, curves and later animation ideas.
+> plus precise mesh editing/retopology research, character tooling, modular
+> world-building, placement, VR materials, curves, accessibility, scene
+> performance and later animation ideas. The backlog labels required work
+> separately from exploratory post-stability candidates.
 > **Main contains v0.8 development code; physical headset acceptance and a
 > production-stable v0.8 release remain outstanding.** Do not interpret older
 > unchecked roadmap entries as features absent from all alpha code.
