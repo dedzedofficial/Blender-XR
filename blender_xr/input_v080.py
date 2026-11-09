@@ -165,10 +165,17 @@ def patch_runtime(Runtime):
             elif kind == 'next':
                 self.status = 'RADIAL / NEXT PAGE'
             elif kind in {'navigate', 'select'} and action:
+                # Only the radial selection event is allowed to issue a
+                # command while RADIAL owns the controllers. The shared
+                # command guard rejects unrelated callers and active edits.
+                self._xr_command_source = 'RADIAL'
                 try:
-                    self.command(context, action)
-                except (ValueError, RuntimeError, TypeError, AttributeError) as exc:
-                    self.status = 'RADIAL: ' + str(exc)[:68]
+                    try:
+                        self.command(context, action)
+                    except (ValueError, RuntimeError, TypeError, AttributeError) as exc:
+                        self.status = 'RADIAL: ' + str(exc)[:68]
+                finally:
+                    self._xr_command_source = None
             elif kind == 'close':
                 self.status = 'RADIAL CANCELLED'
         # No old_tick call: movement/turning, interactions and legacy menu
