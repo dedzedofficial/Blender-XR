@@ -26,6 +26,7 @@ _ICON_BY_ACTION = {
     'SAVE': 'save_as', 'STOP': 'cancel', 'BACK': 'undo',
     'LESS': 'transform_scale', 'MORE': 'transform_scale',
     'EDIT_MORE': 'properties', 'LOOP_CUT_MENU': 'mesh_data',
+    'STEP_MENU': 'transform_scale',
     'LOOP_CUT_LESS': 'transform_scale', 'LOOP_CUT_MORE': 'transform_scale',
     'LOOP_POS_LEFT': 'transform_move', 'LOOP_POS_RIGHT': 'transform_move',
     'LOOP_CUT_APPLY': 'checkmark',
