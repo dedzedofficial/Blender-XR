@@ -15,7 +15,9 @@ def run():
         assert version.VERSION >= (0, 7, 5)
         # The v0.7.5 headset toolbar must expose functional rigging routes,
         # clear labels/tooltips, a separate tooltip strip and pickable gizmos.
-        assert 'RIG_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
+        assert 'CREATOR_MENU' in {action for _label, action in menus.PAGES['TOOLS']}
+        assert 'RIG_MENU' in {action for _label, action in menus.PAGES['CREATOR']}
+        assert 'CREATOR_MENU' in v065.TOOLTIPS
         assert {'RIG_CREATE', 'PARENT_MENU', 'MODE_WEIGHT_PAINT', 'RIG_CLEAN',
                 'RIG_POSE', 'RIG_AUDIT'} <= {
                     action for _label, action in menus.PAGES['RIGGING']}
