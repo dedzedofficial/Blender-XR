@@ -267,6 +267,23 @@ def run():
         assert input_ownership_v080.cancel_session_loss(stub)
         assert cancelled[-1] == 'grab'
         assert not input_ownership_v080.cancel_session_loss(stub)
+        # Invalid pose and pose-read exceptions share an idempotent rollback
+        # path, including late gestures while already awaiting neutral input.
+        stub._xr_rearm_required = False
+        stub.grab = None
+        before = len(cancelled)
+        assert not input_ownership_v080.cancel_tracking_loss(stub)
+        assert stub._xr_rearm_required
+        assert len(cancelled) == before
+        assert radial_resets[-1] is True
+        assert not input_ownership_v080.cancel_tracking_loss(stub)
+        assert len(cancelled) == before
+        stub.grab = object()
+        assert input_ownership_v080.cancel_tracking_loss(stub)
+        assert cancelled[-1] == 'grab'
+        assert stub.grab is None
+        assert not input_ownership_v080.cancel_tracking_loss(stub)
+        assert len(cancelled) == before + 1
         stub._xr_rearm_required = False
         stub.grab = object()
         stub.bone_drag = None
