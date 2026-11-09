@@ -462,6 +462,12 @@ def install_pages():
     edit_operations = list(menus.PAGES['ARMATURE_OPERATIONS'])
     edit_operations[-1:-1] = [('HEAD', 'BONE_MOVE_HEAD'),
                              ('TAIL', 'BONE_MOVE_TAIL')]
+    # Split/Separate remain available on a small More page; otherwise the
+    # bone operations panel has thirteen entries and the last is invisible.
+    edit_operations = [(label, action) for label, action in edit_operations
+                       if action not in {'BONE_SPLIT', 'BONE_SEPARATE'}]
+    edit_operations[-1:-1] = [('MORE', 'BONE_OPERATIONS_MORE_MENU')]
+    assert len(edit_operations) == 12
     menus.PAGES['ARMATURE_OPERATIONS'] = tuple(edit_operations)
     for page in ('TOOLS','EDIT','EDIT_MORE','ARMATURE_EDIT','POSE_EDIT','RIGGING','WEIGHT_PAINT'):
         actions = [action for _, action in menus.PAGES[page]]
