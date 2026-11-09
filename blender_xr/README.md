@@ -2,6 +2,30 @@
 
 **macOS desktop support:** Both **macOS Apple Silicon** and **macOS Intel** desktop Blender builds are targeted, alongside the preserved Windows x64/Linux x64 add-on. Intel Macs use Blender 4.5 LTS or earlier. Mac VR is experimental (Blender 5.1+ for preliminary OpenXR), and actual headset support is not verified. No iOS/iPadOS or standalone mobile app is part of this project. See [Mac Compatibility](https://github.com/dedzedofficial/Blender-XR/blob/dev/v0.8.0/PLATFORM_COMPATIBILITY.md).
 
+## Creator Hub — bundled v0.8 development tools
+
+The main wrist menu now has a single **Creator** entry in place of the old
+Travel shortcut. **Creator Hub** includes Travel, Scene Focus/X-Ray, Quick
+Layout, Object Tools, Modifiers, Rigging, Weight Paint, Shapes, Materials,
+UV, Undo and Back. All actions use the **same native Blender data and
+existing Mesh XR operators**, not copies of tools in another editor.
+Travel is still available directly through Creator → Travel.
+
+Hub menus stay within the real 12-cell classic/radial menu limit.
+Object Tools has also been reduced to 12 visible entries; its redundant
+Object Mode button was removed (Mode remains available in the regular
+mode menu), so the previously hidden Quick Layout action is usable.
+Going Back from a directly opened Creator category returns to Creator;
+nested submenus retain their original navigation.
+
+**Included in the same 0.8.0 alpha ZIP:** atomic VR Weight Paint strokes,
+controller-rearm/input-state checks, Scene Focus and X-Ray, read-only
+Scene Pulse, Weight Probe and Quick Layout, as well as the earlier
+hands/radial interface and regular modelling/material tools.
+This is **one extension installation**; there are no separate addon ZIPs
+for these subsystems. Automated Blender/package CI does not replace real
+Quest 3 PC-VR acceptance testing.
+
 ## v0.8 alpha 2 — quality-of-life test build
 
 **Included in this alpha (desktop controls and headset-safe data paths):**
