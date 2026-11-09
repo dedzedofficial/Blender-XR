@@ -43,6 +43,7 @@ _ICON_BY_ACTION = {
     'FOCUS_MENU': 'properties', 'FOCUS_ISOLATE': 'object_data',
     'FOCUS_RESTORE': 'undo', 'FOCUS_XRAY': 'mesh_data',
     'FOCUS_PICK': 'cursor', 'FOCUS_STATS': 'mesh_data',
+    'FOCUS_INPUT': 'properties',
     'WEIGHT_GROUP_PREV': 'mod_vertex_weight', 'WEIGHT_GROUP_NEXT': 'mod_vertex_weight',
     'WEIGHT_STRENGTH_DOWN': 'mod_vertex_weight', 'WEIGHT_STRENGTH_UP': 'mod_vertex_weight',
     'WEIGHT_RADIUS_DOWN': 'transform_scale', 'WEIGHT_RADIUS_UP': 'transform_scale',
