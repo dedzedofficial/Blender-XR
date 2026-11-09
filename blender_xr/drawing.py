@@ -58,6 +58,7 @@ _ICON_BY_ACTION = {
     'BONE_MOVE_TAIL': 'transform_move',
     'BONE_SELECT_MENU': 'cursor',
     'BONE_EDIT_MENU': 'properties',
+    'BONE_OPERATIONS_MORE_MENU': 'properties',
     'BONE_SETTINGS_MENU': 'properties',
     'BONE_SEL_ALL': 'cursor', 'BONE_SEL_NONE': 'cancel',
     'BONE_SEL_INVERT': 'cursor', 'BONE_SEL_PARENT': 'bone_data',
