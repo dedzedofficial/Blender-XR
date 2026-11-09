@@ -35,6 +35,9 @@ def owner(session):
     # axis_drag stores the parameter of axis_move, not a second gesture.
     if active == {'TWO_HAND_SCALE', 'OBJECT_GRAB'}:
         return 'TWO_HAND_SCALE'
+    # Mesh preview may use the same axis parameter state as object movement.
+    if active == {'MESH_EDIT', 'AXIS_TRANSFORM'}:
+        return 'MESH_EDIT'
     if len(active) > 1:
         return 'CONFLICT'
     return next(iter(active)) if active else 'IDLE'
