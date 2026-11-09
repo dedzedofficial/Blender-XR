@@ -430,14 +430,19 @@ def install_pages():
     edits = list(menus.PAGES['EDIT'])
     more = list(menus.PAGES['EDIT_MORE'])
     if not any(action == 'ROTATE_EDIT' for _, action in edits + more):
-        # The existing Edit page already has twelve buttons. Material tools
-        # remain on the first Edit page, so replace its duplicate on More
-        # with Rotate Selection rather than creating an invisible 13th cell.
+        # Existing Edit and Edit More both have twelve buttons. Preserve the
+        # sole Edit Mode Materials entry, Undo/Redo and every modelling tool:
+        # group the two step-size controls under a small Step category, then
+        # expose Rotate Selection in the freed More cell.
         if len(edits) >= 12:
-            if sum(action == 'MATERIAL_MENU' for _, action in more) != 1:
-                raise RuntimeError('No redundant Edit More material entry to replace')
-            more = [('', 'ROTATE_EDIT') if action == 'MATERIAL_MENU'
-                    else (label, action) for label, action in more]
+            if sum(action in {'LESS', 'MORE'} for _, action in more) != 2:
+                raise RuntimeError('Edit More must include both step controls')
+            more = [(label, action) for label, action in more
+                    if action not in {'LESS', 'MORE'}]
+            more[-1:-1] = [('', 'ROTATE_EDIT'), ('', 'STEP_MENU')]
+            menus.PAGES['STEP_MENU'] = (
+                ('STEP -', 'LESS'), ('STEP +', 'MORE'), ('BACK', 'BACK'))
+            menus.TITLES['STEP_MENU'] = 'EDIT STEP SIZE'
         else:
             edits.append(('', 'ROTATE_EDIT'))
     menus.PAGES['EDIT'] = tuple(edits)
@@ -487,6 +492,13 @@ def patch_runtime(Runtime):
     old_cancel = Runtime.cancel_work
 
     def command(self, context, action):
+        if action == 'STEP_MENU':
+            self.menu.page = 'STEP_MENU'
+            self.status = 'EDIT STEP / DECREASE OR INCREASE'
+            return
+        if action == 'BACK' and self.menu.page == 'STEP_MENU':
+            self.menu.page = 'EDIT_MORE'
+            return
         if action == 'SELECT':
             self.tool = 'SELECT'
             self.status = 'SELECT MESH / ARMATURE / BONE'
