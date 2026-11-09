@@ -15,7 +15,7 @@ def texture_for(name):
     if not name or name in _MISSING:
         return None
     cached = _CACHE.get(name)
-    if cached:
+    if cached is not None:
         return cached[1]
     path = _ICON_DIR / (name + ".png")
     if not path.is_file():

@@ -1,6 +1,8 @@
 """Blender integration checks for Mesh XR v0.8 quality, calibration and recovery."""
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import bpy
@@ -30,6 +32,27 @@ def run():
         assert [tuple(v.co) for v in obj.data.vertices] == original
         assert set(bpy.data.objects.keys()) == names
 
+        # Weight audit must count positive influences, not zero-weight entries.
+        bpy.ops.object.armature_add()
+        rig = bpy.context.object
+        rig.select_set(False)
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        arm = obj.modifiers.new('Quality test armature', 'ARMATURE')
+        arm.object = rig
+        for index in range(5):
+            group = obj.vertex_groups.new(name='Quality group %d' % index)
+            group.add([0], 0.2, 'REPLACE')
+        findings = quality_v080.pre_export_findings(obj)
+        assert ('WARNING', '7 unweighted vertices') in findings, findings
+        assert ('WARNING', '1 vertices have more than 4 influences') in findings, findings
+        # Zero-weight entries are deliberately excluded from influence counts.
+        zero_group = obj.vertex_groups.new(name='Quality zero weight')
+        zero_group.add([1], 0.0, 'REPLACE')
+        findings = quality_v080.pre_export_findings(obj)
+        assert ('WARNING', '7 unweighted vertices') in findings, findings
+        assert ('WARNING', '1 vertices have more than 4 influences') in findings, findings
+
         bpy.ops.blender_xr.measure()
         assert 'dimensions' in settings.status
         bpy.ops.blender_xr.export_check()
@@ -57,6 +80,25 @@ def run():
             raise AssertionError('Locked object unexpectedly transformed')
         bpy.ops.blender_xr.object_lock()
         assert not obj.hide_select
+
+        # A checkpoint removed between glob and stat must not break UI/poll.
+        with TemporaryDirectory() as temp:
+            folder = Path(temp)
+            older = folder / 'meshxr-old.blend'
+            newer = folder / 'meshxr-new.blend'
+            older.write_bytes(b'old')
+            newer.write_bytes(b'new')
+            original_stat = Path.stat
+
+            def stat_with_missing(path, *args, **kwargs):
+                if path == older:
+                    raise FileNotFoundError(str(path))
+                return original_stat(path, *args, **kwargs)
+
+            with patch.object(recovery_v080, 'folder', return_value=folder):
+                with patch.object(Path, 'stat', stat_with_missing):
+                    assert recovery_v080.checkpoints() == [newer]
+                assert set(recovery_v080.checkpoints()) == {older, newer}
 
         assert recovery_v080.safe_to_save(bpy.context) is False, 'Headless test cannot checkpoint'
         assert settings.recovery_enabled

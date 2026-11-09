@@ -20,6 +20,9 @@ def version(tag):
 def main():
     manifest=tomllib.loads((ROOT/'blender_xr/blender_manifest.toml').read_text())
     current='v'+manifest['version']
+    current_version=version(current)
+    if current_version is None:
+        raise ValueError('Invalid current release version; older releases retained')
     installer='mesh-xr-'+current+'.zip'
     repository=os.environ['GITHUB_REPOSITORY']
     sha=os.environ['GITHUB_SHA']
@@ -28,14 +31,19 @@ def main():
         gh('release','download',current,'--repo',repository,'--dir',folder,
            '--pattern',installer,'--pattern',installer+'.sha256')
         check=(Path(folder)/(installer+'.sha256')).read_text().split()
-        digest=hashlib.sha256((Path(folder)/installer).read_bytes()).hexdigest()
-        local_digest=hashlib.sha256((ROOT/'dist'/installer).read_bytes()).hexdigest()
-        if len(check)!=2 or check[1]!=installer or check[0]!=digest or digest!=local_digest:
+        if len(check)!=2 or check[1]!=installer or not re.fullmatch(r'[0-9a-fA-F]{64}',check[0]):
+            raise RuntimeError('Current release verification failed; older releases retained')
+        # Stream potentially large installers instead of loading both ZIPs into memory.
+        with (Path(folder)/installer).open('rb') as published, (ROOT/'dist'/installer).open('rb') as local:
+            digest=hashlib.file_digest(published,'sha256').hexdigest()
+            local_digest=hashlib.file_digest(local,'sha256').hexdigest()
+        if check[0]!=digest or digest!=local_digest:
             raise RuntimeError('Current release verification failed; older releases retained')
     releases=json.loads(gh('release','list','--repo',repository,'--limit','1000','--json','tagName'))
     for release in releases:
         tag=release['tagName']
-        if version(tag) is not None and version(tag)<version(current):
+        parsed_version=version(tag)
+        if parsed_version is not None and parsed_version<current_version:
             print('Remove older release',tag,flush=True)
             gh('release','delete',tag,'--repo',repository,'--yes','--cleanup-tag')
     # Installer artifacts from previous commits are older downloads as well.
@@ -43,7 +51,7 @@ def main():
     for page in pages:
         for artifact in page.get('artifacts',[]):
             if (artifact['name'].startswith('mesh-xr-') and
-                    artifact.get('workflow_run',{}).get('head_sha') != sha):
+                    (artifact.get('workflow_run') or {}).get('head_sha') != sha):
                 print('Remove older installer artifact',artifact['id'],flush=True)
                 gh('api','--method','DELETE','repos/'+repository+'/actions/artifacts/'+str(artifact['id']))
     print('Only current Mesh XR release downloads retained:',current)

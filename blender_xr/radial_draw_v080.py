@@ -28,6 +28,9 @@ def draw(runtime, shader):
     buttons = visible_actions(menu.buttons, radial.page_offset)
     step = 2 * math.pi / 8
     inner, outer = .061, .217
+    def polar(angle, radius):
+        return menu.world(math.sin(angle) * radius, math.cos(angle) * radius, .001)
+
     for index in range(8):
         picked = index == radial.selected and index < len(buttons)
         usable = index < len(buttons)
@@ -37,8 +40,6 @@ def draw(runtime, shader):
         for k in range(12):
             a0 = (index - .5 + k / 12) * step
             a1 = (index - .5 + (k + 1) / 12) * step
-            def polar(a, r):
-                return menu.world(math.sin(a) * r, math.cos(a) * r, .001)
             p0, p1 = polar(a0, inner), polar(a0, outer)
             p2, p3 = polar(a1, outer), polar(a1, inner)
             vertices.extend((p0, p1, p2, p0, p2, p3))

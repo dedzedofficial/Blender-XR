@@ -72,6 +72,12 @@ def _edit_center_and_normal(obj):
     return center,(normal.normalized() if normal.length>=1e-9 else None)
 
 
+def _world_axes():
+    """Fresh vectors for the same three global transform handles."""
+    return [(axis, Vector(vector)) for axis, vector in (
+        ('X', (1, 0, 0)), ('Y', (0, 1, 0)), ('Z', (0, 0, 1)))]
+
+
 def make(context,tool,scale,viewer=None):
     if tool not in {'MOVE','SCALE','MOVE_FACE','SCALE_FACE','EXTRUDE','BEVEL','INSET'}:
         return None
@@ -80,8 +86,7 @@ def make(context,tool,scale,viewer=None):
         return None
     if obj.mode=='OBJECT':
         if tool=='MOVE':
-            axes=[(axis,Vector(vector)) for axis,vector in
-                  (('X',(1,0,0)),('Y',(0,1,0)),('Z',(0,0,1)))]
+            axes=_world_axes()
         elif tool=='SCALE':
             axes=[('SIZE',Vector((1,1,1)).normalized())]
         else:
@@ -93,8 +98,7 @@ def make(context,tool,scale,viewer=None):
     if center is None:
         return None
     if tool in {'EXTRUDE','MOVE_FACE'}:
-        axes=[(axis,Vector(vector)) for axis,vector in
-              (('X',(1,0,0)),('Y',(0,1,0)),('Z',(0,0,1)))]
+        axes=_world_axes()
     else:
         if normal is None:
             return None

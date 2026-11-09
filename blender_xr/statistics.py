@@ -29,8 +29,12 @@ def _cache_key(context, visible):
     for obj in visible:
         if obj.type == 'MESH':
             data = obj.data
-            mesh_signature.append((obj.name_full, len(data.vertices), len(data.edges), len(data.polygons), len(obj.material_slots)))
+            mesh_signature.append((
+                obj.name_full, len(data.vertices), len(data.edges), len(data.polygons),
+                tuple(slot.material.name_full if slot.material else None for slot in obj.material_slots),
+            ))
     return (
+        tuple((obj.name_full, obj.type) for obj in visible),
         tuple(mesh_signature),
         tuple(obj.name_full for obj in visible if obj.select_get()),
         active.name_full if active else None,
@@ -47,27 +51,27 @@ def scene_stats(context, max_age=0.35):
     meshes = [obj for obj in visible if obj.type == 'MESH']
     vertices = edges = faces = triangles = 0
     material_names = set()
+    active = context.view_layer.objects.active
+    active_stats = None
     for obj in meshes:
         data = obj.data
-        vertices += len(data.vertices)
-        edges += len(data.edges)
-        faces += len(data.polygons)
-        triangles += sum(max(0, len(poly.vertices) - 2) for poly in data.polygons)
+        vertex_count, edge_count, face_count = len(data.vertices), len(data.edges), len(data.polygons)
+        triangle_count = sum(max(0, len(poly.vertices) - 2) for poly in data.polygons)
+        vertices += vertex_count
+        edges += edge_count
+        faces += face_count
+        triangles += triangle_count
+        if obj == active:
+            active_stats = {
+                'name': obj.name,
+                'vertices': vertex_count,
+                'edges': edge_count,
+                'faces': face_count,
+                'triangles': triangle_count,
+            }
         for slot in obj.material_slots:
             if slot.material:
                 material_names.add(slot.material.name_full)
-
-    active = context.view_layer.objects.active
-    active_stats = None
-    if active and active.type == 'MESH' and active in visible:
-        data = active.data
-        active_stats = {
-            'name': active.name,
-            'vertices': len(data.vertices),
-            'edges': len(data.edges),
-            'faces': len(data.polygons),
-            'triangles': sum(max(0, len(poly.vertices) - 2) for poly in data.polygons),
-        }
 
     result = {
         'objects': len(visible),
