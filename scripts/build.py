@@ -70,6 +70,16 @@ for module, registration in (
 ):
     assert (SOURCE/module).is_file(), module+' must be included in the addon'
     assert registration in init_text, module+' is not wired'
+# A referenced patch name alone is insufficient: __init__ must bind the
+# imported module before it can call patch_runtime at import time.
+init_tree = ast.parse(init_text)
+from_imports = {
+    alias.name for node in init_tree.body if isinstance(node, ast.ImportFrom)
+    for alias in node.names
+}
+assert 'input_ownership_v080' in from_imports, (
+    'Input owner patch must be imported in __init__ before registration')
+
 assert "precision_mode" in init_text, 'precision mode setting must be present'
 assert "triangle_budget" in init_text, 'asset triangle budget setting must be present'
 assert "haptic_feedback" in init_text, 'optional haptic feedback setting must be present'
