@@ -31,7 +31,9 @@ try:
     assert len(menus.PAGES['CREATOR']) == 12
     assert len(menus.PAGES['OBJECT_ADVANCED']) <= 12
     assert 'ROTATE_EDIT' in [action for _, action in menus.PAGES['EDIT_MORE']]
-    assert 'MATERIAL_MENU' in [action for _, action in menus.PAGES['EDIT']]
+    assert 'MATERIAL_MENU' in [action for _, action in menus.PAGES['EDIT_MORE']]
+    assert 'STEP_MENU' in [action for _, action in menus.PAGES['EDIT_MORE']]
+    assert {'LESS', 'MORE'} <= {action for _, action in menus.PAGES['STEP_MENU']}
     assert 'RIG_MENU' not in [action for _, action in menus.PAGES['TOOLS']]
     assert 'RIG_MENU' in [action for _, action in menus.PAGES['CREATOR']]
     assert 'DELETE_OBJECT' in [action for _, action in menus.PAGES['CREATOR']]
