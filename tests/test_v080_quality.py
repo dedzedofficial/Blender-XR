@@ -168,9 +168,12 @@ def run():
         # A conflicting tick must cancel once, reset radial capture, and
         # require release before any held control can restart the edit.
         cancelled = []
+        radial_resets = []
+        stub.radial.reset = lambda require_release=False: radial_resets.append(require_release)
         stub.cancel_work = lambda: (cancelled.append(True), setattr(stub, 'grab', None),
                                     setattr(stub, 'bone_drag', None))
         assert input_ownership_v080.cancel_conflict(stub)
+        assert radial_resets == [True]
         assert cancelled == [True]
         assert stub._xr_rearm_required
         assert 'REARM' in stub.status
