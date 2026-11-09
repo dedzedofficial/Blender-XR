@@ -38,7 +38,7 @@ WEIGHT_PAGE = (
     ('GROUP -', 'WEIGHT_GROUP_PREV'), ('GROUP +', 'WEIGHT_GROUP_NEXT'),
     ('WEIGHT -', 'WEIGHT_STRENGTH_DOWN'), ('WEIGHT +', 'WEIGHT_STRENGTH_UP'),
     ('SIZE -', 'WEIGHT_RADIUS_DOWN'), ('SIZE +', 'WEIGHT_RADIUS_UP'),
-    ('DONE', 'RIG_EXIT_PAINT'),
+    ('PROBE', 'WEIGHT_SAMPLE'), ('DONE', 'RIG_EXIT_PAINT'),
 )
 
 PARENT_PAGE = (
@@ -270,6 +270,55 @@ def active_group(obj):
         raise ValueError('Could not activate a vertex group')
     return group
 
+
+def weight_surface_point(obj, world_origin, world_direction):
+    """Find a point on the same active mesh surface targeted by the VR brush.
+
+    Use the evaluated ray hit for deformed meshes, falling back to the mesh
+    cage just as the existing weight brush does. Returns object-local coords.
+    """
+    inv = obj.matrix_world.inverted_safe()
+    local_origin = inv @ Vector(world_origin)
+    local_direction = (inv.to_3x3() @ Vector(world_direction)).normalized()
+    try:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        found, world_point, _normal, _face, surface, _matrix = (
+            bpy.context.scene.ray_cast(depsgraph, world_origin, world_direction))
+        if found and surface.original == obj:
+            return inv @ world_point
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        pass
+    found, local_point, _normal, _face_index = (
+        obj.ray_cast(local_origin, local_direction))
+    return local_point if found else None
+
+
+def sample_vertex_weight(obj, world_origin, world_direction):
+    """Read the closest vertex's exact active-group weight without modifying it.
+
+    A visible mesh hit with an unassigned vertex returns weight zero, not an
+    error. A ray miss returns None so the controller can display feedback.
+    """
+    if obj is None or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
+        raise ValueError('Use a mesh in Weight Paint mode to probe weights')
+    if obj.hide_get() or not obj.visible_get():
+        raise ValueError('The weight mesh is hidden')
+    group = active_group(obj)
+    if len(obj.data.vertices) == 0:
+        return None
+    local_point = weight_surface_point(obj, world_origin, world_direction)
+    if local_point is None:
+        return None
+    nearest = cached_weight_tree(obj).find(local_point)
+    if nearest is None:
+        return None
+    _position, index, _distance = nearest
+    try:
+        weight = group.weight(index)
+    except RuntimeError:
+        weight = 0.0
+    return index, float(weight), group.name
+
 def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=False):
     """Controller-ray brush on the selected Blender vertex group (no PC mouse).
 
@@ -281,26 +330,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     if getattr(obj, 'hide_select', False):
         raise ValueError('Unlock the object before painting weights')
     group = active_group(obj)
-    inv = obj.matrix_world.inverted_safe()
-    local_origin = inv @ Vector(world_origin)
-    local_direction = (inv.to_3x3() @ Vector(world_direction)).normalized()
-    # Prefer the evaluated surface location where Armature modifiers deform
-    # the mesh; use local cage raycast as a fallback for unmodified meshes.
-    hit = False
-    local_point = None
-    try:
-        depsgraph = bpy.context.evaluated_depsgraph_get()
-        found, world_point, _normal, _face, surface, _matrix = (
-            bpy.context.scene.ray_cast(depsgraph, world_origin, world_direction))
-        if found and surface.original == obj:
-            local_point = inv @ world_point
-            hit = True
-    except (AttributeError, RuntimeError, TypeError, ValueError):
-        pass
-    if not hit:
-        hit, local_point, _normal, _face_index = (
-            obj.ray_cast(local_origin, local_direction))
-    if not hit:
+    local_point = weight_surface_point(obj, world_origin, world_direction)
+    if local_point is None:
         return 0
     verts = obj.data.vertices
     if not verts:
@@ -596,6 +627,14 @@ def patch_runtime(Runtime):
             self.menu.page = 'TOOLS'
             self.status = 'OBJECT MODE / WEIGHT PAINT FINISHED'
             return
+        if action == 'WEIGHT_SAMPLE':
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
+                raise ValueError('Enter Weight Paint before probing a vertex')
+            active_group(obj)
+            self.tool = 'WEIGHT_SAMPLE'
+            self.status = 'WEIGHT PROBE / AIM AT MESH AND PRESS TRIGGER'
+            return
         if action in {'WEIGHT_BRUSH', 'WEIGHT_ERASE'}:
             obj = context.view_layer.objects.active
             if not obj or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
@@ -663,8 +702,17 @@ def patch_runtime(Runtime):
     def begin_tool(self, context, origin, rotation):
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT':
+            if self.tool == 'WEIGHT_SAMPLE':
+                result = sample_vertex_weight(
+                    obj, origin, rotation @ Vector((0, 0, -1)))
+                if result is None:
+                    self.status = 'WEIGHT PROBE / NO MESH SURFACE HIT'
+                else:
+                    index, weight, name = result
+                    self.status = '{} / V{} = {:.4f}'.format(name.upper(), index, weight)
+                return
             if self.tool != 'WEIGHT_BRUSH':
-                raise ValueError('Use Paint or Erase from the weight menu')
+                raise ValueError('Use Paint, Erase or Probe from the weight menu')
             changes = paint_vertices(obj, origin, rotation @ Vector((0, 0, -1)),
                                      self.settings.weight_brush_radius,
                                      self.settings.weight_brush_strength,
@@ -678,12 +726,14 @@ def patch_runtime(Runtime):
         # Always synchronize the VR controller brush with the actual mode.
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         if obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT':
-            self.tool = 'WEIGHT_BRUSH'
+            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE'}:
+                self.tool = 'WEIGHT_BRUSH'
             if self.menu.page not in {'WEIGHT_PAINT', 'MODE_SELECT'}:
                 self.menu.page = 'WEIGHT_PAINT'
         result = original_tick(self, context)
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         if (obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT'
+                and self.tool == 'WEIGHT_BRUSH'
                 and self.trigger.down and not self.hover and self.ray):
             now = time.monotonic()
             if now - getattr(self, '_weight_last_sample', 0.0) >= 0.045:
