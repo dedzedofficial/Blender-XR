@@ -13,9 +13,9 @@ Both Travel and Rigging are now accessed through Creator rather than
 through separate top-level buttons.
 
 Hub menus stay within the real 12-cell classic/radial menu limit.
-Edit Mode Rotation now lives in **Edit → More** in place of the
-second Materials shortcut, which remains on Edit. This makes Rotate
-Selection visible instead of leaving it beyond the 12-cell menu bounds.
+Edit Mode Rotation now lives in **Edit → More**, with its existing
+Materials and Undo tools retained. Step -/+ move into **More → Step**
+so Rotate Selection becomes visible without exceeding the 12-cell limit.
 Object Tools has also been reduced to 12 visible entries; its redundant
 Object Mode button was removed (Mode remains available in the regular
 mode menu), so the previously hidden Quick Layout action is usable.
