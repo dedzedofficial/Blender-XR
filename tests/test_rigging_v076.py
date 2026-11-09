@@ -99,7 +99,8 @@ def main():
         assert session.tool == 'WEIGHT_SAMPLE'
         aim = V((0, 0, -1)).rotation_difference(direction)
         session.begin_tool(bpy.context, origin, aim)
-        assert 'V' + str(vertex_index) in session.status
+        print('VR PROBE DEBUG:', repr(session.status), 'sample=', probe, 'aim=', tuple(aim), flush=True)
+        assert 'V' + str(vertex_index) in session.status, session.status
         assert session.status.endswith('{:.4f}'.format(sampled_weight))
         assert session.tool == 'WEIGHT_SAMPLE'
         assert rigging_v076.sample_vertex_weight(
