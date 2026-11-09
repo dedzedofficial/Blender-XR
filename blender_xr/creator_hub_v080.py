@@ -38,6 +38,7 @@ def install_page():
     )
     menus.TITLES['CREATOR'] = 'CREATOR HUB'
     v065.TOOLTIPS['CREATOR_MENU'] = ('Creator Hub', 'Open the combined modelling, rigging, layout and scene tools')
+    v065.TOOLTIPS['STEP_MENU'] = ('Edit Step Size', 'Adjust the active modelling increment')
 
 
 def patch_runtime(Runtime):
