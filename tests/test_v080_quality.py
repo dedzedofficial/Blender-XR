@@ -171,6 +171,11 @@ def run():
         assert tuple(obj.data.vertices[0].co) == original_vertex
         guarded.command(bpy.context, 'FOCUS_INPUT')
         assert guarded.status == 'INPUT / WEIGHT STROKE'
+        assert guarded._weight_stroke is not None, (
+            'Read-only Input State must not discard an active paint stroke')
+        guarded.command(bpy.context, 'FOCUS_STATS')
+        assert guarded._weight_stroke is not None, (
+            'Read-only Scene Pulse must not discard an active paint stroke')
 
         assert recovery_v080.safe_to_save(bpy.context) is False, 'Headless test cannot checkpoint'
         assert settings.recovery_enabled
