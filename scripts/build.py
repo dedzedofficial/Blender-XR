@@ -61,6 +61,16 @@ assert "v056.patch(runtime.Runtime)" in init_text
 assert "v060.patch(runtime.Runtime)" in init_text
 assert "v071.patch(runtime.Runtime)" in init_text
 assert "v075_features.CLASSES" in init_text, 'v0.7.5 workflow features must be registered'
+# A single installable ZIP must include every merged v0.8 creator feature.
+for module, registration in (
+    ('focus_v080.py', 'focus_v080.patch_runtime(runtime.Runtime)'),
+    ('creator_hub_v080.py', 'creator_hub_v080.patch_runtime(runtime.Runtime)'),
+    ('input_ownership_v080.py', 'input_ownership_v080'),
+    ('rigging_v076.py', 'rigging_v076.patch_runtime(runtime.Runtime)'),
+):
+    assert (SOURCE/module).is_file(), module+' must be included in the addon'
+    assert registration in init_text or (module == 'input_ownership_v080.py' and
+           registration in (SOURCE/'input_v080.py').read_text()), module+' is not wired'
 assert "precision_mode" in init_text, 'precision mode setting must be present'
 assert "triangle_budget" in init_text, 'asset triangle budget setting must be present'
 assert "haptic_feedback" in init_text, 'optional haptic feedback setting must be present'
@@ -148,6 +158,10 @@ with zipfile.ZipFile(temporary_output) as archive:
     assert names==expected_entries, 'Extension ZIP contains missing or unexpected files'
     assert 'wheels/'+OPENVR_WHEEL in names, 'OpenVR wheel missing from extension ZIP'
     assert 'blender_manifest.toml' in names and '__init__.py' in names
+    assert {'creator_hub_v080.py', 'focus_v080.py',
+            'input_ownership_v080.py', 'rigging_v076.py',
+            'v071.py', 'drawing.py', 'menus.py'} <= names, (
+        'The Creator Hub, Focus, safety and layout tools must ship together')
     assert 'icons/armature_data.png' in names, 'Rigging icon textures missing from extension ZIP'
     assert 'icons_src/NOTICE.md' in names, 'Icon source provenance notice missing from extension ZIP'
     assert all('icons/'+path.name in names for path in icon_pngs), 'One or more icon PNGs missing from extension ZIP'
