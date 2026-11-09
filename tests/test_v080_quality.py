@@ -110,8 +110,28 @@ def run():
         assert owner(stub) == 'WEIGHT_STROKE'
         assert input_ownership_v080.is_editing(stub)
         stub.radial = SimpleNamespace(active=True)
+        # Both an active stroke and radial menu are an input conflict, never
+        # permission to dispatch a new edit or silently overwrite weights.
+        assert owner(stub) == 'CONFLICT'
+        try:
+            input_ownership_v080.validate_command(stub, 'SAVE')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Conflicting owners were allowed to save')
+        stub._weight_stroke = None
         assert owner(stub) == 'RADIAL'
+        try:
+            input_ownership_v080.validate_command(stub, 'MODE')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Uncaptured edit was allowed during radial input')
+        stub._xr_command_source = 'RADIAL'
+        input_ownership_v080.validate_command(stub, 'MODE')
+        stub._xr_command_source = None
         stub.radial.active = False
+        stub._weight_stroke = object()
         stub._xr_rearm_required = True
         assert owner(stub) == 'REARM'
         stub._xr_rearm_required = False
@@ -121,6 +141,36 @@ def run():
         stub.transaction = None
         assert owner(stub) == 'IDLE'
         assert 'INPUT / IDLE' == input_ownership_v080.diagnostic(stub)
+        assert blender_xr.runtime.Runtime._v080_command_guard_patched
+        input_ownership_v080.validate_command(stub, 'SAVE')
+        stub._xr_rearm_required = True
+        input_ownership_v080.validate_command(stub, 'FOCUS_INPUT')
+        input_ownership_v080.validate_command(stub, 'FOCUS_STATS')
+        try:
+            input_ownership_v080.validate_command(stub, 'SAVE')
+        except ValueError as exc:
+            assert 'rearm' in str(exc).lower()
+        else:
+            raise AssertionError('Save was allowed before controller rearm')
+        stub._xr_rearm_required = False
+
+        # Exercise the actual command wrapper, not only the pure permission
+        # function. A blocked command must have no effect on scene data.
+        guarded = blender_xr.runtime.Runtime.__new__(blender_xr.runtime.Runtime)
+        guarded.menu = SimpleNamespace(page='FOCUS_MENU')
+        guarded.status = 'BEFORE'
+        guarded._weight_stroke = object()
+        original_vertex = tuple(obj.data.vertices[0].co)
+        try:
+            guarded.command(bpy.context, 'FOCUS_ISOLATE')
+        except ValueError as exc:
+            assert 'weight stroke' in str(exc).lower()
+        else:
+            raise AssertionError('Active brush stroke allowed a visibility edit')
+        assert guarded.status == 'BEFORE'
+        assert tuple(obj.data.vertices[0].co) == original_vertex
+        guarded.command(bpy.context, 'FOCUS_INPUT')
+        assert guarded.status == 'INPUT / WEIGHT STROKE'
 
         assert recovery_v080.safe_to_save(bpy.context) is False, 'Headless test cannot checkpoint'
         assert settings.recovery_enabled
