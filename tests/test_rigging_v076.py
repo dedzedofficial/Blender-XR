@@ -79,6 +79,38 @@ def main():
                     if any(item.group == group.index and item.weight > 0
                            for item in vert.groups)]
         assert weighted, 'Weight Paint did not write native vertex groups'
+        # VR Probe reads the exact native active-group weight, never paints.
+        from mathutils import Quaternion
+        from mathutils import Vector as V
+        before_sample = {
+            v.index: tuple((item.group, item.weight) for item in v.groups)
+            for v in obj.data.vertices
+        }
+        probe = rigging_v076.sample_vertex_weight(obj, origin, direction)
+        assert probe is not None, 'VR Weight Probe should hit the skinned mesh'
+        vertex_index, sampled_weight, sampled_group = probe
+        assert sampled_group == group.name
+        assert abs(sampled_weight - group.weight(vertex_index)) < 1e-7
+        assert before_sample == {
+            v.index: tuple((item.group, item.weight) for item in v.groups)
+            for v in obj.data.vertices
+        }, 'Read-only probe altered vertex groups'
+        session.command(bpy.context, 'WEIGHT_SAMPLE')
+        assert session.tool == 'WEIGHT_SAMPLE'
+        aim = V((0, 0, -1)).rotation_difference(direction)
+        session.begin_tool(bpy.context, origin, aim)
+        assert 'V' + str(vertex_index) in session.status
+        assert session.status.endswith('{:.4f}'.format(sampled_weight))
+        assert session.tool == 'WEIGHT_SAMPLE'
+        assert rigging_v076.sample_vertex_weight(
+            obj, Vector((0, -3, 20)), direction) is None
+        assert before_sample == {
+            v.index: tuple((item.group, item.weight) for item in v.groups)
+            for v in obj.data.vertices
+        }
+        session.command(bpy.context, 'WEIGHT_BRUSH')
+        assert session.tool == 'WEIGHT_BRUSH'
+        # Normal paint and erase actions remain operational after probing.
         count = rigging_v076.paint_vertices(obj, origin, direction, 1.0, 0.5, erase=True)
         assert count > 0
         session.command(bpy.context, 'WEIGHT_GROUP_NEXT')
@@ -121,6 +153,7 @@ def main():
 
         assert len(menus.PAGES['RIGGING']) <= 12
         assert len(menus.PAGES['WEIGHT_PAINT']) <= 12
+        assert 'WEIGHT_SAMPLE' in [a for _, a in menus.PAGES['WEIGHT_PAINT']]
         for page in ('RIGGING', 'WEIGHT_PAINT'):
             for _, action in menus.PAGES[page]:
                 icon = drawing._ICON_BY_ACTION.get(action)
