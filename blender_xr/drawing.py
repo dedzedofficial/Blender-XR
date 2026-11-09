@@ -40,6 +40,7 @@ _ICON_BY_ACTION = {
     'BONE_SCALE': 'transform_scale', 'BONE_ROTATE': 'transform_rotate',
     'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
     'WEIGHT_SAMPLE': 'brush_data',
+    'CREATOR_MENU': 'properties',
     'FOCUS_MENU': 'properties', 'FOCUS_ISOLATE': 'object_data',
     'FOCUS_RESTORE': 'undo', 'FOCUS_XRAY': 'mesh_data',
     'FOCUS_PICK': 'cursor', 'FOCUS_STATS': 'mesh_data',
