@@ -40,15 +40,12 @@ def safe_to_save(context):
         return False
     if context.mode != 'OBJECT':
         return False
-    from . import runtime
+    from . import runtime, input_ownership_v080
     session = runtime.CURRENT
     if session is not None and (
-            session.transaction or session.grab or session.axis_move or
-            session.air_grab or session.two_hand_scale or
-            getattr(session, '_xr_gesture', None) or
+            input_ownership_v080.owner(session) != 'IDLE' or
             getattr(session, 'axis_drag', None) or
-            getattr(session, 'request_stop', False) or
-            getattr(getattr(session, 'radial', None), 'active', False)):
+            getattr(session, 'request_stop', False)):
         return False
     return True
 

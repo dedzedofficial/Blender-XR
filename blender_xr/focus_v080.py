@@ -5,7 +5,7 @@ All temporary visibility is restored when the XR session closes, including a
 failed or interrupted session. Geometry, materials and rendering are untouched.
 """
 import bpy
-from . import menus, armature_v076
+from . import menus, armature_v076, input_ownership_v080
 
 
 def focus_targets(context):
@@ -135,7 +135,8 @@ def install_menu():
     menus.PAGES['FOCUS_MENU'] = (
         ('ISOLATE', 'FOCUS_ISOLATE'), ('RESTORE', 'FOCUS_RESTORE'),
         ('X-RAY', 'FOCUS_XRAY'), ('PICK BONE', 'FOCUS_PICK'),
-        ('SCENE PULSE', 'FOCUS_STATS'), ('BACK', 'BACK'))
+        ('SCENE PULSE', 'FOCUS_STATS'),
+        ('INPUT STATE', 'FOCUS_INPUT'), ('BACK', 'BACK'))
     menus.TITLES['FOCUS_MENU'] = 'SCENE FOCUS / X-RAY'
 
 
@@ -154,9 +155,7 @@ def patch_runtime(Runtime):
 
     def command(self, context, action):
         if action == 'FOCUS_MENU':
-            if any((self.transaction, self.grab, self.axis_move, self.air_grab,
-                    getattr(self, '_xr_gesture', None),
-                    getattr(self, '_weight_stroke', None))):
+            if input_ownership_v080.is_editing(self):
                 raise ValueError('Finish the active edit before opening Focus')
             self.menu.page = 'FOCUS_MENU'
             self.status = 'FOCUS / REVEAL, X-RAY, PICK, SCENE PULSE'
@@ -165,12 +164,15 @@ def patch_runtime(Runtime):
             self.menu.page = 'TRAVEL'
             return
         if action in {'FOCUS_ISOLATE', 'FOCUS_RESTORE', 'FOCUS_XRAY',
-                      'FOCUS_PICK', 'FOCUS_STATS'}:
+                      'FOCUS_PICK', 'FOCUS_STATS', 'FOCUS_INPUT'}:
             state = getattr(self, 'focus_state', None)
             if state is None:
                 state = self.focus_state = FocusState()
             if action == 'FOCUS_STATS':
                 self.status = scene_pulse(context)
+                return
+            if action == 'FOCUS_INPUT':
+                self.status = input_ownership_v080.diagnostic(self)
                 return
             if getattr(self, '_weight_stroke', None) is not None:
                 raise ValueError('Release the brush before changing visibility')

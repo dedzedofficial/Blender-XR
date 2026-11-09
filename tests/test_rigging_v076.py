@@ -242,6 +242,8 @@ def main():
         assert session.menu.page == 'FOCUS_MENU'
         session.command(bpy.context, 'FOCUS_STATS')
         assert 'SCENE / ' in session.status
+        session.command(bpy.context, 'FOCUS_INPUT')
+        assert session.status == 'INPUT / IDLE'
         session.command(bpy.context, 'BACK')
         assert session.menu.page == 'TRAVEL'
 
