@@ -14,41 +14,30 @@ def owner(session):
     if getattr(session, '_xr_rearm_required', False):
         return 'REARM'
     radial = bool(getattr(getattr(session, 'radial', None), 'active', False))
-    weight = getattr(session, '_weight_stroke', None) is not None
-    # A menu must never share input with *any* active manipulation. Checking
-    # only the paint brush missed object grabs, bone edits and mesh previews.
-    # Keep the existing two-hand grab and axis-drag pairs valid below.
-    editing = (weight or
-               getattr(session, '_xr_gesture', None) is not None or
-               getattr(session, 'transaction', None) is not None or
-               getattr(session, 'two_hand_scale', None) is not None or
-               getattr(session, 'axis_move', None) is not None or
-               getattr(session, 'axis_drag', None) is not None or
-               getattr(session, 'grab', None) is not None or
-               getattr(session, 'air_grab', None) is not None or
-               getattr(session, 'bone_drag', None) is not None)
+    active = set()
+    fields = (
+        ('_weight_stroke', 'WEIGHT_STROKE'),
+        ('_xr_gesture', 'DIRECT_TRANSFORM'),
+        ('transaction', 'MESH_EDIT'),
+        ('two_hand_scale', 'TWO_HAND_SCALE'),
+        ('axis_move', 'AXIS_TRANSFORM'),
+        ('axis_drag', 'AXIS_TRANSFORM'),
+        ('grab', 'OBJECT_GRAB'),
+        ('air_grab', 'WORLD_NAVIGATION'),
+        ('bone_drag', 'BONE_EDIT'),
+    )
+    for field, name in fields:
+        if getattr(session, field, None) is not None:
+            active.add(name)
     if radial:
-        return 'CONFLICT' if editing else 'RADIAL'
-    if weight:
-        return 'WEIGHT_STROKE'
-    if getattr(session, '_xr_gesture', None) is not None:
-        return 'DIRECT_TRANSFORM'
-    if getattr(session, 'transaction', None) is not None:
-        return 'MESH_EDIT'
-    if getattr(session, 'two_hand_scale', None) is not None:
+        return 'CONFLICT' if active else 'RADIAL'
+    # Two-hand scale deliberately upgrades an existing object grab. Likewise
+    # axis_drag stores the parameter of axis_move, not a second gesture.
+    if active == {'TWO_HAND_SCALE', 'OBJECT_GRAB'}:
         return 'TWO_HAND_SCALE'
-    if getattr(session, 'axis_move', None) is not None:
-        return 'AXIS_TRANSFORM'
-    if getattr(session, 'axis_drag', None) is not None:
-        return 'AXIS_TRANSFORM'
-    if getattr(session, 'grab', None) is not None:
-        return 'OBJECT_GRAB'
-    if getattr(session, 'air_grab', None) is not None:
-        return 'WORLD_NAVIGATION'
-    if getattr(session, 'bone_drag', None) is not None:
-        return 'BONE_EDIT'
-    return 'IDLE'
-
+    if len(active) > 1:
+        return 'CONFLICT'
+    return next(iter(active)) if active else 'IDLE'
 
 def is_editing(session):
     return owner(session) not in {'IDLE', 'RADIAL'}
