@@ -61,6 +61,11 @@ def patch_runtime(Runtime):
             self._xr_rearm_required = True
             self.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
             return
+        # The pure owner diagnostic is also a runtime safety invariant:
+        # overlapping legacy handlers must be rolled back before either
+        # receives another sample, never merely reported as CONFLICT.
+        if input_ownership_v080.cancel_conflict(self):
+            return
         if getattr(self, '_xr_rearm_required', False):
             try:
                 if self.bridge is None:
