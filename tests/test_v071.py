@@ -21,6 +21,58 @@ try:
     bpy.ops.object.delete(use_global=False)
     bpy.ops.mesh.primitive_cube_add()
     obj = bpy.context.object
+    # One coherent creator menu exposes existing tools, without overflowing
+    # the actual twelve-button headset/radial grid. Category Back returns Hub.
+    from types import SimpleNamespace
+    assert runtime.Runtime._v080_creator_hub_patched
+    assert len(menus.PAGES['TOOLS']) == 12
+    assert len(menus.PAGES['CREATOR']) == 12
+    assert len(menus.PAGES['OBJECT_ADVANCED']) <= 12
+    assert [action for _, action in menus.PAGES['TOOLS']].count('CREATOR_MENU') == 1
+    assert any(action == 'LAYOUT_MENU' for _, action in menus.PAGES['OBJECT_ADVANCED'])
+    expected = {'NAV_MENU', 'FOCUS_MENU', 'LAYOUT_MENU', 'RIG_MENU',
+                'MODE_WEIGHT_PAINT', 'MATERIAL_MENU', 'UV_MENU',
+                'OBJECT_ADVANCED', 'MODIFIER_MENU', 'ADD_MENU'}
+    assert expected <= {action for _, action in menus.PAGES['CREATOR']}
+    for page in ('TOOLS', 'CREATOR', 'OBJECT_ADVANCED'):
+        for label, action in menus.PAGES[page]:
+            icon = drawing._ICON_BY_ACTION.get(action)
+            assert icon, (page, label, action)
+            assert (Path(drawing.__file__).parent / 'icons' / (icon + '.png')).is_file()
+
+    creator = runtime.Runtime.__new__(runtime.Runtime)
+    creator.menu = drawing.Menu()
+    creator.status = ''
+    creator.tool = 'SELECT'
+    creator.settings = bpy.context.scene.blender_xr
+    creator.history = history
+    creator.transaction = creator.grab = creator.axis_move = None
+    creator.air_grab = creator.two_hand_scale = None
+    for action, expected_page in (
+        ('NAV_MENU', 'TRAVEL'), ('FOCUS_MENU', 'FOCUS_MENU'),
+        ('RIG_MENU', 'RIGGING'), ('ADD_MENU', 'PRIMITIVES'),
+        ('OBJECT_ADVANCED', 'OBJECT_ADVANCED'),
+        ('LAYOUT_MENU', 'LAYOUT_MENU'), ('MODIFIER_MENU', 'MODIFIER_MENU'),
+    ):
+        creator.command(bpy.context, 'CREATOR_MENU')
+        assert creator.menu.page == 'CREATOR'
+        creator.command(bpy.context, action)
+        assert creator.menu.page == expected_page, action
+        creator.command(bpy.context, 'BACK')
+        assert creator.menu.page == 'CREATOR', (action, creator.menu.page)
+    creator.command(bpy.context, 'BACK')
+    assert creator.menu.page == 'TOOLS'
+    creator.command(bpy.context, 'CREATOR_MENU')
+    creator._weight_stroke = object()
+    try:
+        creator.command(bpy.context, 'CREATOR_MENU')
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Creator Hub opened during an unfinished stroke')
+    creator._weight_stroke = None
+    creator.menu.page = 'TOOLS'
+
     obj.matrix_world.translation = Vector((0.27, 0.49, 0.13))
     history.push(v071.snap_to_grid(obj, 0.1))
     assert tuple(round(x, 3) for x in obj.matrix_world.translation) == (0.3, 0.5, 0.1)
