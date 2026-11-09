@@ -13,14 +13,24 @@ def owner(session):
         return 'IDLE'
     if getattr(session, '_xr_rearm_required', False):
         return 'REARM'
-    radial = getattr(getattr(session, 'radial', None), 'active', False)
+    radial = bool(getattr(getattr(session, 'radial', None), 'active', False))
     weight = getattr(session, '_weight_stroke', None) is not None
-    if radial and weight:
-        return 'CONFLICT'
+    # A menu must never share input with *any* active manipulation. Checking
+    # only the paint brush missed object grabs, bone edits and mesh previews.
+    # Keep the existing two-hand grab and axis-drag pairs valid below.
+    editing = (weight or
+               getattr(session, '_xr_gesture', None) is not None or
+               getattr(session, 'transaction', None) is not None or
+               getattr(session, 'two_hand_scale', None) is not None or
+               getattr(session, 'axis_move', None) is not None or
+               getattr(session, 'axis_drag', None) is not None or
+               getattr(session, 'grab', None) is not None or
+               getattr(session, 'air_grab', None) is not None or
+               getattr(session, 'bone_drag', None) is not None)
+    if radial:
+        return 'CONFLICT' if editing else 'RADIAL'
     if weight:
         return 'WEIGHT_STROKE'
-    if radial:
-        return 'RADIAL'
     if getattr(session, '_xr_gesture', None) is not None:
         return 'DIRECT_TRANSFORM'
     if getattr(session, 'transaction', None) is not None:
