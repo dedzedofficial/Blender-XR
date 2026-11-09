@@ -131,6 +131,16 @@ Material tools include:
 
 Generated diagnostic images are packed into the `.blend` so they are self-contained.
 
+## Read-only Weight Probe in VR
+
+In **Weight Paint**, choose **Probe** from the headset tool menu, aim the
+controller at the skinned mesh, and press Trigger. Mesh XR reports the nearest
+vertex index, the active native vertex-group name, and its exact 0.0–1.0 weight.
+An unassigned vertex reads as zero. Nothing is painted, normalized, rebound or
+changed by a sample. The sampled value is a readout, **not** a brush strength or
+a request to overwrite other vertices. Choose Paint/Erase to resume editing.
+This is useful when verifying bone influences on low-poly avatar meshes.
+
 ## UV mapping
 
 UV tools operate on selected mesh faces in Edit Mode:
