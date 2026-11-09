@@ -120,6 +120,21 @@ def run():
         else:
             raise AssertionError('Conflicting owners were allowed to save')
         stub._weight_stroke = None
+        # Every live manipulation conflicts with radial capture. These
+        # regressions exercise the pure arbitration rule without hardware.
+        for field in ('_xr_gesture', 'transaction', 'two_hand_scale',
+                      'axis_move', 'axis_drag', 'grab', 'air_grab', 'bone_drag'):
+            setattr(stub, field, object())
+            assert owner(stub) == 'CONFLICT', field
+            stub._xr_command_source = 'RADIAL'
+            try:
+                input_ownership_v080.validate_command(stub, 'SAVE')
+            except ValueError:
+                pass
+            else:
+                raise AssertionError('Radial bypassed active ' + field)
+            stub._xr_command_source = None
+            setattr(stub, field, None)
         assert owner(stub) == 'RADIAL'
         try:
             input_ownership_v080.validate_command(stub, 'MODE')
