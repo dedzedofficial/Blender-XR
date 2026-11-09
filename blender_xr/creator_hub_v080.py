@@ -15,9 +15,15 @@ _LINKS = frozenset({
 def install_page():
     # The top-level wrist/radial menu can display 12 cells. Keep the frequent
     # edit/undo/save/stop buttons; the old Travel page is available via Hub.
+    old_actions = {action for _, action in menus.PAGES['TOOLS']}
+    if not {'NAV_MENU', 'RIG_MENU'} <= old_actions:
+        raise ValueError('Creator Hub needs the existing Travel and Rigging categories')
+    # Legacy v0.6.5 intentionally has THIRTEEN top-level cells. Route the
+    # existing Rigging action through Creator instead of hiding an offscreen
+    # button or removing important Undo/Save/Stop tools.
     tools = tuple(
-        ('CREATOR', 'CREATOR_MENU') if action == 'NAV_MENU' else (label, action)
-        for label, action in menus.PAGES['TOOLS']
+        ('', 'CREATOR_MENU') if action == 'NAV_MENU' else (label, action)
+        for label, action in menus.PAGES['TOOLS'] if action != 'RIG_MENU'
     )
     if len(tools) != 12 or sum(action == 'CREATOR_MENU' for _, action in tools) != 1:
         raise ValueError('Creator Hub must fit the existing 12-button main menu')
