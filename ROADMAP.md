@@ -1,5 +1,15 @@
 # Mesh XR roadmap
 
+> **Current code-audited development order (9 November 2026):**
+> [Creator Capability Development Plan](CREATOR_DEVELOPMENT_PLAN.md).
+> This covers all required missing XR workflows (atomic Weight Paint undo,
+> unified input, Isolation/X-Ray, precision selection and controller IK),
+> plus modular world-building, placement, curves and later animation ideas.
+> **Main contains v0.8 development code; physical headset acceptance and a
+> production-stable v0.8 release remain outstanding.** Do not interpret older
+> unchecked roadmap entries as features absent from all alpha code.
+
+
 ## v0.7.6 — shipped baseline (25 October 2026)
 
 - [x] Compact seven-workspace native-icon desktop UI.
