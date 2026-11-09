@@ -141,6 +141,37 @@ changed by a sample. The sampled value is a readout, **not** a brush strength or
 a request to overwrite other vertices. Choose Paint/Erase to resume editing.
 This is useful when verifying bone influences on low-poly avatar meshes.
 
+## Safer VR weight strokes and Scene Focus (v0.8 development)
+
+**Weight Paint strokes:** Holding Trigger now groups native vertex-group
+Paint/Erase samples into one XR-local Undo/Redo entry on release. Each touched
+vertex retains its prior exact assignment, including whether it was previously
+unassigned. Cancelling an unfinished stroke restores those weights. Locked
+groups, linked/shared meshes and mid-stroke group changes are guarded. This
+does not retroactively add history to native Blender desktop painting actions.
+
+**Scene Focus:** Open **Travel → Focus** in the headset to isolate the current
+selection (automatically retaining a deforming armature/mesh pairing). A second
+Isolate activation or **Restore** puts original per-view-layer hidden states
+back. **X-Ray** temporarily enables the active 3D View's native X-Ray shading
+and puts armatures in front, restoring the earlier display on toggle or XR
+shutdown. **Pick Bone** (available while X-Ray is enabled) prioritises bones
+of the active armature behind visible meshes; through-selection of arbitrary
+back-side mesh vertices is a later precision-picking task.
+
+**Scene Pulse (new):** The same Focus menu has a read-only **Scene Pulse**
+action which immediately reports scene object count, selected count, number
+of meshes and base-mesh triangle count in the headset status. It neither
+changes scene geometry nor adds helper objects.
+
+**Controller recovery:** After invalid hand tracking, editing is cancelled
+and input stays disarmed until Trigger and Grip are released. The offhand
+radial menu also cannot open in the middle of a weight stroke.
+
+These features are newly merged **development code**, not evidence of
+physical Quest 3 or SteamVR headset acceptance. A stable v0.8 release still
+requires headset validation.
+
 ## UV mapping
 
 UV tools operate on selected mesh faces in Edit Mode:
