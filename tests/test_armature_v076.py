@@ -84,6 +84,14 @@ def test():
             for label, action in buttons:
                 assert drawing._ICON_BY_ACTION.get(action), (page, action)
         assert armature_v076.PAGES_RETURN['ARMATURE_OPERATIONS'] == 'ARMATURE_EDIT'
+        assert (armature_v076.PAGES_RETURN['ARMATURE_OPERATIONS_MORE']
+                == 'ARMATURE_OPERATIONS')
+        operations = [action for _, action in menus.PAGES['ARMATURE_OPERATIONS']]
+        more = [action for _, action in menus.PAGES['ARMATURE_OPERATIONS_MORE']]
+        assert len(operations) == 12
+        assert 'BONE_OPERATIONS_MORE_MENU' in operations
+        assert {'BONE_SPLIT', 'BONE_SEPARATE'} <= set(more)
+        assert all(drawing._ICON_BY_ACTION.get(action) for action in more)
         assert [action for _, action in menus.PAGES['RIGGING']].count('SELECT') == 1
 
         # Reproduce the original complaint: an active mesh and one rig can
