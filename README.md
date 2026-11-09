@@ -14,7 +14,7 @@ This is an **alpha development build**, not the published 0.7.6 release. It stil
 
 Use **Creator** in the headset's main menu for quick access to **Travel,
 Scene Focus/X-Ray, Quick Layout, Object Tools, Modifiers, Rigging, Weight
-Paint, Shapes, Materials and UV**, plus undo and Back. These point to
+Paint, Shapes, Materials and UV**, plus **Delete Object** and Back. Undo and Redo remain on the main menu. These point to
 the existing Blender-native tools, not duplicate implementations or separate
 addons. Category Back returns to Creator when launched from the hub. The
 12-cell menu cap is enforced so Quick Layout is no longer hidden below the
