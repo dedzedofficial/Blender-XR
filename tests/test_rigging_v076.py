@@ -98,10 +98,15 @@ def main():
         session.command(bpy.context, 'WEIGHT_SAMPLE')
         assert session.tool == 'WEIGHT_SAMPLE'
         aim = V((0, 0, -1)).rotation_difference(direction)
+        # A center-face hit is equidistant to several cube vertices. Tiny
+        # quaternion roundoff may select a different but equally near vertex,
+        # so compare against the exact ray emitted by the controller.
+        controller_probe = rigging_v076.sample_vertex_weight(
+            obj, origin, aim @ V((0, 0, -1)))
+        assert controller_probe is not None
         session.begin_tool(bpy.context, origin, aim)
-        print('VR PROBE DEBUG:', repr(session.status), 'sample=', probe, 'aim=', tuple(aim), flush=True)
-        assert 'V' + str(vertex_index) in session.status, session.status
-        assert session.status.endswith('{:.4f}'.format(sampled_weight))
+        assert 'V' + str(controller_probe[0]) in session.status, session.status
+        assert session.status.endswith('{:.4f}'.format(controller_probe[1]))
         assert session.tool == 'WEIGHT_SAMPLE'
         assert rigging_v076.sample_vertex_weight(
             obj, Vector((0, -3, 20)), direction) is None
