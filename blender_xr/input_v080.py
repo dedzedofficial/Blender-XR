@@ -40,8 +40,48 @@ def patch_runtime(Runtime):
         if not running:
             if hasattr(self, 'radial'):
                 self.radial.reset()
+            if getattr(self, '_weight_stroke', None) is not None:
+                self.cancel_work()
             return old_tick(self, context)
 
+        # Tracking-loss rearm: after a lost pose, do not act upon a still-held
+        # trigger/grip when the controller comes back into range.
+        try:
+            dom_pose = Quaternion(state.controller_aim_rotation_get(context, self.dom))
+            off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
+            if dom_pose.magnitude < .5 or off_pose.magnitude < .5:
+                if not getattr(self, '_xr_rearm_required', False):
+                    self.cancel_work()
+                self._xr_rearm_required = True
+                self.radial.reset(require_release=True)
+                self.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
+                return
+        except (RuntimeError, TypeError, ValueError):
+            self.cancel_work()
+            self._xr_rearm_required = True
+            self.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
+            return
+        if getattr(self, '_xr_rearm_required', False):
+            try:
+                if self.bridge is None:
+                    values = [actions.read(context, control, hand)[0]
+                              for hand in (0, 1) for control in ('trigger', 'grab')]
+                else:
+                    sample = self.bridge.read()
+                    values = ([v for pair in sample for v in pair]
+                              if sample is not None else [1.0])
+                if any(float(v) >= .25 for v in values):
+                    self.status = 'RELEASE TRIGGER AND GRIP TO REARM'
+                    return
+            except (RuntimeError, TypeError, ValueError, IndexError):
+                self.status = 'WAITING FOR CONTROLLER INPUT'
+                return
+            self._xr_rearm_required = False
+            self.trigger.update(0.0)
+            self.off_trigger.update(0.0)
+            self.grip.update(0.0)
+            self.other_grip.update(0.0)
+            self.status = 'CONTROLS REARMED'
         # Collect one consistent, visual controller sample. Menu acquisition
         # uses the exact same physical offhand index as the trigger.
         if self.bridge:
@@ -62,9 +102,12 @@ def patch_runtime(Runtime):
                 self.radial.reset()
             return old_tick(self, context)
 
+        # One owner per frame: painting is itself a captured gesture. Never
+        # start an offhand radial action halfway through a held brush stroke.
         blocked = any((self.transaction, self.grab, self.axis_move,
                        self.air_grab, self.two_hand_scale,
-                       getattr(self, '_xr_gesture', None)))
+                       getattr(self, '_xr_gesture', None),
+                       getattr(self, '_weight_stroke', None)))
         try:
             off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
             off_position = Vector(state.controller_grip_location_get(context, self.off))

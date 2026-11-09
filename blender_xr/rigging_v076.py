@@ -319,7 +319,121 @@ def sample_vertex_weight(obj, world_origin, world_direction):
         weight = 0.0
     return index, float(weight), group.name
 
-def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=False):
+
+def _vertex_weight(group, index):
+    try:
+        return float(group.weight(index))
+    except RuntimeError:
+        return None
+
+
+def _write_weight(group, index, value):
+    if value is None:
+        group.remove([index])
+    else:
+        group.add([index], max(0.0, min(1.0, float(value))), 'REPLACE')
+
+
+class WeightStroke:
+    """Collect only touched native group assignments, not a whole mesh copy."""
+
+    def __init__(self, obj):
+        group = active_group(obj)
+        if obj.data.users > 1 or obj.library or obj.data.library:
+            raise ValueError('Make the painted mesh local and single-user first')
+        if group.lock_weight or obj.hide_select:
+            raise ValueError('Unlock the vertex group and mesh to paint')
+        self.object = obj
+        self.mesh_data = obj.data
+        self.group = group
+        self.group_name = group.name
+        self.before = {}
+
+    def record(self, index):
+        if index not in self.before:
+            self.before[index] = _vertex_weight(self.group, index)
+
+    def unchanged_target(self, context):
+        obj = context.view_layer.objects.active
+        return (obj == self.object and obj.data == self.mesh_data
+                and obj.mode == 'WEIGHT_PAINT'
+                and obj.vertex_groups.get(self.group_name) == self.group
+                and obj.vertex_groups.active == self.group
+                and not self.group.lock_weight and not obj.hide_select)
+
+    def cancel(self):
+        if not self.before:
+            return
+        try:
+            if self.object.data != self.mesh_data:
+                return
+            for index, value in self.before.items():
+                _write_weight(self.group, index, value)
+            self.mesh_data.update()
+            bpy.context.view_layer.update()
+        finally:
+            self.before.clear()
+
+    def finish(self):
+        changes = []
+        for index, value in sorted(self.before.items()):
+            after = _vertex_weight(self.group, index)
+            if value != after:
+                changes.append((index, value, after))
+        self.before.clear()
+        return ('WEIGHT_STROKE', self.object.name, self.mesh_data.name,
+                self.group_name, tuple(changes)) if changes else None
+
+
+def install_weight_history():
+    """One Undo item per held-trigger stroke, including missing assignments."""
+    from . import mesh
+    if getattr(mesh.History, '_weight_stroke_history', False):
+        return
+    previous_step = mesh.History.step
+    previous_release = mesh.History.release
+
+    def step(self, backwards=True):
+        source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
+        if not source or source[-1][0] != 'WEIGHT_STROKE':
+            return previous_step(self, backwards)
+        _kind, object_name, mesh_name, group_name, changes = source[-1]
+        obj = bpy.data.objects.get(object_name)
+        if (obj is None or obj.type != 'MESH' or obj.data.name != mesh_name
+                or obj.mode not in {'OBJECT', 'WEIGHT_PAINT'} or obj.hide_select
+                or obj.library or obj.data.library or obj.data.users > 1):
+            raise ValueError('Restore the local painted mesh before Weight Undo/Redo')
+        group = obj.vertex_groups.get(group_name)
+        if group is None or group.lock_weight:
+            raise ValueError('Original weight group was removed or locked')
+        # Fail without a partial overwrite if another editor changed these weights.
+        for index, before, after in changes:
+            if index >= len(obj.data.vertices):
+                raise ValueError('Mesh topology changed since the painted stroke')
+            actual = _vertex_weight(group, index)
+            expected = after if backwards else before
+            if actual is None or expected is None:
+                if actual is not expected:
+                    raise ValueError('Vertex weights changed outside XR history')
+            elif abs(actual - expected) > 1e-5:
+                raise ValueError('Vertex weights changed outside XR history')
+        for index, before, after in changes:
+            _write_weight(group, index, before if backwards else after)
+        obj.data.update()
+        bpy.context.view_layer.update()
+        dest.append(source.pop())
+        return True
+
+    def release(entry):
+        if entry[0] != 'WEIGHT_STROKE':
+            return previous_release(entry)
+
+    mesh.History.step = step
+    mesh.History.release = staticmethod(release)
+    mesh.History._weight_stroke_history = True
+
+
+def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=False, recorder=None):
     """Controller-ray brush on the selected Blender vertex group (no PC mouse).
 
     Uses a bounded KD query and writes real vertex-group weights so standard
@@ -330,6 +444,12 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     if getattr(obj, 'hide_select', False):
         raise ValueError('Unlock the object before painting weights')
     group = active_group(obj)
+    if group.lock_weight:
+        raise ValueError('Active vertex group is locked')
+    if obj.library or obj.data.library or obj.data.users > 1:
+        raise ValueError('Make the weight mesh local and single-user before editing')
+    if recorder is not None and (recorder.object != obj or recorder.group != group):
+        raise ValueError('Stroke mesh or vertex group changed')
     local_point = weight_surface_point(obj, world_origin, world_direction)
     if local_point is None:
         return 0
@@ -352,6 +472,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
         influence = min(1.0, strength * falloff)
         result = (weight * (1.0 - influence) if erase
                   else weight + (1.0 - weight) * influence)
+        if recorder is not None:
+            recorder.record(index)
         group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
         changes += 1
         if changes >= 256:
@@ -370,6 +492,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
             influence = min(1.0, strength * 0.5)
             result = (weight * (1.0 - influence) if erase
                       else weight + (1.0 - weight) * influence)
+            if recorder is not None:
+                recorder.record(index)
             group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
             changes = 1
     if changes:
@@ -503,10 +627,48 @@ class BXR_OT_select_weight_group(bpy.types.Operator):
 def patch_runtime(Runtime):
     if getattr(Runtime, '_v076_rigging_paired', False):
         return
+    install_weight_history()
     original_command = Runtime.command
     original_select = Runtime.select
     original_begin = Runtime.begin_tool
     original_tick = Runtime.tick
+    original_cancel = Runtime.cancel_work
+
+    def cancel_stroke(self):
+        stroke = getattr(self, '_weight_stroke', None)
+        if stroke is not None:
+            self._weight_stroke = None
+            stroke.cancel()
+            self.status = 'WEIGHT STROKE CANCELLED'
+
+    def commit_stroke(self):
+        stroke = getattr(self, '_weight_stroke', None)
+        if stroke is None:
+            return
+        self._weight_stroke = None
+        entry = stroke.finish()
+        if entry:
+            history = getattr(self, 'history', None)
+            if history is not None:
+                history.push(entry)
+            self.status = 'WEIGHT STROKE / ' + str(len(entry[4])) + ' VERTICES / UNDO READY'
+
+    def cancel_work(self):
+        cancel_stroke(self)
+        return original_cancel(self)
+
+    def stroke_sample(self, obj, origin, direction):
+        stroke = getattr(self, '_weight_stroke', None)
+        if stroke is None:
+            stroke = WeightStroke(obj)
+            self._weight_stroke = stroke
+        if not stroke.unchanged_target(self.context):
+            cancel_stroke(self)
+            raise ValueError('Weight group or painted object changed during stroke')
+        return paint_vertices(
+            obj, origin, direction, self.settings.weight_brush_radius,
+            self.settings.weight_brush_strength, self.settings.weight_erase,
+            recorder=stroke)
 
     def select(self, context, origin, direction, additive=False):
         obj = context.view_layer.objects.active
@@ -544,6 +706,10 @@ def patch_runtime(Runtime):
         return result
 
     def command(self, context, action):
+        if getattr(self, '_weight_stroke', None) is not None:
+            # Menu, group, mode or undo actions cannot accidentally continue
+            # painting a stroke with a different target. Discard incomplete data.
+            cancel_stroke(self)
         if action == 'PARENT_MENU':
             ensure_object_mode(context)
             self.menu.page = 'PARENT_RIG'
@@ -713,15 +879,19 @@ def patch_runtime(Runtime):
                 return
             if self.tool != 'WEIGHT_BRUSH':
                 raise ValueError('Use Paint, Erase or Probe from the weight menu')
-            changes = paint_vertices(obj, origin, rotation @ Vector((0, 0, -1)),
-                                     self.settings.weight_brush_radius,
-                                     self.settings.weight_brush_strength,
-                                     self.settings.weight_erase)
+            changes = stroke_sample(self, obj, origin,
+                                    rotation @ Vector((0, 0, -1)))
+            self._weight_last_sample = time.monotonic()
             self.status = ('ERASED ' if self.settings.weight_erase else 'PAINTED ') + str(changes) + ' VERTS / ' + active_group(obj).name.upper()
             return
         return original_begin(self, context, origin, rotation)
 
     def tick(self, context):
+        # Recover from external mode/selection/group changes before any
+        # additional brush sample. Never carry a stroke onto another mesh.
+        stroke = getattr(self, '_weight_stroke', None)
+        if stroke is not None and not stroke.unchanged_target(context):
+            cancel_stroke(self)
         # Native Weight Paint can also be entered via Blender or a mode menu.
         # Always synchronize the VR controller brush with the actual mode.
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
@@ -732,16 +902,19 @@ def patch_runtime(Runtime):
                 self.menu.page = 'WEIGHT_PAINT'
         result = original_tick(self, context)
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
+        stroke = getattr(self, '_weight_stroke', None)
+        if stroke is not None and (not self.trigger.down or self.tool != 'WEIGHT_BRUSH'):
+            if self.tool == 'WEIGHT_BRUSH':
+                commit_stroke(self)
+            else:
+                cancel_stroke(self)
         if (obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT'
                 and self.tool == 'WEIGHT_BRUSH'
                 and self.trigger.down and not self.hover and self.ray):
             now = time.monotonic()
             if now - getattr(self, '_weight_last_sample', 0.0) >= 0.045:
                 origin, direction = self.ray
-                count = paint_vertices(obj, origin, direction,
-                                       self.settings.weight_brush_radius,
-                                       self.settings.weight_brush_strength,
-                                       self.settings.weight_erase)
+                count = stroke_sample(self, obj, origin, direction)
                 self._weight_last_sample = now
                 self.status = (('ERASE ' if self.settings.weight_erase else 'PAINT ') +
                                active_group(obj).name.upper() + ' / ' +
@@ -753,6 +926,7 @@ def patch_runtime(Runtime):
     Runtime.select = select
     Runtime.begin_tool = begin_tool
     Runtime.tick = tick
+    Runtime.cancel_work = cancel_work
     Runtime._v076_rigging_paired = True
 
 
