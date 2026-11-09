@@ -4,7 +4,7 @@
 Creator Hub groups *registered native operations* into one 12-cell XR menu.
 It does not duplicate mesh, rigging or material editing implementations.
 """
-from . import input_ownership_v080, menus
+from . import input_ownership_v080, menus, v065
 
 _LINKS = frozenset({
     'NAV_MENU', 'FOCUS_MENU', 'LAYOUT_MENU', 'OBJECT_ADVANCED',
@@ -37,6 +37,7 @@ def install_page():
         ('UNDO', 'UNDO'), ('BACK', 'BACK'),
     )
     menus.TITLES['CREATOR'] = 'CREATOR HUB'
+    v065.TOOLTIPS['CREATOR_MENU'] = ('Creator Hub', 'Open the combined modelling, rigging, layout and scene tools')
 
 
 def patch_runtime(Runtime):
