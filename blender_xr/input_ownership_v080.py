@@ -124,12 +124,18 @@ def patch_runtime(Runtime):
 def cancel_session_loss(session):
     """Roll back a held gesture when the OpenXR session stops unexpectedly.
 
-    The legacy tick can stop before its tracking-loss branch is reached.
-    This transition is idempotent: do not repeatedly cancel a released
-    gesture, and require neutral controls if the session is restarted.
+    The rearm latch has priority in owner() diagnostics, but must never hide
+    a still-live mutation from rollback. Inspect actual gesture state before
+    deciding that a stopped session is already clean.
     """
-    current = owner(session)
-    if current in {'IDLE', 'REARM'}:
+    live_fields = ('_weight_stroke', '_xr_gesture', 'transaction',
+                   'two_hand_scale', 'axis_move', 'axis_drag', 'grab',
+                   'air_grab', 'bone_drag')
+    has_mutation = any(getattr(session, name, None) is not None
+                       for name in live_fields)
+    radial = getattr(session, 'radial', None)
+    radial_active = bool(getattr(radial, 'active', False))
+    if not has_mutation and not radial_active:
         return False
     session.cancel_work()
     radial = getattr(session, 'radial', None)

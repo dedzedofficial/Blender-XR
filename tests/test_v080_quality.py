@@ -253,6 +253,20 @@ def run():
         assert input_ownership_v080.cancel_session_loss(stub)
         assert cancelled[-1] == 'stroke'
         assert stub._xr_rearm_required
+        # The rearm latch is not proof that every legacy handler released
+        # its gesture. A late-running handler must still be rolled back.
+        stub._weight_stroke = object()
+        assert owner(stub) == 'REARM'
+        assert input_ownership_v080.cancel_session_loss(stub)
+        assert cancelled[-1] == 'stroke'
+        assert stub._weight_stroke is None
+        assert not input_ownership_v080.cancel_session_loss(stub)
+        # Also cover a late object grab under the same latch.
+        stub.grab = object()
+        stub.cancel_work = lambda: (cancelled.append('grab'), setattr(stub, 'grab', None))
+        assert input_ownership_v080.cancel_session_loss(stub)
+        assert cancelled[-1] == 'grab'
+        assert not input_ownership_v080.cancel_session_loss(stub)
         stub._xr_rearm_required = False
         stub.grab = object()
         stub.bone_drag = None
