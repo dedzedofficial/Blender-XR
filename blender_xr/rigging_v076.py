@@ -706,9 +706,11 @@ def patch_runtime(Runtime):
         return result
 
     def command(self, context, action):
-        if getattr(self, '_weight_stroke', None) is not None:
-            # Menu, group, mode or undo actions cannot accidentally continue
-            # painting a stroke with a different target. Discard incomplete data.
+        if (getattr(self, '_weight_stroke', None) is not None
+                and action not in {'FOCUS_STATS', 'FOCUS_INPUT'}):
+            # Mutating menu/group/mode actions cannot continue painting onto
+            # another target. Pure diagnostics must never discard a stroke:
+            # the outer input guard explicitly permits them during capture.
             cancel_stroke(self)
         if action == 'PARENT_MENU':
             ensure_object_mode(context)
