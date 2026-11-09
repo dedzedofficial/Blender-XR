@@ -473,12 +473,8 @@ def install_pages():
         actions = [action for _, action in menus.PAGES[page]]
         if len(actions) != len(set(actions)):
             raise RuntimeError('Duplicate XR menu action in ' + page)
-    # Existing object deletion stays available in Object Advanced.
-    advanced = list(menus.PAGES.get('OBJECT_ADVANCED', ()))
-    if advanced and not any(action == 'DELETE_OBJECT' for _, action in advanced):
-        advanced = [(label, 'DELETE_OBJECT') if action == 'MODE_OBJECT' else
-                    (label, action) for label, action in advanced]
-        menus.PAGES['OBJECT_ADVANCED'] = tuple(advanced)
+    # Object deletion remains available on Creator Hub; the old replacement
+    # relied on a duplicate Object Mode button and could hide Quick Layout.
 
 
 def patch_runtime(Runtime):
