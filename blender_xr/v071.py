@@ -397,8 +397,7 @@ def _install_pages():
         ('Z +15', 'ROT_Z_POS'), ('Z -15', 'ROT_Z_NEG'),
         ('SNAP GRID', 'OBJ_SNAP'), ('RESET ROT', 'OBJ_RESET_ROT'),
         ('DUPLICATE', 'OBJ_DUPLICATE'), ('MODIFIERS', 'MODIFIER_MENU'),
-        ('OBJECT', 'MODE_OBJECT'), ('BACK', 'BACK'),
-        ('LAYOUT', 'LAYOUT_MENU'),
+        ('LAYOUT', 'LAYOUT_MENU'), ('BACK', 'BACK'),
     )
     menus.PAGES['LAYOUT_MENU'] = (
         ('ALIGN X', 'LAYOUT_ALIGN_X'), ('ALIGN Y', 'LAYOUT_ALIGN_Y'),
