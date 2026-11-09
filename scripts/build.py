@@ -65,12 +65,11 @@ assert "v075_features.CLASSES" in init_text, 'v0.7.5 workflow features must be r
 for module, registration in (
     ('focus_v080.py', 'focus_v080.patch_runtime(runtime.Runtime)'),
     ('creator_hub_v080.py', 'creator_hub_v080.patch_runtime(runtime.Runtime)'),
-    ('input_ownership_v080.py', 'input_ownership_v080'),
+    ('input_ownership_v080.py', 'input_ownership_v080.patch_runtime(runtime.Runtime)'),
     ('rigging_v076.py', 'rigging_v076.patch_runtime(runtime.Runtime)'),
 ):
     assert (SOURCE/module).is_file(), module+' must be included in the addon'
-    assert registration in init_text or (module == 'input_ownership_v080.py' and
-           registration in (SOURCE/'input_v080.py').read_text()), module+' is not wired'
+    assert registration in init_text, module+' is not wired'
 assert "precision_mode" in init_text, 'precision mode setting must be present'
 assert "triangle_budget" in init_text, 'asset triangle budget setting must be present'
 assert "haptic_feedback" in init_text, 'optional haptic feedback setting must be present'

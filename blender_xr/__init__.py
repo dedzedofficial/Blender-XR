@@ -24,6 +24,7 @@ interaction_v076.patch_runtime(runtime.Runtime)
 input_v080.patch_runtime(runtime.Runtime)
 focus_v080.patch_runtime(runtime.Runtime)
 creator_hub_v080.patch_runtime(runtime.Runtime)
+input_ownership_v080.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
 material_uv.BXR_PT_materials_v060.bl_category='Blender XR'

@@ -23,6 +23,15 @@ than taking separate main-menu slots. Edit Mode's Rotate Selection is in
 **More**, and step-size decrease/increase are grouped in **More → Step**
 so Materials, Undo and the modelling tools stay accessible.
 
+**Controller command safety:** The merged input-ownership check now also
+guards every XR menu command before it reaches the older mode-specific
+handlers. An active Weight Paint stroke, object grab, bone drag, transform
+or tracking-loss rearm rejects unrelated edits and save/undo commands.
+The offhand radial menu can issue actions only from its own captured
+selection event. Read-only Scene Pulse/Input State remain available.
+This is a tested intermediate dispatcher layer, not yet a wholesale
+rewrite of the legacy runtime.
+
 The alpha installer ZIP builds all current development features together,
 including atomic VR Weight Paint Undo, tracking-loss neutral rearm,
 Input State, Scene Pulse, read-only Weight Probe and the articulated/radial
