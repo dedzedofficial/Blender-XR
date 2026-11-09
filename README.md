@@ -159,6 +159,11 @@ shutdown. **Pick Bone** (available while X-Ray is enabled) prioritises bones
 of the active armature behind visible meshes; through-selection of arbitrary
 back-side mesh vertices is a later precision-picking task.
 
+**Input State (new):** The Focus menu also displays which input action owns the
+controllers (Idle, Radial, Weight Stroke, Transform, Grab or Tracking Rearm).
+The same pure ownership rule now controls radial capture and safe checkpointing;
+this is a staged migration, not yet removal of all legacy Runtime wrappers.
+
 **Scene Pulse (new):** The same Focus menu has a read-only **Scene Pulse**
 action which immediately reports scene object count, selected count, number
 of meshes and base-mesh triangle count in the headset status. It neither
