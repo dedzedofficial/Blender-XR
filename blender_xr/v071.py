@@ -46,6 +46,8 @@ def quick_layout(context, operation, axis):
             raise ValueError('Linked objects cannot be moved by Quick Layout')
         if obj.hide_select or obj.parent or obj.constraints:
             raise ValueError('Unlock and unparent objects before Quick Layout')
+    # Synchronize object.location edits before reading world-space matrices.
+    context.view_layer.update()
     idx = 'XYZ'.index(axis)
     if operation == 'ALIGN':
         desired = [(obj, active.matrix_world.translation[idx])
@@ -111,7 +113,7 @@ class BXR_OT_quick_layout(bpy.types.Operator):
 
 def _idle(session):
     if any(getattr(session, name, None) for name in
-           ('transaction', 'grab', 'air_grab', 'axis_move')):
+           ('transaction', 'grab', 'air_grab', 'axis_move', '_xr_gesture')):
         raise ValueError('Finish or cancel the active operation first')
 
 
