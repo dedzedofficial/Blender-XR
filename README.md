@@ -159,6 +159,9 @@ Use **Shapes** to add cube, sphere, cylinder, cone, torus or plane meshes direct
 
 Object Mode includes a dedicated **Delete Object** action. This is intentionally separate from Edit Mode's Delete Geometry operation.
 
+**Quick Layout (new):** In Object Mode, select two or more mesh objects and keep the reference object active. Open **Object Tools → Layout** in VR, or **Model → Quick Layout** on the desktop. **Align X/Y/Z** moves selected origins to the active object's origin along that world axis; the active object stays in place. With three or more objects, **Space X/Y/Z** evenly distributes origins along the axis between the two outermost selected objects. Rotation, scaling, mesh geometry, UVs, modifiers, materials and rigging stay untouched. VR actions use one grouped Undo/Redo entry. Linked, locked, constrained and parented objects are rejected rather than moved unpredictably. The feature uses object origins, not bounding-box edges.
+
+
 Use **Travel** for Fly/Walk, Turbo, Faster/Slower, Snap/Smooth turning and Reset View. The left stick controls movement and the right stick handles turning and vertical travel.
 
 ## Saving

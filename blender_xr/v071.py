@@ -25,9 +25,95 @@ def editable_object(obj):
     return obj
 
 
+def quick_layout(context, operation, axis):
+    """Align object origins to the active mesh or space them between endpoints.
+
+    Uses world-space origins, not mesh vertices. All moves form one XR history
+    transaction; no object data, UVs, weights or modifiers are changed.
+    """
+    if axis not in {'X', 'Y', 'Z'} or operation not in {'ALIGN', 'DISTRIBUTE'}:
+        raise ValueError('Unknown layout operation')
+    if context.mode != 'OBJECT':
+        raise ValueError('Quick Layout requires Object Mode')
+    selected = list(context.selected_objects)
+    active = context.view_layer.objects.active
+    if active not in selected or len(selected) < 2:
+        raise ValueError('Select two or more objects, with an active anchor')
+    for obj in selected:
+        if obj.type != 'MESH' or obj.mode != 'OBJECT':
+            raise ValueError('Quick Layout currently requires mesh objects')
+        if obj.library or (obj.data and obj.data.library) or obj.override_library:
+            raise ValueError('Linked objects cannot be moved by Quick Layout')
+        if obj.hide_select or obj.parent or obj.constraints:
+            raise ValueError('Unlock and unparent objects before Quick Layout')
+    # Synchronize object.location edits before reading world-space matrices.
+    context.view_layer.update()
+    idx = 'XYZ'.index(axis)
+    if operation == 'ALIGN':
+        desired = [(obj, active.matrix_world.translation[idx])
+                   for obj in selected if obj != active]
+    else:
+        if len(selected) < 3:
+            raise ValueError('Distribute requires three or more objects')
+        ordered = sorted(selected, key=lambda obj: (obj.matrix_world.translation[idx], obj.name))
+        first = ordered[0].matrix_world.translation[idx]
+        last = ordered[-1].matrix_world.translation[idx]
+        if abs(last - first) < 1e-8:
+            raise ValueError('Distribute needs two distinct endpoint positions')
+        desired = [(obj, first + (last - first) * i / (len(ordered) - 1))
+                   for i, obj in enumerate(ordered[1:-1], 1)]
+    changes = []
+    for obj, target in desired:
+        before = obj.matrix_world.copy()
+        after = before.copy()
+        location = after.translation.copy()
+        if abs(location[idx] - target) < 1e-7:
+            continue
+        location[idx] = target
+        after.translation = location
+        changes.append((obj, before, after))
+    if not changes:
+        return None
+    try:
+        for obj, _before, after in changes:
+            obj.matrix_world = after
+        context.view_layer.update()
+    except Exception:
+        for obj, before, _after in changes:
+            obj.matrix_world = before
+        context.view_layer.update()
+        raise
+    return ('LAYOUT_GROUP', tuple((obj.name, before, after)
+                                  for obj, before, after in changes))
+
+
+class BXR_OT_quick_layout(bpy.types.Operator):
+    bl_idname = 'blender_xr.quick_layout'
+    bl_label = 'Mesh XR Quick Layout'
+    bl_description = 'Align selected mesh objects to the active origin, or distribute evenly'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    operation: bpy.props.EnumProperty(items=[
+        ('ALIGN', 'Align', 'Align origins on one axis to the active object'),
+        ('DISTRIBUTE', 'Distribute', 'Evenly space origins between outermost objects')])
+    axis: bpy.props.EnumProperty(items=[
+        ('X', 'X', 'World X'), ('Y', 'Y', 'World Y'), ('Z', 'Z', 'World Z')])
+
+    def execute(self, context):
+        try:
+            result = quick_layout(context, self.operation, self.axis)
+        except ValueError as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+        if not result:
+            self.report({'INFO'}, 'Objects already occupy the requested layout')
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
 def _idle(session):
     if any(getattr(session, name, None) for name in
-           ('transaction', 'grab', 'air_grab', 'axis_move')):
+           ('transaction', 'grab', 'air_grab', 'axis_move', '_xr_gesture')):
         raise ValueError('Finish or cancel the active operation first')
 
 
@@ -248,9 +334,24 @@ def _history_patch():
 
     def step(self, backwards=True):
         source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
-        if not source or source[-1][0] not in {'MODIFIERS', 'CREATE_CLONE'}:
+        if not source or source[-1][0] not in {'MODIFIERS', 'CREATE_CLONE', 'LAYOUT_GROUP'}:
             return previous_step(self, backwards)
         entry = source[-1]
+        if entry[0] == 'LAYOUT_GROUP':
+            if bpy.context.mode != 'OBJECT':
+                raise ValueError('Switch to Object Mode before undoing layout')
+            objects = []
+            for name, before, after in entry[1]:
+                target = bpy.data.objects.get(name)
+                if (target is None or target.mode != 'OBJECT' or target.library
+                        or target.hide_select or target.parent or target.constraints):
+                    raise ValueError('A laid-out object was locked, removed or reparented')
+                objects.append((target, before if backwards else after))
+            for target, matrix in objects:
+                target.matrix_world = matrix.copy()
+            bpy.context.view_layer.update()
+            dest.append(source.pop())
+            return True
         obj = bpy.data.objects.get(entry[1])
         if entry[0] == 'MODIFIERS':
             restore_modifiers(obj, entry[3] if backwards else entry[4])
@@ -297,6 +398,13 @@ def _install_pages():
         ('SNAP GRID', 'OBJ_SNAP'), ('RESET ROT', 'OBJ_RESET_ROT'),
         ('DUPLICATE', 'OBJ_DUPLICATE'), ('MODIFIERS', 'MODIFIER_MENU'),
         ('OBJECT', 'MODE_OBJECT'), ('BACK', 'BACK'),
+        ('LAYOUT', 'LAYOUT_MENU'),
+    )
+    menus.PAGES['LAYOUT_MENU'] = (
+        ('ALIGN X', 'LAYOUT_ALIGN_X'), ('ALIGN Y', 'LAYOUT_ALIGN_Y'),
+        ('ALIGN Z', 'LAYOUT_ALIGN_Z'), ('SPACE X', 'LAYOUT_DISTRIBUTE_X'),
+        ('SPACE Y', 'LAYOUT_DISTRIBUTE_Y'), ('SPACE Z', 'LAYOUT_DISTRIBUTE_Z'),
+        ('BACK', 'BACK'),
     )
     menus.PAGES['GEOMETRY_ADVANCED'] = (
         ('X +15', 'ROT_X_POS'), ('X -15', 'ROT_X_NEG'),
@@ -316,7 +424,11 @@ def _install_pages():
     )
     menus.TITLES.update(OBJECT_ADVANCED='OBJECT TOOLS',
                         GEOMETRY_ADVANCED='GEOMETRY TOOLS',
-                        MODIFIER_MENU='MODIFIERS')
+                        MODIFIER_MENU='MODIFIERS', LAYOUT_MENU='QUICK LAYOUT')
+    v065.TOOLTIPS['LAYOUT_MENU'] = ('Quick Layout', 'Align or space selected mesh object origins')
+    for axis in 'XYZ':
+        v065.TOOLTIPS['LAYOUT_ALIGN_' + axis] = ('Align ' + axis, 'Match active object origin on world ' + axis)
+        v065.TOOLTIPS['LAYOUT_DISTRIBUTE_' + axis] = ('Space ' + axis, 'Distribute object origins evenly on world ' + axis)
     v065.TOOLTIPS['OBJECT_ADVANCED'] = ('Object Tools', 'Rotation, grid, duplication and modifiers')
 
 
@@ -328,22 +440,32 @@ def patch(Runtime):
     original_command = Runtime.command
 
     def command(self, context, action):
-        if action in {'OBJECT_ADVANCED', 'GEOMETRY_ADVANCED', 'MODIFIER_MENU'}:
+        if action in {'OBJECT_ADVANCED', 'GEOMETRY_ADVANCED', 'MODIFIER_MENU', 'LAYOUT_MENU'}:
             _idle(self)
             obj = context.view_layer.objects.active
             if action == 'OBJECT_ADVANCED':
                 editable_object(obj)
             elif action == 'GEOMETRY_ADVANCED':
                 mesh.editable(obj)
+            elif action == 'LAYOUT_MENU':
+                if context.mode != 'OBJECT':
+                    raise ValueError('Quick Layout needs Object Mode')
             else:
                 editable_object(obj)
             self.menu.page = action
             self.status = menus.TITLES[action]
             return
-        if action == 'BACK' and self.menu.page in {'OBJECT_ADVANCED', 'GEOMETRY_ADVANCED', 'MODIFIER_MENU'}:
-            self.menu.page = ('OBJECT_ADVANCED' if self.menu.page == 'MODIFIER_MENU'
+        if action == 'BACK' and self.menu.page in {'OBJECT_ADVANCED', 'GEOMETRY_ADVANCED', 'MODIFIER_MENU', 'LAYOUT_MENU'}:
+            self.menu.page = ('OBJECT_ADVANCED' if self.menu.page in {'MODIFIER_MENU', 'LAYOUT_MENU'}
                               else 'EDIT_MORE' if self.menu.page == 'GEOMETRY_ADVANCED'
                               else 'TOOLS')
+            return
+        if action.startswith('LAYOUT_') and action != 'LAYOUT_MENU':
+            _idle(self)
+            _prefix, operation, axis = action.split('_')
+            entry = quick_layout(context, operation, axis)
+            self.history.push(entry)
+            self.status = ('LAYOUT ' + operation + ' ' + axis) if entry else 'LAYOUT ALREADY EVEN'
             return
         if action.startswith('ROT_') and action.endswith(('_POS', '_NEG')):
             _idle(self)

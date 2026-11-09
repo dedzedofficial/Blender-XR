@@ -366,7 +366,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES + (v071.BXR_OT_quick_layout,)
 
 def register():
     for cls in CLASSES:

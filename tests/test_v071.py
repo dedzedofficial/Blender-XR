@@ -61,6 +61,48 @@ try:
     assert restored is not None and any(m.type == 'SOLIDIFY' for m in restored.modifiers)
     history.clear()
 
+    # Quick Layout aligns origins without touching geometry or modifier data.
+    bpy.ops.mesh.primitive_cube_add(location=(3, 6, 0))
+    layout_b = bpy.context.object
+    bpy.ops.mesh.primitive_cube_add(location=(10, 8, 0))
+    layout_c = bpy.context.object
+    for selected in bpy.context.selected_objects:
+        selected.select_set(False)
+    for selected in (obj, layout_b, layout_c):
+        selected.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    before_y = (layout_b.location.y, layout_c.location.y)
+    history.push(v071.quick_layout(bpy.context, 'ALIGN', 'Y'))
+    assert abs(layout_b.location.y - obj.location.y) < 1e-6
+    assert abs(layout_c.location.y - obj.location.y) < 1e-6
+    assert history.step(True)
+    assert abs(layout_b.location.y - before_y[0]) < 1e-6
+    assert abs(layout_c.location.y - before_y[1]) < 1e-6
+    assert history.step(False)
+    assert abs(layout_b.location.y - obj.location.y) < 1e-6
+    history.clear()
+    obj.location.x = 0.0
+    layout_b.location.x = 3.0
+    layout_c.location.x = 10.0
+    history.push(v071.quick_layout(bpy.context, 'DISTRIBUTE', 'X'))
+    assert abs(layout_b.location.x - 5.0) < 1e-6
+    assert history.step(True)
+    assert abs(layout_b.location.x - 3.0) < 1e-6
+    assert history.step(False)
+    assert abs(layout_b.location.x - 5.0) < 1e-6
+    history.clear()
+    layout_b.location.z = 2.0
+    assert bpy.ops.blender_xr.quick_layout(operation='ALIGN', axis='Z') == {'FINISHED'}
+    assert abs(layout_b.location.z - obj.location.z) < 1e-6
+    assert {'LAYOUT_MENU'} <= set(menus.PAGES)
+    assert any(action == 'LAYOUT_MENU' for _, action in menus.PAGES['OBJECT_ADVANCED'])
+    for member in (layout_b, layout_c):
+        bpy.data.objects.remove(member, do_unlink=True)
+    for selected in bpy.context.selected_objects:
+        selected.select_set(False)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+
     # Delete a unique material and ensure no invalid RNA reference is read.
     material_uv.new_material(obj, (0.5, 0.4, 0.3, 1.0), 'XR Delete Regression')
     assert material_uv.delete_material(obj) == 'XR Delete Regression'

@@ -111,6 +111,19 @@ def _model(layout, context, settings):
     row.prop(settings, 'placement_distance', text='Distance', icon='ORIENTATION_VIEW')
 
     layout.separator()
+    _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
+    row = layout.row(align=True)
+    row.enabled = context.mode == 'OBJECT' and len(context.selected_objects) >= 2
+    for axis in 'XYZ':
+        _operator(row, 'blender_xr.quick_layout', 'Align ' + axis, 'EMPTY_ARROWS',
+                  operation='ALIGN', axis=axis)
+    row = layout.row(align=True)
+    row.enabled = context.mode == 'OBJECT' and len(context.selected_objects) >= 3
+    for axis in 'XYZ':
+        _operator(row, 'blender_xr.quick_layout', 'Space ' + axis, 'EMPTY_ARROWS',
+                  operation='DISTRIBUTE', axis=axis)
+
+    layout.separator()
     _header(layout, 'Asset audit', 'CHECKMARK')
     layout.prop(settings, 'triangle_budget', text='Triangle budget', icon='MESH_DATA')
     obj = context.view_layer.objects.active
