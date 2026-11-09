@@ -18,7 +18,9 @@ Paint, Shapes, Materials and UV**, plus undo and Back. These point to
 the existing Blender-native tools, not duplicate implementations or separate
 addons. Category Back returns to Creator when launched from the hub. The
 12-cell menu cap is enforced so Quick Layout is no longer hidden below the
-Object Tools button grid.
+Object Tools button grid. **Rigging and Travel now open from Creator** rather
+than taking separate main-menu slots. Edit Mode's Rotate Selection is in
+**More**, replacing a redundant Materials shortcut already on Edit.
 
 The alpha installer ZIP builds all current development features together,
 including atomic VR Weight Paint Undo, tracking-loss neutral rearm,
