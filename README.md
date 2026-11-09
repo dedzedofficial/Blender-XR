@@ -234,6 +234,11 @@ Mesh XR ships the required OpenVR Python wheel inside the Blender Extension pack
 
 ## Development
 
+For the current implementation-backed roadmap, dependencies, release gates and
+additional creator ideas, see [Creator Development Plan](CREATOR_DEVELOPMENT_PLAN.md).
+This distinguishes code already merged to `main` from proposed features.
+
+
 Build the extension with:
 
 ```sh
