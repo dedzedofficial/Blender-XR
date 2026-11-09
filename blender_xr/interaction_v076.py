@@ -428,11 +428,20 @@ def install_pages():
              for label, act in menus.PAGES['TOOLS']]
     menus.PAGES['TOOLS'] = tuple(tools)
     edits = list(menus.PAGES['EDIT'])
-    if not any(action == 'ROTATE_EDIT' for _, action in edits):
-        # Retain Inset and all twelve existing edit actions; the extra
-        # icon cell supports controller rotation without removing a tool.
-        edits.append(('', 'ROTATE_EDIT'))
+    more = list(menus.PAGES['EDIT_MORE'])
+    if not any(action == 'ROTATE_EDIT' for _, action in edits + more):
+        # The existing Edit page already has twelve buttons. Material tools
+        # remain on the first Edit page, so replace its duplicate on More
+        # with Rotate Selection rather than creating an invisible 13th cell.
+        if len(edits) >= 12:
+            if sum(action == 'MATERIAL_MENU' for _, action in more) != 1:
+                raise RuntimeError('No redundant Edit More material entry to replace')
+            more = [('', 'ROTATE_EDIT') if action == 'MATERIAL_MENU'
+                    else (label, action) for label, action in more]
+        else:
+            edits.append(('', 'ROTATE_EDIT'))
     menus.PAGES['EDIT'] = tuple(edits)
+    menus.PAGES['EDIT_MORE'] = tuple(more)
     operations = list(menus.PAGES['ARMATURE_EDIT'])
     operations = [(label, 'SELECT') if action == 'BONE_SELECT' else (label, action)
                   for label, action in operations]
