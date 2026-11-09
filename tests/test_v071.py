@@ -26,8 +26,14 @@ try:
     from types import SimpleNamespace
     assert runtime.Runtime._v080_creator_hub_patched
     assert len(menus.PAGES['TOOLS']) == 12
+    assert len(menus.PAGES['EDIT']) == 12
+    assert len(menus.PAGES['EDIT_MORE']) == 12
     assert len(menus.PAGES['CREATOR']) == 12
     assert len(menus.PAGES['OBJECT_ADVANCED']) <= 12
+    assert 'ROTATE_EDIT' in [action for _, action in menus.PAGES['EDIT_MORE']]
+    assert 'MATERIAL_MENU' in [action for _, action in menus.PAGES['EDIT']]
+    assert 'RIG_MENU' not in [action for _, action in menus.PAGES['TOOLS']]
+    assert 'RIG_MENU' in [action for _, action in menus.PAGES['CREATOR']]
     assert [action for _, action in menus.PAGES['TOOLS']].count('CREATOR_MENU') == 1
     assert any(action == 'LAYOUT_MENU' for _, action in menus.PAGES['OBJECT_ADVANCED'])
     expected = {'NAV_MENU', 'FOCUS_MENU', 'LAYOUT_MENU', 'RIG_MENU',
