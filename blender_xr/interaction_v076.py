@@ -428,11 +428,25 @@ def install_pages():
              for label, act in menus.PAGES['TOOLS']]
     menus.PAGES['TOOLS'] = tuple(tools)
     edits = list(menus.PAGES['EDIT'])
-    if not any(action == 'ROTATE_EDIT' for _, action in edits):
-        # Retain Inset and all twelve existing edit actions; the extra
-        # icon cell supports controller rotation without removing a tool.
-        edits.append(('', 'ROTATE_EDIT'))
+    more = list(menus.PAGES['EDIT_MORE'])
+    if not any(action == 'ROTATE_EDIT' for _, action in edits + more):
+        # Existing Edit and Edit More both have twelve buttons. Preserve the
+        # sole Edit Mode Materials entry, Undo/Redo and every modelling tool:
+        # group the two step-size controls under a small Step category, then
+        # expose Rotate Selection in the freed More cell.
+        if len(edits) >= 12:
+            if sum(action in {'LESS', 'MORE'} for _, action in more) != 2:
+                raise RuntimeError('Edit More must include both step controls')
+            more = [(label, action) for label, action in more
+                    if action not in {'LESS', 'MORE'}]
+            more[-1:-1] = [('', 'ROTATE_EDIT'), ('', 'STEP_MENU')]
+            menus.PAGES['STEP_MENU'] = (
+                ('STEP -', 'LESS'), ('STEP +', 'MORE'), ('BACK', 'BACK'))
+            menus.TITLES['STEP_MENU'] = 'EDIT STEP SIZE'
+        else:
+            edits.append(('', 'ROTATE_EDIT'))
     menus.PAGES['EDIT'] = tuple(edits)
+    menus.PAGES['EDIT_MORE'] = tuple(more)
     operations = list(menus.PAGES['ARMATURE_EDIT'])
     operations = [(label, 'SELECT') if action == 'BONE_SELECT' else (label, action)
                   for label, action in operations]
@@ -453,17 +467,19 @@ def install_pages():
     edit_operations = list(menus.PAGES['ARMATURE_OPERATIONS'])
     edit_operations[-1:-1] = [('HEAD', 'BONE_MOVE_HEAD'),
                              ('TAIL', 'BONE_MOVE_TAIL')]
+    # Split/Separate remain available on a small More page; otherwise the
+    # bone operations panel has thirteen entries and the last is invisible.
+    edit_operations = [(label, action) for label, action in edit_operations
+                       if action not in {'BONE_SPLIT', 'BONE_SEPARATE'}]
+    edit_operations[-1:-1] = [('MORE', 'BONE_OPERATIONS_MORE_MENU')]
+    assert len(edit_operations) == 12
     menus.PAGES['ARMATURE_OPERATIONS'] = tuple(edit_operations)
     for page in ('TOOLS','EDIT','EDIT_MORE','ARMATURE_EDIT','POSE_EDIT','RIGGING','WEIGHT_PAINT'):
         actions = [action for _, action in menus.PAGES[page]]
         if len(actions) != len(set(actions)):
             raise RuntimeError('Duplicate XR menu action in ' + page)
-    # Existing object deletion stays available in Object Advanced.
-    advanced = list(menus.PAGES.get('OBJECT_ADVANCED', ()))
-    if advanced and not any(action == 'DELETE_OBJECT' for _, action in advanced):
-        advanced = [(label, 'DELETE_OBJECT') if action == 'MODE_OBJECT' else
-                    (label, action) for label, action in advanced]
-        menus.PAGES['OBJECT_ADVANCED'] = tuple(advanced)
+    # Object deletion remains available on Creator Hub; the old replacement
+    # relied on a duplicate Object Mode button and could hide Quick Layout.
 
 
 def patch_runtime(Runtime):
@@ -476,6 +492,13 @@ def patch_runtime(Runtime):
     old_cancel = Runtime.cancel_work
 
     def command(self, context, action):
+        if action == 'STEP_MENU':
+            self.menu.page = 'STEP_MENU'
+            self.status = 'EDIT STEP / DECREASE OR INCREASE'
+            return
+        if action == 'BACK' and self.menu.page == 'STEP_MENU':
+            self.menu.page = 'EDIT_MORE'
+            return
         if action == 'SELECT':
             self.tool = 'SELECT'
             self.status = 'SELECT MESH / ARMATURE / BONE'

@@ -42,6 +42,10 @@ ARMATURE_PAGES = {
         ('RECALC ROLL','BONE_RECALC_ROLL'), ('FILL','BONE_FILL'),
         ('BACK','BACK'),
     ),
+    'ARMATURE_OPERATIONS_MORE': (
+        ('SPLIT','BONE_SPLIT'), ('SEPARATE','BONE_SEPARATE'),
+        ('BACK','BACK'),
+    ),
     'ARMATURE_SETTINGS': (
         ('CONNECT','BONE_CONNECT'), ('DEFORM','BONE_DEFORM'),
         ('LOCK','BONE_LOCK'), ('ROLL +','BONE_ROLL_UP'),
@@ -52,6 +56,7 @@ ARMATURE_PAGES = {
 PAGES_RETURN = {
     'ARMATURE_SELECT': 'ARMATURE_EDIT',
     'ARMATURE_OPERATIONS': 'ARMATURE_EDIT',
+    'ARMATURE_OPERATIONS_MORE': 'ARMATURE_OPERATIONS',
     'ARMATURE_SETTINGS': 'ARMATURE_EDIT',
 }
 EDIT_TOOLS = {'BONE_SELECT', 'BONE_MOVE', 'BONE_MOVE_HEAD', 'BONE_MOVE_TAIL'}
@@ -95,6 +100,7 @@ def install_pages():
         'ARMATURE_EDIT': 'BONE EDIT',
         'ARMATURE_SELECT': 'BONE SELECT',
         'ARMATURE_OPERATIONS': 'BONE OPERATIONS',
+        'ARMATURE_OPERATIONS_MORE': 'MORE BONE OPERATIONS',
         'ARMATURE_SETTINGS': 'BONE SETTINGS',
     })
     menus.PAGES['RIGGING'] = (
@@ -530,17 +536,19 @@ def patch_runtime(Runtime):
                 self.tool = 'SELECT'
                 self.status = 'ARMATURE OBJECT MODE'
             return
-        if action in {'BONE_SELECT_MENU','BONE_EDIT_MENU','BONE_SETTINGS_MENU'}:
+        if action in {'BONE_SELECT_MENU','BONE_EDIT_MENU',
+                      'BONE_SETTINGS_MENU','BONE_OPERATIONS_MORE_MENU'}:
             active_armature(context, edit=True)
             self.menu.page = {
                 'BONE_SELECT_MENU':'ARMATURE_SELECT',
                 'BONE_EDIT_MENU':'ARMATURE_OPERATIONS',
+                'BONE_OPERATIONS_MORE_MENU':'ARMATURE_OPERATIONS_MORE',
                 'BONE_SETTINGS_MENU':'ARMATURE_SETTINGS',
             }[action]
             return
         if action == 'BACK' and self.menu.page in PAGES_RETURN:
-            self.menu.page = 'ARMATURE_EDIT'
-            self.status = 'BONE EDIT'
+            self.menu.page = PAGES_RETURN[self.menu.page]
+            self.status = menus.TITLES[self.menu.page]
             return
         if action in EDIT_TOOLS:
             active_armature(context, edit=True)
