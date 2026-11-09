@@ -20,6 +20,7 @@ def test():
         for page, items in menus.PAGES.items():
             actions = [action for _label, action in items if action != 'PANEL']
             assert len(actions) == len(set(actions)), (page, actions)
+            assert len(items) <= 12, (page, len(items), 'invisible headset buttons')
         for page in ('TOOLS', 'RIGGING', 'ARMATURE_EDIT', 'POSE_EDIT'):
             assert [action for _, action in menus.PAGES[page]].count('SELECT') == 1
         for page, items in menus.PAGES.items():
@@ -27,8 +28,11 @@ def test():
                            for label, action in items), page
         for a in ('MOVE', 'SCALE', 'ROTATE'):
             assert any(action == a for _, action in menus.PAGES['TOOLS'])
-        for a in ('MOVE_EDIT', 'SCALE_EDIT', 'ROTATE_EDIT'):
+        for a in ('MOVE_EDIT', 'SCALE_EDIT'):
             assert any(action == a for _, action in menus.PAGES['EDIT'])
+        # Rotate Selection was previously the invisible thirteenth Edit cell.
+        # It must remain available in the visible More category.
+        assert any(action == 'ROTATE_EDIT' for _, action in menus.PAGES['EDIT_MORE'])
         for a in ('BONE_MOVE', 'BONE_SCALE', 'BONE_ROTATE'):
             assert any(action == a for _, action in menus.PAGES['ARMATURE_EDIT'])
             assert any(action == a for _, action in menus.PAGES['POSE_EDIT'])
