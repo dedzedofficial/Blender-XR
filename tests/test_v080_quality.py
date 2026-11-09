@@ -154,6 +154,29 @@ def run():
         stub.transaction = object()
         assert owner(stub) == 'MESH_EDIT'
         stub.transaction = None
+        # Conflicting non-radial owners must also be refused, not silently
+        # resolved by the first matching legacy handler.
+        stub.grab = object()
+        stub.bone_drag = object()
+        assert owner(stub) == 'CONFLICT'
+        try:
+            input_ownership_v080.validate_command(stub, 'UNDO')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Overlapping grab and bone edit allowed Undo')
+        stub.bone_drag = None
+        assert owner(stub) == 'OBJECT_GRAB'
+        stub.two_hand_scale = object()
+        assert owner(stub) == 'TWO_HAND_SCALE'
+        stub.grab = None
+        stub.two_hand_scale = None
+        stub.transaction = object()
+        stub.axis_drag = object()
+        assert owner(stub) == 'MESH_EDIT'
+        stub.transaction = None
+        assert owner(stub) == 'AXIS_TRANSFORM'
+        stub.axis_drag = None
         assert owner(stub) == 'IDLE'
         assert 'INPUT / IDLE' == input_ownership_v080.diagnostic(stub)
         assert blender_xr.runtime.Runtime._v080_command_guard_patched
