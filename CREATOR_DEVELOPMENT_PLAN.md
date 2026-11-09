@@ -149,7 +149,7 @@ item will fit into one version.
 | REQUIRED / P1 | **Multi-object transform** | Move/rotate/scale deliberately selected objects as one group around chosen pivot; preserve world matrices, parents and linked/locked-object guards. |
 | REQUIRED / P1 | **Smart duplicate: linked vs independent** | Make the choice explicit in VR; linked duplicates share mesh data, independent clones copy it; protect edits to shared data and show this in the inspector. |
 | REQUIRED / P1 | **Proportional editing and falloff ring** | Radius adjustment from controller, affected-vertex preview, connected topology mode, exact commit/cancel and topology-aware performance cap. |
-| REQUIRED / P1 | **Quick-edit favorites by context, not custom radial pinning** | Surface recent/valid operations as contextual suggestions without user-managed pinned rings or duplicate Select; capture/locomotion must stay exclusive. |
+| REQUIRED / P1 | **Contextual next-action hints (no favourites or pinning)** | Surface recent/valid operations as contextual suggestions without user-managed pinned rings or duplicate Select; capture/locomotion must stay exclusive. |
 | CANDIDATE / P2 | **Axis-aligned placement ruler and guides** | Temporarily draw alignment guides, level and normals around selected geometry; default to non-exported overlays. |
 | CANDIDATE / P2 | **Mirrored editing preview** | Preview symmetric mesh/bone edits across a chosen plane and reject non-matching selections rather than silently damage asymmetrical designs. |
 
