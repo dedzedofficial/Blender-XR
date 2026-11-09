@@ -7,7 +7,7 @@
 The main wrist menu now has a single **Creator** entry in place of the old
 Travel shortcut. **Creator Hub** includes Travel, Scene Focus/X-Ray, Quick
 Layout, Object Tools, Modifiers, Rigging, Weight Paint, Shapes, Materials,
-UV, Undo and Back. All actions use the **same native Blender data and
+UV, Delete Object and Back. Undo and Redo remain on the main menu. All actions use the **same native Blender data and
 existing Mesh XR operators**, not copies of tools in another editor.
 Both Travel and Rigging are now accessed through Creator rather than
 through separate top-level buttons.
