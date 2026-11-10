@@ -99,6 +99,23 @@ def validate_command(session, action):
             active.replace('_', ' ').lower(), str(action).replace('_', ' ')))
 
 
+def dispatch_command(session, context, action, legacy_handler):
+    """Single entry for command ownership and staged legacy delegation.
+
+    The handler is explicit so future mode-specific routes can replace legacy
+    branches one at a time without another Runtime.command wrapper.
+    Nested calls retain their established delegation behavior.
+    """
+    if getattr(session, '_xr_command_depth', 0):
+        return legacy_handler(session, context, action)
+    validate_command(session, action)
+    session._xr_command_depth = 1
+    try:
+        return legacy_handler(session, context, action)
+    finally:
+        session._xr_command_depth = 0
+
+
 def patch_runtime(Runtime):
     """Single outer action gate; keep tested Blender command handlers intact.
 
@@ -111,16 +128,7 @@ def patch_runtime(Runtime):
     original_command = Runtime.command
 
     def command(self, context, action):
-        # Nested, already-authorized mode actions must reach their existing
-        # implementation without being treated as a second input gesture.
-        if getattr(self, '_xr_command_depth', 0):
-            return original_command(self, context, action)
-        validate_command(self, action)
-        self._xr_command_depth = 1
-        try:
-            return original_command(self, context, action)
-        finally:
-            self._xr_command_depth = 0
+        return dispatch_command(self, context, action, original_command)
 
     Runtime.command = command
     Runtime._v080_command_guard_patched = True
