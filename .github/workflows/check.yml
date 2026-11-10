@@ -156,6 +156,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_scene_hierarchy_v080.py
+      - name: XR wrist hierarchy search and stale-result integration
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_hierarchy_search_v080.py
       - name: Native colour studio material and history integration
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -241,6 +245,7 @@ jobs:
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_hands.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_quality.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_scene_hierarchy_v080.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_hierarchy_search_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_color_studio_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_modifiers_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_curves_v080.py
