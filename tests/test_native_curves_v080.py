@@ -173,10 +173,11 @@ def run():
         assert obj.data.resolution_u == old_resolution + 2
         assert history.step(True)
         assert obj.data.resolution_u == old_resolution
+        bevel_res_before = obj.data.bevel_resolution
         session.command(ctx, 'CURVE_BEVEL_RES_UP')
-        assert obj.data.bevel_resolution == 1
+        assert obj.data.bevel_resolution == bevel_res_before + 1
         assert history.step(True)
-        assert obj.data.bevel_resolution == 0
+        assert obj.data.bevel_resolution == bevel_res_before
 
         # Undo refuses to silently overwrite out-of-band desktop edits.
         session.command(ctx, 'CURVE_BEVEL_UP')
