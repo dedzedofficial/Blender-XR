@@ -581,7 +581,7 @@ class BXR_PT_materials_v060(bpy.types.Panel):
         layout.separator()
         layout.prop(settings, 'object_color', text='Base Color', icon='COLOR')
         row = layout.row(align=True)
-        row.prop(settings, 'color_hex', text='HEX')
+        row.prop(settings, 'color_hex', text='HEX', icon='COLOR')
         row.operator('blender_xr.color_hex_preview', text='Preview', icon='COLOR')
         layout.label(text='Use Local/Shared Edit in XR; preserves existing materials', icon='INFO')
         layout.prop(settings, 'material_metallic', icon='MATERIAL')
