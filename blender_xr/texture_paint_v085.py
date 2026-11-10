@@ -89,7 +89,7 @@ def _new_image(size, name=_IMAGE):
     if size not in {256, 512, 1024}:
         raise ValueError('Use a 256, 512 or 1024 pixel editable paint layer')
     img = bpy.data.images.new(name, width=size, height=size,
-                              alpha=True, float_buffer=False)
+                              alpha=True, float_buffer=True)
     img.alpha_mode = 'STRAIGHT'
     img.generated_color = (0., 0., 0., 0.)
     img.pixels.foreach_set(array('f', [0.0]) * (size * size * 4))
@@ -102,7 +102,7 @@ def _socket_name(socket):
 
 
 def _make_nodes(mat, principled, image, old_link=None, original_color=None,
-                label=_LAYER, image_label=_IMAGE):
+                label=_LAYER, image_label=_IMAGE, uvmap='', uv_label='Mesh XR Paint UV'):
     tree = mat.node_tree
     base = principled.inputs['Base Color']
     if base.links:
@@ -119,8 +119,13 @@ def _make_nodes(mat, principled, image, old_link=None, original_color=None,
     tex.label = 'Mesh XR Editable Image'
     tex[_TAG] = True
     tex.image = image
+    uv_node = tree.nodes.new('ShaderNodeUVMap')
+    uv_node.name = uv_label
+    uv_node.uv_map = uvmap
+    tree.links.new(uv_node.outputs['UV'], tex.inputs['Vector'])
     mix.location = (principled.location.x - 240, principled.location.y - 220)
     tex.location = (mix.location.x - 280, mix.location.y)
+    uv_node.location = (tex.location.x - 220, tex.location.y)
     if old_link is not None:
         source_node = tree.nodes.get(old_link[0])
         source_socket = (source_node.outputs.get(old_link[1])
@@ -154,8 +159,12 @@ def _remove_layer(mat, bsdf_name, tex_name, mix_name, prior, base_color):
     if not base.links or base.links[0].from_node != mix:
         raise ValueError('Paint layer is no longer the top Base Color layer')
     image = tex.image
+    uv_node = (tex.inputs['Vector'].links[0].from_node
+               if tex.inputs['Vector'].links else None)
     tree.nodes.remove(mix)
     tree.nodes.remove(tex)
+    if uv_node is not None and uv_node.type == 'UVMAP' and uv_node.name.startswith('Mesh XR Paint UV'):
+        tree.nodes.remove(uv_node)
     base.default_value = base_color
     if prior is not None:
         source = tree.nodes.get(prior[0])
@@ -177,7 +186,8 @@ def _create_layer(session, context):
     if original_link is not None:
         mat.node_tree.links.remove(original_link)
     try:
-        tex, mix = _make_nodes(mat, bsdf, image, prior, base_color)
+        tex, mix = _make_nodes(mat, bsdf, image, prior, base_color,
+                               uvmap=obj.data.uv_layers.active.name)
     except Exception:
         if original_link is not None:
             source = mat.node_tree.nodes.get(prior[0])
@@ -189,7 +199,9 @@ def _create_layer(session, context):
     session._xr_paint_target = (obj.name, obj.as_pointer(), mat.as_pointer(), tex.name)
     session.history.push(('XR_PAINT_LAYER_085', mat, mat.name, bsdf.name,
                           tex.name, mix.name, prior, base_color,
-                          image.name, size, obj.name))
+                          image.name, size, obj.name,
+                          obj.data.uv_layers.active.name,
+                          tex.inputs['Vector'].links[0].from_node.name))
     session.status = 'PAINT LAYER CREATED / {} PX'.format(size)
     session.menu.page = _PAGE
 
@@ -495,7 +507,8 @@ def _history_patch():
                     raise ValueError('Paint image changed outside XR undo history')
                 _write_pixels(image, before if backwards else after)
         else:
-            _tag, mat, matname, bsdf_name, tex_name, mix_name, prior, base_color, image_name, size, objname = entry
+            (_tag, mat, matname, bsdf_name, tex_name, mix_name, prior,
+             base_color, image_name, size, objname, uvmap, uv_label) = entry
             if bpy.data.materials.get(matname) != mat or mat.users != 1:
                 raise ValueError('Material ownership changed outside XR history')
             tree = mat.node_tree
@@ -516,7 +529,8 @@ def _history_patch():
                 image = _new_image(size, image_name)
                 try:
                     _make_nodes(mat, bsdf, image, prior, base_color,
-                                label=mix_name, image_label=tex_name)
+                                label=mix_name, image_label=tex_name,
+                                uvmap=uvmap, uv_label=uv_label)
                 except Exception:
                     if image.users == 0:
                         bpy.data.images.remove(image)
