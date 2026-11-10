@@ -180,6 +180,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_assembly_v085.py
+      - name: v0.8.5 native Boolean Shape Builder and reversible Apply
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_booleans_v085.py
       - name: v0.8 articulated XR hand geometry tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -251,6 +255,7 @@ jobs:
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_lighting_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_world_atmosphere_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_assembly_v085.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_booleans_v085.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_rigging_v076.py
       - name: Unmount official Blender DMG
