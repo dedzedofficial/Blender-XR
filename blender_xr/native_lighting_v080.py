@@ -198,8 +198,11 @@ def _create(session, context, kind):
     try:
         obj = bpy.data.objects.new('XR ' + kind.title() + ' Light', data)
         context.scene.collection.objects.link(obj)
-        obj.location = location
-        obj.matrix_world = _aim_matrix(obj, direction)
+        # A newly linked Object's world matrix may still be unevaluated after
+        # setting location. Build its transform explicitly so aiming never
+        # resets placement to the scene origin.
+        rotation = Vector((0, 0, -1)).rotation_difference(direction)
+        obj.matrix_world = Matrix.LocRotScale(location, rotation, Vector((1, 1, 1)))
         for selected in tuple(context.selected_objects):
             selected.select_set(False)
         obj.select_set(True)
