@@ -32,9 +32,9 @@ def install_page():
         ('TRAVEL', 'NAV_MENU'), ('FOCUS', 'FOCUS_MENU'),
         ('LAYOUT', 'LAYOUT_MENU'), ('OBJECT', 'OBJECT_ADVANCED'),
         ('MODIFIERS', 'MODIFIER_MENU'), ('RIGGING', 'RIG_MENU'),
-        ('WEIGHTS', 'MODE_WEIGHT_PAINT'), ('SHAPES', 'ADD_MENU'),
+        ('SCENE', 'SCENE_MENU'), ('SHAPES', 'ADD_MENU'),
         ('MATERIALS', 'MATERIAL_MENU'), ('UV', 'UV_MENU'),
-        ('HIERARCHY', 'SCENE_MENU'), ('BACK', 'BACK'),
+        ('DELETE OBJ', 'DELETE_OBJECT'), ('BACK', 'BACK'),
     )
     menus.TITLES['CREATOR'] = 'CREATOR HUB'
     v065.TOOLTIPS['CREATOR_MENU'] = ('Creator Hub', 'Open the combined modelling, rigging, layout and scene tools')
