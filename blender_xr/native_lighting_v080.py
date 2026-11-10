@@ -55,11 +55,14 @@ def _editable(context, obj=None):
         raise ValueError('Make Light data single-user before changing its properties')
     if obj.hide_select or not obj.visible_get(view_layer=context.view_layer):
         raise ValueError('Unlock and show the Light before editing it')
-    if (getattr(obj.data, 'use_nodes', False) or
-            (obj.animation_data and (obj.animation_data.action or obj.animation_data.drivers)) or
+    # Blender 5.2+ reports use_nodes=True for every Light by design; the
+    # default node tree does not override native Power/Color properties. Never
+    # reject an otherwise editable Light merely for its node-tree setting.
+    # We edit only native properties; custom light shader nodes stay intact.
+    if ((obj.animation_data and (obj.animation_data.action or obj.animation_data.drivers)) or
             (obj.data.animation_data and
              (obj.data.animation_data.action or obj.data.animation_data.drivers))):
-        raise ValueError('Shader-driven or animated Lights need their original editor')
+        raise ValueError('Animated Lights need their original editor')
     return obj
 
 
