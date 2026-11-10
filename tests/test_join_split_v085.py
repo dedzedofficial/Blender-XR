@@ -103,17 +103,18 @@ def run():
         assert joined is not None
         assert source1.hide_select and source2.hide_select
         assert hist.step(False)
-        assert joined.name not in ctx.view_layer.objects
+        assert ctx.view_layer.objects.get(output_name) is None
 
         # Copy joins keep originals visible rather than hiding them.
         selected(ctx, source1, source2, active=source1)
         session.command(ctx, 'XR_JOIN_COPY')
         copy_join = ctx.view_layer.objects.active
+        copy_join_name = copy_join.name
         assert copy_join not in (source1, source2)
         assert not source1.hide_get(view_layer=ctx.view_layer)
         assert not source2.hide_get(view_layer=ctx.view_layer)
         session.command(ctx, 'XR_JOIN_RESTORE')
-        assert ctx.view_layer.objects.get(copy_join.name) is None
+        assert ctx.view_layer.objects.get(copy_join_name) is None
         assert source1.data == original1 and source2.data == original2
 
         # Native Blender loose-part separation: keep source mesh so the same
@@ -131,13 +132,14 @@ def run():
         session.command(ctx, 'XR_JOIN_LOOSE')
         produced = tuple(obj for obj in ctx.view_layer.objects
                          if obj.get(parts._META) and obj.get(parts._MARKER))
+        names_produced = tuple(obj.name for obj in produced)
         assert len(produced) == 2
         assert all(len(obj.data.vertices) == 8 for obj in produced)
         assert loose.data == loose_data and loose.hide_select
         selected(ctx, produced[0])
         session.command(ctx, 'XR_JOIN_RESTORE')
         assert not loose.hide_select and not loose.hide_get(view_layer=ctx.view_layer)
-        assert all(ctx.view_layer.objects.get(obj.name) is None for obj in produced)
+        assert all(ctx.view_layer.objects.get(name) is None for name in names_produced)
 
         # Original mesh's native materials survive save/append, not a parallel
         # proprietary scene format.
