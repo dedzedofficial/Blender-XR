@@ -30,7 +30,7 @@ def run():
         assert runtime.Runtime._xr_hierarchy_patched
         assert len(menus.PAGES['CREATOR']) == 12
         assert 'SCENE_MENU' in [action for _, action in menus.PAGES['CREATOR']]
-        assert 'RIG_WEIGHT' in [action for _, action in menus.PAGES['RIGGING']]
+        assert 'MODE_WEIGHT_PAINT' in [action for _, action in menus.PAGES['RIGGING']]
 
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.object.delete(use_global=False)
