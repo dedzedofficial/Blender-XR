@@ -84,6 +84,8 @@ def run():
         # deliberately refreshes the stale selection token.
         session.command(ctx, 'CURVE_MENU')
         assert session._xr_curve_target[0] == obj.name
+        session.command(ctx, 'CURVE_NEXT')
+        assert session._xr_curve_index == 1
 
         mat = bpy.data.materials.new('XR Curve Material')
         obj.data.materials.append(mat)
