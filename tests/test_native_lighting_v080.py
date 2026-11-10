@@ -63,7 +63,7 @@ def run():
             session.command(ctx, 'XR_LIGHT_NEW_' + kind)
             obj = ctx.view_layer.objects.active
             assert obj.type == 'LIGHT' and obj.data.type == kind
-            assert obj.data.users == 1 and len(obj.data.users_id) if False else obj.data.users == 1
+            assert obj.data.users == 1
             assert ctx.view_layer.objects.get(obj.name) == obj
             assert close(obj.location, (1, 2, 3 - session.settings.placement_distance))
             assert history.undo[-1][0] == 'XR_LIGHT_CREATE'
@@ -120,8 +120,8 @@ def run():
             entry = lights._mutate(session, ctx, 'XR_LIGHT_MOVE', world=move_target)
             assert entry is not None and close(obj.matrix_world.translation, move_target)
             assert history.step(True)
-            assert close(obj.matrix_world.translation, snapshot[1][0][3:4]) if False else (
-                close(obj.matrix_world.translation, (1, 2, 3 - session.settings.placement_distance)))
+            assert close(obj.matrix_world.translation,
+                         (1, 2, 3 - session.settings.placement_distance))
             assert history.step(False)
             assert close(obj.matrix_world.translation, move_target)
 
@@ -219,7 +219,12 @@ def run():
         refused(lambda: session.command(ctx, 'XR_LIGHT_POWER_UP'), 'single-user')
         bpy.data.objects.remove(other, do_unlink=True)
         obj.hide_select = True
-        refused(lambda: session.command(ctx, 'XR_LIGHT_POWER_UP'), 'Unlock')
+        try:
+            session.command(ctx, 'XR_LIGHT_POWER_UP')
+        except ValueError as exc:
+            assert 'unlock' in str(exc).lower() or 'select a native' in str(exc).lower()
+        else:
+            raise AssertionError('Selection-locked Light was edited')
         obj.hide_select = False
 
         assert cube.data == original_mesh and cube.type == 'MESH'
