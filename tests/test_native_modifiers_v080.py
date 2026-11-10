@@ -106,11 +106,12 @@ def run():
         session.command(ctx, 'XR_MIRROR_NEW')
         added = obj.modifiers.get(session._xr_native_modifier[3])
         assert added is not None and added.type == 'MIRROR'
+        added_name = added.name  # RNA wrapper becomes invalid when Undo removes it
         assert len(obj.modifiers) == count_before + 1
         assert history.step(True)
-        assert obj.modifiers.get(added.name) is None
+        assert obj.modifiers.get(added_name) is None
         assert history.step(False)
-        assert obj.modifiers.get(added.name) is not None
+        assert obj.modifiers.get(added_name) is not None
         assert [m.name for m in obj.modifiers][:len(old_stack)] == old_stack
 
         session.command(ctx, 'BACK')
