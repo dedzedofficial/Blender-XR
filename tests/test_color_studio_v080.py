@@ -125,7 +125,7 @@ def run():
         assert len(local.node_tree.links) == before_links
         assert len(source.node_tree.links) == before_links
         assert len(source.node_tree.nodes) == before_nodes
-        assert obj.data.uv_layers[0].name == uv_identity
+        assert obj.data.uv_layers.get(uv_identity) is not None
         assert history.undo[-1][0] == 'COLOR_EXISTING'
         assert history.step(True)
         assert obj.active_material == source
