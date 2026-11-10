@@ -193,6 +193,8 @@ def _edit(session, context, action, world=None):
             obj.data.splines.remove(spline)
             spline = obj.data.splines.new('BEZIER')
             _set_points(spline, records)
+            spline.use_cyclic_u = before[0]
+            spline.resolution_u = before[1]
             session._xr_curve_index = min(index, len(records)-1)
         elif action == 'CURVE_MOVE_POINT':
             if world is None:
@@ -245,6 +247,9 @@ def _arm(session, context, action):
         raise ValueError('Release the active XR edit before placing a Curve point')
     session._xr_curve_pending = (obj.name, obj.as_pointer(), action)
     session._xr_curve_ready = False
+    radial = getattr(session, 'radial', None)
+    if radial is not None and getattr(radial, 'active', False):
+        radial.reset(require_release=True)
     session._xr_curve_was_visible = bool(session.menu.visible)
     session.menu.visible = False
     session.status = 'CURVE: RELEASE, AIM, TRIGGER TO PLACE / OFFHAND CANCEL'
@@ -286,12 +291,12 @@ def _capture_tick(session, context):
         session._xr_rearm_required = True
         session.status = str(exc).upper() + ' / RELEASE TO REARM'
         return
-    if cancel:
+    if cancel and getattr(session, '_xr_curve_ready', False):
         _cancel_pending(session)
         session.status = 'CURVE POINT PLACEMENT CANCELLED'
         return
     if not pressed:
-        if getattr(session, '_xr_curve_pending', None):
+        if getattr(session, '_xr_curve_pending', None) and not cancel:
             session._xr_curve_ready = True
         else:
             session._xr_curve_release_required = False
