@@ -37,6 +37,7 @@ def run():
         original_mesh = cube.data
         assert runtime.Runtime._xr_native_lights_patched
         assert len(menus.PAGES['PRIMITIVES']) == 9
+        assert 'XR_WORLD_MENU' in [action for _, action in menus.PAGES['XR_LIGHT_HOME']]
         assert all(1 <= len(menus.PAGES[page]) <= 12 for page in (
             'XR_LIGHT_HOME', 'XR_LIGHT_EDIT', 'XR_LIGHT_COLOR',
             'XR_LIGHT_SHAPE', 'XR_LIGHT_PRESETS'))
