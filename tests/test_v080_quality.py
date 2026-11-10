@@ -363,6 +363,59 @@ def run():
         assert guarded._weight_stroke is not None, (
             'Read-only Scene Pulse must not discard an active paint stroke')
 
+        # Dispatcher migration contract: a nested mode command delegates once
+        # through the existing handler, but independent commands cannot enter
+        # while another gesture owns the controller. Exceptions must release
+        # the guard so the next command is not silently privileged.
+        class DispatchProbe:
+            def __init__(self):
+                self.calls = []
+                self._weight_stroke = None
+
+            def command(self, context, action):
+                self.calls.append(action)
+                if action == 'OUTER':
+                    return self.command(context, 'INNER')
+                if action == 'FAIL':
+                    raise RuntimeError('handler failed')
+                return action
+
+        input_ownership_v080.patch_runtime(DispatchProbe)
+        probe = DispatchProbe()
+        assert probe.command(None, 'OUTER') == 'INNER'
+        assert probe.calls == ['OUTER', 'INNER']
+        assert probe._xr_command_depth == 0
+        probe._weight_stroke = object()
+        try:
+            probe.command(None, 'SAVE')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('A completed nested command bypassed ownership')
+        assert probe.calls == ['OUTER', 'INNER']
+        probe._weight_stroke = None
+        try:
+            probe.command(None, 'FAIL')
+        except RuntimeError as exc:
+            assert 'handler failed' in str(exc)
+        else:
+            raise AssertionError('Handler exception was swallowed by dispatcher')
+        assert probe._xr_command_depth == 0
+        probe._weight_stroke = object()
+        try:
+            probe.command(None, 'UNDO')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Handler failure left a privileged dispatch depth')
+        assert probe.calls == ['OUTER', 'INNER', 'FAIL']
+        # Idempotent patching must not stack a second dispatcher wrapper.
+        input_ownership_v080.patch_runtime(DispatchProbe)
+        probe._weight_stroke = None
+        assert probe.command(None, 'NEXT') == 'NEXT'
+        assert probe.calls[-1] == 'NEXT'
+        assert probe._xr_command_depth == 0
+
         assert recovery_v080.safe_to_save(bpy.context) is False, 'Headless test cannot checkpoint'
         assert settings.recovery_enabled
         cache_a = rigging_v076.cached_weight_tree(obj)
