@@ -37,11 +37,12 @@ try:
     assert 'RIG_MENU' not in [action for _, action in menus.PAGES['TOOLS']]
     assert 'RIG_MENU' in [action for _, action in menus.PAGES['CREATOR']]
     assert 'DELETE_OBJECT' in [action for _, action in menus.PAGES['CREATOR']]
+    assert 'RIG_WEIGHT' in [action for _, action in menus.PAGES['RIGGING']]
     assert 'UNDO' in [action for _, action in menus.PAGES['TOOLS']]
     assert [action for _, action in menus.PAGES['TOOLS']].count('CREATOR_MENU') == 1
     assert any(action == 'LAYOUT_MENU' for _, action in menus.PAGES['OBJECT_ADVANCED'])
     expected = {'NAV_MENU', 'FOCUS_MENU', 'LAYOUT_MENU', 'RIG_MENU',
-                'MODE_WEIGHT_PAINT', 'MATERIAL_MENU', 'UV_MENU',
+                'SCENE_MENU', 'MATERIAL_MENU', 'UV_MENU',
                 'OBJECT_ADVANCED', 'MODIFIER_MENU', 'ADD_MENU'}
     assert expected <= {action for _, action in menus.PAGES['CREATOR']}
     for page in ('TOOLS', 'CREATOR', 'OBJECT_ADVANCED'):
