@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, color_studio_v080, native_modifiers_v080, native_curves_v080, native_lighting_v080, world_atmosphere_v080, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, color_studio_v080, native_modifiers_v080, native_curves_v080, native_lighting_v080, world_atmosphere_v080, assembly_v085, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -30,6 +30,7 @@ native_modifiers_v080.patch_runtime(runtime.Runtime)
 native_curves_v080.patch_runtime(runtime.Runtime)
 native_lighting_v080.patch_runtime(runtime.Runtime)
 world_atmosphere_v080.patch_runtime(runtime.Runtime)
+assembly_v085.patch_runtime(runtime.Runtime)
 input_ownership_v080.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
