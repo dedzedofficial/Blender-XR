@@ -164,6 +164,10 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_native_modifiers_v080.py
+      - name: Native Bezier curve creation and XR-local undo integration
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_native_curves_v080.py
       - name: v0.8 articulated XR hand geometry tests
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -231,6 +235,7 @@ jobs:
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_scene_hierarchy_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_color_studio_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_modifiers_v080.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_curves_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_blender.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_rigging_v076.py
       - name: Unmount official Blender DMG
