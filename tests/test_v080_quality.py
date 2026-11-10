@@ -235,6 +235,21 @@ def run():
         assert owner(stub) == 'REARM'
         assert not input_ownership_v080.cancel_conflict(stub)
         assert cancelled == [True]
+        # Rearm must not conceal a *new* incompatible pair from the outer
+        # tick. This can occur when legacy handlers write late state.
+        stub.grab = object()
+        stub.bone_drag = object()
+        assert owner(stub) == 'REARM'  # Public diagnostics retain latch.
+        assert input_ownership_v080.cancel_conflict(stub)
+        assert cancelled == [True, True]
+        assert radial_resets == [True, True]
+        assert stub.grab is None and stub.bone_drag is None
+        assert not input_ownership_v080.cancel_conflict(stub)
+        # A single late gesture remains for the session-loss rollback path;
+        # it must not be mistaken for a conflicting pair.
+        stub.grab = object()
+        assert not input_ownership_v080.cancel_conflict(stub)
+        stub.grab = None
         # A session stop while grabbing or painting must roll back once.
         # It cannot rely on the pose-loss handler, which may never run.
         stub._xr_rearm_required = False
