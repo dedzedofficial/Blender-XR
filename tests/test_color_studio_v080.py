@@ -182,7 +182,7 @@ def run():
 
         with TemporaryDirectory() as temp:
             file = Path(temp) / 'xr-colour-scene.blend'
-            bpy.ops.wm.save_as_mainfile(filepath=str(file))
+            bpy.ops.wm.save_as_mainfile(filepath=str(file), copy=True)
             assert file.exists() and file.stat().st_size > 0
             # Loading the saved material proves nodes and their links are still
             # native Blender data. No reload into a new XR session is needed.
