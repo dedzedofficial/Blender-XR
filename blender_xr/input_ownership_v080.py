@@ -144,3 +144,18 @@ def cancel_session_loss(session):
     session._xr_rearm_required = True
     session.status = 'XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
     return True
+
+
+def cancel_tracking_loss(session):
+    """Rollback live gestures once and latch neutral controls on lost pose.
+
+    Even an idle tracking failure must require rearm; a late gesture while
+    already rearming must still be cancelled rather than hidden by owner().
+    """
+    cancelled = cancel_session_loss(session)
+    radial = getattr(session, 'radial', None)
+    if radial is not None:
+        radial.reset(require_release=True)
+    session._xr_rearm_required = True
+    session.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
+    return cancelled

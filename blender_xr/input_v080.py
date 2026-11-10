@@ -51,16 +51,10 @@ def patch_runtime(Runtime):
             dom_pose = Quaternion(state.controller_aim_rotation_get(context, self.dom))
             off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
             if dom_pose.magnitude < .5 or off_pose.magnitude < .5:
-                if not getattr(self, '_xr_rearm_required', False):
-                    self.cancel_work()
-                self._xr_rearm_required = True
-                self.radial.reset(require_release=True)
-                self.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
+                input_ownership_v080.cancel_tracking_loss(self)
                 return
         except (RuntimeError, TypeError, ValueError):
-            self.cancel_work()
-            self._xr_rearm_required = True
-            self.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
+            input_ownership_v080.cancel_tracking_loss(self)
             return
         # The pure owner diagnostic is also a runtime safety invariant:
         # overlapping legacy handlers must be rolled back before either
