@@ -125,6 +125,7 @@ _ICON_BY_ACTION = {
     'FASTER': 'transform_scale', 'TURN_TOGGLE': 'transform_rotate',
     'RESET': 'view_camera',
     # Advanced object, geometry and modifier tools added in v0.7.1.
+    'SCENE_MENU': 'object_data',
     'OBJECT_ADVANCED': 'object_data', 'GEOMETRY_ADVANCED': 'mesh_data',
     'OBJ_DUPLICATE': 'duplicate', 'OBJ_SNAP': 'transform_move',
     'OBJ_RESET_ROT': 'transform_rotate',
