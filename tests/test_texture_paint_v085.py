@@ -153,7 +153,9 @@ def run():
             session.command(ctx, 'XR_PAINT_SAVE')
             folder_tex = Path(folder) / 'textures'
             assert len(list(folder_tex.glob('*.png'))) >= 1
-            with bpy.data.libraries.load(str(path)) as (library, imported):
+            verify_copy = Path(folder) / 'xr-texture-paint-verify.blend'
+            bpy.ops.wm.save_as_mainfile(filepath=str(verify_copy), copy=True)
+            with bpy.data.libraries.load(str(verify_copy)) as (library, imported):
                 imported.materials = [mat.name]
             loaded = imported.materials[0]
             assert loaded is not None and loaded.use_nodes
