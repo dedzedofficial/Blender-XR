@@ -42,7 +42,7 @@ def patch_runtime(Runtime):
             # Roll back every live mutation, not just the paint brush.
             cancelled = input_ownership_v080.cancel_session_loss(self)
             if hasattr(self, 'radial') and not cancelled:
-                self.radial.reset()
+                self.radial.reset(require_release=True)
             return old_tick(self, context)
 
         # Tracking-loss rearm: after a lost pose, do not act upon a still-held

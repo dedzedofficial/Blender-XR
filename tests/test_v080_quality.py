@@ -262,6 +262,18 @@ def run():
         assert owner(stub) == 'REARM'
         assert not input_ownership_v080.cancel_session_loss(stub)
         assert cancelled == [True, True, True]
+        assert stub._xr_rearm_required
+        # An idle session stop still invalidates input edges: reconnecting
+        # with a held trigger must wait for a neutral release sample.
+        stub._xr_rearm_required = False
+        before_idle = len(cancelled)
+        before_resets = len(radial_resets)
+        assert not input_ownership_v080.cancel_session_loss(stub)
+        assert len(cancelled) == before_idle
+        assert len(radial_resets) == before_resets + 1
+        assert radial_resets[-1] is True
+        assert stub._xr_rearm_required
+        assert 'REARM' in stub.status
         stub._xr_rearm_required = False
         stub._weight_stroke = object()
         stub.cancel_work = lambda: (cancelled.append('stroke'), setattr(stub, '_weight_stroke', None))
