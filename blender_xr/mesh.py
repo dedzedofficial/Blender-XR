@@ -527,6 +527,30 @@ class History:
             return False
         entry = source[-1]
         obj = bpy.data.objects.get(entry[1])
+        if entry[0] in {'SCENE_VISIBILITY', 'SCENE_SELECT_LOCK'}:
+            # These native scene flags need undo inside the running XR modal
+            # session, without invoking Blender-global bpy.ops.ed.undo().
+            scene_name, layer_name = entry[2]
+            context = bpy.context
+            if (context.mode != 'OBJECT' or context.scene.name != scene_name or
+                    context.view_layer.name != layer_name):
+                raise ValueError('Return to the original scene/view layer in Object Mode to undo')
+            if obj is None or context.view_layer.objects.get(entry[1]) != obj:
+                raise ValueError('Hierarchy object changed outside XR; restart XR history')
+            if obj.library or obj.override_library:
+                raise ValueError('Linked hierarchy objects cannot be modified')
+            current = (bool(obj.hide_get(view_layer=context.view_layer))
+                       if entry[0] == 'SCENE_VISIBILITY' else bool(obj.hide_select))
+            expected = bool(entry[4] if backwards else entry[3])
+            if current != expected:
+                raise ValueError('Hierarchy visibility/lock changed outside XR history')
+            value = bool(entry[3] if backwards else entry[4])
+            if entry[0] == 'SCENE_VISIBILITY':
+                obj.hide_set(value, view_layer=context.view_layer)
+            else:
+                obj.hide_select = value
+            dest.append(source.pop())
+            return True
         if entry[0] == 'CREATE':
             if backwards:
                 if obj is None or obj.mode != 'OBJECT' or obj.data.name != entry[2]:
