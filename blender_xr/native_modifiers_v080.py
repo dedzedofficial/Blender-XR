@@ -151,7 +151,7 @@ def _history_entry(obj, mod, old, new, created=False, index=None):
         return None
     return ('XR_NATIVE_MODIFIER', obj.name, obj.data.name, obj,
             mod.name, mod.type, old, new, bool(created),
-            len(obj.modifiers) - 1 if index is None else int(index))
+            list(obj.modifiers).index(mod) if index is None else int(index))
 
 
 def _edit(session, context, kind, action):
@@ -226,7 +226,7 @@ def _edit(session, context, kind, action):
 
 def _create(session, context, kind):
     obj = _editable(context)
-    mod = obj.modifiers.new(name='Mesh XR ' + kind.title(), type=kind)
+    mod = obj.modifiers.new(name='Blender XR ' + kind.title(), type=kind)
     if kind == 'MIRROR':
         mod.use_axis = (True, False, False)
         mod.use_clip = True
