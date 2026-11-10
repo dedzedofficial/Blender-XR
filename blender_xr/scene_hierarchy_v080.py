@@ -77,6 +77,7 @@ def _render_item(session, context):
         ('ADD/REMOVE', 'HIER_MULTI'),
         ('SHOW' if hidden else 'HIDE', 'HIER_VISIBILITY'),
         ('UNLOCK' if locked else 'LOCK', 'HIER_LOCK'),
+        ('ASSEMBLY', 'XR_ASSEMBLY_MENU'),
         ('BACK', 'HIER_BACK'),
     )
     menus.TITLES[_ITEM] = ('OBJECT / ' + obj.name)[:21]
