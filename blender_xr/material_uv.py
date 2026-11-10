@@ -580,6 +580,10 @@ class BXR_PT_materials_v060(bpy.types.Panel):
             row.operator('blender_xr.material_action', text='Select Slot Faces', icon='RESTRICT_SELECT_OFF').action = 'SELECT_FACES'
         layout.separator()
         layout.prop(settings, 'object_color', text='Base Color', icon='COLOR')
+        row = layout.row(align=True)
+        row.prop(settings, 'color_hex', text='HEX')
+        row.operator('blender_xr.color_hex_preview', text='Preview', icon='COLOR')
+        layout.label(text='Use Local/Shared Edit in XR; preserves existing materials', icon='INFO')
         layout.prop(settings, 'material_metallic', icon='MATERIAL')
         layout.prop(settings, 'material_roughness', icon='SHADING_SOLID')
         layout.prop(settings, 'material_alpha', icon='IMAGE_ALPHA')
