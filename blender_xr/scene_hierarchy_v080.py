@@ -10,6 +10,8 @@ from . import menus, v065
 _LIST = 'SCENE_HIERARCHY'
 _ITEM = 'SCENE_HIERARCHY_ITEM'
 _PAGE_SIZE = 7
+_SEARCH = 'SCENE_HIERARCHY_SEARCH'
+_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '
 
 
 def _collection(context, path):
@@ -21,7 +23,12 @@ def _collection(context, path):
     return collection
 
 
-def _items(context, path):
+def _items(context, path, query=''):
+    if query:
+        # Search loaded objects in the active view layer, not disk assets.
+        return tuple(('OBJECT', obj.name) for obj in
+                     sorted(context.view_layer.objects, key=lambda obj: obj.name.casefold())
+                     if query.casefold() in obj.name.casefold())
     collection = _collection(context, path)
     rows = [('COLLECTION', child.name) for child in collection.children]
     rows += [('OBJECT', obj.name) for obj in collection.objects
@@ -44,7 +51,8 @@ def _require_object_mode(context):
 
 def _render_list(session, context):
     path = getattr(session, '_xr_hierarchy_path', [])
-    entries = _items(context, path)
+    query = getattr(session, '_xr_hierarchy_query', '')
+    entries = _items(context, path, query)
     page = max(0, int(getattr(session, '_xr_hierarchy_page', 0)))
     page = min(page, (len(entries) - 1) // _PAGE_SIZE if entries else 0)
     session._xr_hierarchy_page = page
@@ -59,13 +67,29 @@ def _render_list(session, context):
         buttons.append(('PREVIOUS', 'HIER_PREV'))
     if start + _PAGE_SIZE < len(entries):
         buttons.append(('NEXT', 'HIER_NEXT'))
-    if path:
+    if path and not query:
         buttons.append(('UP LEVEL', 'HIER_UP'))
-    buttons.extend((('REFRESH', 'HIER_REFRESH'), ('BACK', 'HIER_BACK')))
+    buttons.extend((('SEARCH', 'HIER_SEARCH'), ('REFRESH', 'HIER_REFRESH'),
+                    ('BACK', 'HIER_BACK')))
     menus.PAGES[_LIST] = tuple(buttons)
-    menus.TITLES[_LIST] = ('SCENE / ' + _collection(context, path).name)[:21]
+    menus.TITLES[_LIST] = ('SEARCH / ' + query if query else
+                           'SCENE / ' + _collection(context, path).name)[:21]
     session.menu.page = _LIST
     session.status = 'HIERARCHY / PAGE {} / {} ENTRIES'.format(page + 1, len(entries))
+
+
+def _render_search(session):
+    index = max(0, min(2, int(getattr(session, '_xr_hierarchy_search_page', 0))))
+    session._xr_hierarchy_search_page = index
+    letters = _ALPHABET[index * 9:(index + 1) * 9]
+    menus.PAGES[_SEARCH] = tuple((('SPACE' if ch == ' ' else ch),
+                                  'HIER_CHAR_' + str(index * 9 + i))
+                                 for i, ch in enumerate(letters)) + (
+        ('NEXT ABC', 'HIER_SEARCH_NEXT'), ('DELETE', 'HIER_SEARCH_DELETE'),
+        ('RESULTS', 'HIER_SEARCH_DONE'))
+    menus.TITLES[_SEARCH] = 'SEARCH OBJECTS'
+    session.menu.page = _SEARCH
+    session.status = 'SEARCH / ' + (getattr(session, '_xr_hierarchy_query', '') or '(EMPTY)')
 
 
 def _render_item(session, context):
@@ -134,8 +158,10 @@ def _toggle(session, context, obj, action):
 def install_pages():
     menus.PAGES[_LIST] = (('BACK', 'HIER_BACK'),)
     menus.PAGES[_ITEM] = (('BACK', 'HIER_BACK'),)
+    menus.PAGES[_SEARCH] = (('RESULTS', 'HIER_SEARCH_DONE'),)
     menus.TITLES[_LIST] = 'SCENE HIERARCHY'
     menus.TITLES[_ITEM] = 'OBJECT SETTINGS'
+    menus.TITLES[_SEARCH] = 'SEARCH OBJECTS'
     v065.TOOLTIPS.update({
         'SCENE_MENU': ('Scene Hierarchy', 'Browse collections and select, hide or lock loaded objects on your offhand'),
         'HIER_SELECT': ('Select Object', 'Select this visible unlocked object exclusively'),
@@ -143,6 +169,7 @@ def install_pages():
         'HIER_VISIBILITY': ('Toggle Object Visibility', 'Change view-layer visibility, preserving render visibility'),
         'HIER_LOCK': ('Toggle Selection Lock', 'Prevent selecting and editing this object'),
         'HIER_REFRESH': ('Refresh Hierarchy', 'Rebuild the object list after a scene change'),
+        'HIER_SEARCH': ('Search Loaded Objects', 'Filter the current view-layer objects by name'),
     })
 
 
@@ -158,9 +185,37 @@ def patch_runtime(Runtime):
             self._xr_hierarchy_path = []
             self._xr_hierarchy_page = 0
             self._xr_hierarchy_object = None
+            self._xr_hierarchy_query = ''
+            self._xr_hierarchy_search_page = 0
             self._creator_parent_page = None
             _render_list(self, context)
             return
+        if action == 'HIER_SEARCH' and self.menu.page == _LIST:
+            _render_search(self)
+            return
+        if self.menu.page == _SEARCH:
+            if action.startswith('HIER_CHAR_'):
+                try:
+                    index = int(action[len('HIER_CHAR_'):])
+                except ValueError:
+                    raise ValueError('Invalid search key') from None
+                if index not in range(len(_ALPHABET)) or index // 9 != self._xr_hierarchy_search_page:
+                    raise ValueError('Search key expired; reopen keyboard')
+                self._xr_hierarchy_query = (self._xr_hierarchy_query + _ALPHABET[index])[:32]
+                _render_search(self)
+                return
+            if action == 'HIER_SEARCH_NEXT':
+                self._xr_hierarchy_search_page = (self._xr_hierarchy_search_page + 1) % 3
+                _render_search(self)
+                return
+            if action == 'HIER_SEARCH_DELETE':
+                self._xr_hierarchy_query = self._xr_hierarchy_query[:-1]
+                _render_search(self)
+                return
+            if action in {'HIER_SEARCH_DONE', 'HIER_BACK'}:
+                self._xr_hierarchy_page = 0
+                _render_list(self, context)
+                return
         if action == 'HIER_REFRESH' and self.menu.page == _LIST:
             _render_list(self, context)
             return
@@ -178,7 +233,11 @@ def patch_runtime(Runtime):
             if self.menu.page == _ITEM:
                 _render_list(self, context)
             elif self.menu.page == _LIST:
-                if getattr(self, '_xr_hierarchy_path', []):
+                if getattr(self, '_xr_hierarchy_query', ''):
+                    self._xr_hierarchy_query = ''
+                    self._xr_hierarchy_page = 0
+                    _render_list(self, context)
+                elif getattr(self, '_xr_hierarchy_path', []):
                     self._xr_hierarchy_path.pop()
                     self._xr_hierarchy_page = 0
                     _render_list(self, context)
@@ -197,7 +256,8 @@ def patch_runtime(Runtime):
                 raise ValueError('Hierarchy selection expired; refresh') from None
             # A row must never silently point to a different object after an
             # out-of-band rename, unlink or collection reordering.
-            entries = _items(context, self._xr_hierarchy_path)
+            entries = _items(context, self._xr_hierarchy_path,
+                             getattr(self, '_xr_hierarchy_query', ''))
             start = self._xr_hierarchy_page * _PAGE_SIZE
             if rows != entries[start:start + _PAGE_SIZE]:
                 _render_list(self, context)
