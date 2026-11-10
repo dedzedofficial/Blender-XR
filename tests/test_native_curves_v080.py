@@ -88,6 +88,7 @@ def run():
         assert session._xr_curve_index == 1
 
         mat = bpy.data.materials.new('XR Curve Material')
+        mat.diffuse_color = (.22, .44, .66, 1.0)
         obj.data.materials.append(mat)
         old_mat_name = obj.data.materials[0].name
         before = curves._state(obj)
@@ -209,7 +210,11 @@ def run():
             assert restored.type == 'CURVE'
             assert len(restored.data.splines[0].bezier_points) == 2
             assert restored.data.splines[0].use_cyclic_u
-            assert restored.data.materials[0].name == old_mat_name
+            # Appending a .blend library may suffix duplicate material names;
+            # verify the saved native material payload rather than its alias.
+            assert restored.data.materials[0] is not None
+            assert near(restored.data.materials[0].diffuse_color,
+                        (.22, .44, .66, 1.0))
         assert cube.data == mesh_data
         print('PASS native Curve/Bezier creation, points, handles, cancellation, undo and save')
     finally:
