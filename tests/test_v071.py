@@ -37,7 +37,7 @@ try:
     assert 'RIG_MENU' not in [action for _, action in menus.PAGES['TOOLS']]
     assert 'RIG_MENU' in [action for _, action in menus.PAGES['CREATOR']]
     assert 'DELETE_OBJECT' in [action for _, action in menus.PAGES['CREATOR']]
-    assert 'RIG_WEIGHT' in [action for _, action in menus.PAGES['RIGGING']]
+    assert 'MODE_WEIGHT_PAINT' in [action for _, action in menus.PAGES['RIGGING']]
     assert 'UNDO' in [action for _, action in menus.PAGES['TOOLS']]
     assert [action for _, action in menus.PAGES['TOOLS']].count('CREATOR_MENU') == 1
     assert any(action == 'LAYOUT_MENU' for _, action in menus.PAGES['OBJECT_ADVANCED'])
