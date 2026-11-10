@@ -294,6 +294,17 @@ def run():
         assert input_ownership_v080.cancel_session_loss(stub)
         assert cancelled[-1] == 'grab'
         assert not input_ownership_v080.cancel_session_loss(stub)
+        # Radial-only tracking loss must latch neutral rearm, not merely
+        # close the menu while its offhand trigger remains held.
+        stub.grab = None
+        stub._xr_rearm_required = False
+        stub.radial.active = True
+        before_radial = len(cancelled)
+        assert input_ownership_v080.cancel_tracking_loss(stub)
+        assert stub._xr_rearm_required
+        assert len(cancelled) == before_radial + 1
+        assert radial_resets[-1] is True
+        stub.radial.active = False
         # Invalid pose and pose-read exceptions share an idempotent rollback
         # path, including late gestures while already awaiting neutral input.
         stub._xr_rearm_required = False
