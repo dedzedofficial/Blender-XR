@@ -368,7 +368,8 @@ def _patch_history():
             else:
                 if obj is not None or bpy.data.curves.get(data_name) != data:
                     raise ValueError('Curve name or data changed outside XR history')
-                valid = [coll for coll in collections if bpy.data.collections.get(coll.name) == coll]
+                valid = [coll for coll in collections if (coll == bpy.context.scene.collection or
+                         bpy.data.collections.get(coll.name) == coll)]
                 if not valid:
                     raise ValueError('Original Curve collection was removed')
                 obj = bpy.data.objects.new(name, data)
