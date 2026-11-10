@@ -380,6 +380,33 @@ def run():
                     raise RuntimeError('handler failed')
                 return action
 
+        # Direct dispatcher entry and patched Runtime share exactly one
+        # permission gate; blocked calls must never reach a legacy handler.
+        direct = DispatchProbe()
+        assert input_ownership_v080.dispatch_command(
+            direct, None, 'NEXT', DispatchProbe.command) == 'NEXT'
+        assert direct.calls == ['NEXT']
+        assert direct._xr_command_depth == 0
+        direct._weight_stroke = object()
+        try:
+            input_ownership_v080.dispatch_command(
+                direct, None, 'SAVE', DispatchProbe.command)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Direct dispatcher bypassed gesture ownership')
+        assert direct.calls == ['NEXT']
+        assert direct._xr_command_depth == 0
+        direct._weight_stroke = None
+        try:
+            input_ownership_v080.dispatch_command(
+                direct, None, 'FAIL', DispatchProbe.command)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError('Direct dispatcher swallowed handler failure')
+        assert direct._xr_command_depth == 0
+
         input_ownership_v080.patch_runtime(DispatchProbe)
         probe = DispatchProbe()
         assert probe.command(None, 'OUTER') == 'INNER'
