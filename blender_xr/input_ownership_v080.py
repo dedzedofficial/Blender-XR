@@ -140,15 +140,18 @@ def cancel_session_loss(session):
                        for name in live_fields)
     radial = getattr(session, 'radial', None)
     radial_active = bool(getattr(radial, 'active', False))
-    if not has_mutation and not radial_active:
-        return False
-    session.cancel_work()
+    # Even an idle stopped session invalidates the controller edge state.
+    # Otherwise a held trigger on reconnect can start an unintended edit.
+    if has_mutation or radial_active:
+        session.cancel_work()
     radial = getattr(session, 'radial', None)
     if radial is not None:
         radial.reset(require_release=True)
     session._xr_rearm_required = True
-    session.status = 'XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
-    return True
+    session.status = ('XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
+                      if has_mutation or radial_active else
+                      'XR SESSION STOPPED / RELEASE CONTROLS TO REARM')
+    return has_mutation or radial_active
 
 
 def cancel_tracking_loss(session):
