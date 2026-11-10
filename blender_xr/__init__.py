@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, color_studio_v080, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -25,6 +25,7 @@ input_v080.patch_runtime(runtime.Runtime)
 focus_v080.patch_runtime(runtime.Runtime)
 creator_hub_v080.patch_runtime(runtime.Runtime)
 scene_hierarchy_v080.patch_runtime(runtime.Runtime)
+color_studio_v080.patch_runtime(runtime.Runtime)
 input_ownership_v080.patch_runtime(runtime.Runtime)
 # Keep the v0.6 desktop panels grouped with the renamed add-on without changing
 # the stable blender_xr operator/property namespace or persisted material node names.
@@ -113,6 +114,16 @@ class BXR_Settings(bpy.types.PropertyGroup):
     object_color: FloatVectorProperty(name='Material Color', subtype='COLOR_GAMMA', size=4,
         min=0.0, max=1.0, default=(0.18,0.55,0.95,1.0),
         description='Choose a color, then apply it to the active object or selected faces')
+    color_hex: bpy.props.StringProperty(name='HEX Colour', default='#2E8CF2',
+        description='Preview #RRGGBB or #RRGGBBAA without altering any material')
+    color_swatch_0: FloatVectorProperty(name='Colour Swatch 1', subtype='COLOR_GAMMA', size=4,
+        min=0.0, max=1.0, default=(1.0, 0.12, 0.12, 1.0))
+    color_swatch_1: FloatVectorProperty(name='Colour Swatch 2', subtype='COLOR_GAMMA', size=4,
+        min=0.0, max=1.0, default=(0.18, 0.55, 0.95, 1.0))
+    color_swatch_2: FloatVectorProperty(name='Colour Swatch 3', subtype='COLOR_GAMMA', size=4,
+        min=0.0, max=1.0, default=(1.0, 1.0, 1.0, 1.0))
+    color_swatch_3: FloatVectorProperty(name='Colour Swatch 4', subtype='COLOR_GAMMA', size=4,
+        min=0.0, max=1.0, default=(0.0, 0.0, 0.0, 1.0))
     material_metallic: FloatProperty(name='Metallic', default=0.0, min=0.0, max=1.0)
     material_roughness: FloatProperty(name='Roughness', default=0.5, min=0.0, max=1.0)
     material_alpha: FloatProperty(name='Alpha', default=1.0, min=0.0, max=1.0)
@@ -370,7 +381,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES + (v071.BXR_OT_quick_layout,)
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES + color_studio_v080.CLASSES + (v071.BXR_OT_quick_layout,)
 
 def register():
     for cls in CLASSES:

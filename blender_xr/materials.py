@@ -32,6 +32,24 @@ def rgba(color):
     return values
 
 
+def to_hex(color, include_alpha=False):
+    """Render a normalized colour as an exact, headset-readable RGB/ARGB value."""
+    components = tuple(round(v * 255) for v in rgba(color))
+    count = 4 if include_alpha else 3
+    return '#' + ''.join('{:02X}'.format(v) for v in components[:count])
+
+
+def from_hex(text, alpha=1.0):
+    """Accept #RRGGBB or #RRGGBBAA without modifying the material."""
+    value = str(text).strip()
+    if value.startswith('#'):
+        value = value[1:]
+    if len(value) not in (6, 8) or any(c not in '0123456789abcdefABCDEF' for c in value):
+        raise ValueError('HEX colour needs six or eight hexadecimal digits')
+    values = tuple(int(value[i:i+2], 16) / 255 for i in range(0, len(value), 2))
+    return rgba(values + ((alpha,) if len(values) == 3 else ()))
+
+
 def adjust_hsv(color, hue=0.0, saturation=0.0, value=0.0):
     """Legacy incremental HSV adjustment kept for compatibility."""
     red, green, blue, alpha = rgba(color)
