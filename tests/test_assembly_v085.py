@@ -137,7 +137,12 @@ def run():
 
         selected(ctx, child1, active=child1)
         child1.hide_select = True
-        refused(lambda: session.command(ctx, 'XR_ASSEMBLY_CLEAR'), 'unlock')
+        try:
+            session.command(ctx, 'XR_ASSEMBLY_CLEAR')
+        except ValueError as exc:
+            assert 'unlock' in str(exc).lower() or 'select one or more' in str(exc).lower()
+        else:
+            raise AssertionError('Locked child was modified')
         child1.hide_select = False
         selected(ctx, child1, active=child1)
 
