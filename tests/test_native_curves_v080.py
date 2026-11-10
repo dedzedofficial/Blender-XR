@@ -38,7 +38,8 @@ def run():
         cube = ctx.object
         mesh_data = cube.data
         original_count = len(mesh_data.vertices)
-        assert len(menus.PAGES['PRIMITIVES']) == 8
+        assert len(menus.PAGES['PRIMITIVES']) == 9  # Curves and Lights both use Shapes
+        assert any(action == 'XR_LIGHT_MENU' for _, action in menus.PAGES['PRIMITIVES'])
         assert any(action == 'CURVE_MENU' for _, action in menus.PAGES['PRIMITIVES'])
         assert all(0 < len(menus.PAGES[name]) <= 12 for name in
                    ('XR_CURVE_MAIN', 'XR_CURVE_HANDLES', 'XR_CURVE_DISPLAY'))
