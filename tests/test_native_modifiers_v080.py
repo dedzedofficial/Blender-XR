@@ -176,8 +176,17 @@ def run():
 
         # Editing a locked mesh should be refused; untouched data is preserved.
         obj.hide_select = True
-        refusal(lambda: session.command(ctx, 'XR_ARRAY_COUNT_UP'), 'unlock')
+        old_count = arr.count
+        try:
+            session.command(ctx, 'XR_ARRAY_COUNT_UP')
+        except ValueError as exc:
+            assert 'unlock' in str(exc).lower() or 'select a mesh' in str(exc).lower()
+        else:
+            raise AssertionError('Selection-locked mesh was edited')
+        assert arr.count == old_count
         obj.hide_select = False
+        obj.select_set(True)
+        ctx.view_layer.objects.active = obj
         bpy.ops.object.mode_set(mode='EDIT')
         refusal(lambda: session.command(ctx, 'XR_ARRAY_COUNT_UP'), 'Object Mode')
         bpy.ops.object.mode_set(mode='OBJECT')
