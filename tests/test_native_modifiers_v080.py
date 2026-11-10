@@ -158,7 +158,7 @@ def run():
         session.command(ctx, 'XR_ARRAY_MODES_MENU')
         session.command(ctx, 'XR_ARRAY_MODE_RELATIVE')
         assert arr.use_relative_offset and not arr.use_object_offset
-        assert unrelated.width == .23
+        assert abs(unrelated.width - .23) < 1e-6
         assert obj.data == original_mesh
         assert tuple(x.name for x in obj.data.uv_layers) == uv_names
         assert len(obj.data.vertices) == original_vertex_count
@@ -172,7 +172,7 @@ def run():
         assert obj.modifiers.get(new_name) is None
         assert history.step(False)
         assert obj.modifiers.get(new_name) is not None
-        assert unrelated.width == .23
+        assert abs(unrelated.width - .23) < 1e-6
 
         # Editing a locked mesh should be refused; untouched data is preserved.
         obj.hide_select = True
