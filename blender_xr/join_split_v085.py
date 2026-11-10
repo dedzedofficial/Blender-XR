@@ -12,10 +12,12 @@ import json
 import uuid
 
 import bpy
+import bmesh
 
 from . import menus, mesh, v065
 
 _PAGE = 'XR_JOIN_SPLIT_085'
+_EDIT_PAGE = 'XR_FACE_EXTRACT_085'
 _MARKER = '_meshxr_parts_group'
 _META = '_meshxr_parts_meta'
 _SIGNATURE = '_meshxr_parts_signature'
@@ -310,6 +312,84 @@ def _split(context, kind):
         raise
 
 
+def _extract_faces(context, keep_original_visible=False):
+    """Copy one selected-face region using Blender's native Separate Selection.
+
+    The editable source mesh is never split. A temporary native mesh copy
+    receives the operation. Its remainder is retained for Separate Selection,
+    or discarded for Extract as Copy. Both outputs keep Blender UVs, materials
+    and vertex-group data and are restorable via the existing parts history.
+    """
+    if context.mode != 'EDIT_MESH':
+        raise ValueError('Select faces in Mesh Edit Mode to extract them')
+    original = context.view_layer.objects.active
+    if (original is None or original.type != 'MESH' or original.mode != 'EDIT'
+            or len(context.objects_in_mode) != 1):
+        raise ValueError('Edit exactly one mesh when extracting selected faces')
+    bm = bmesh.from_edit_mesh(original.data)
+    selected_count = sum(1 for face in bm.faces if face.select and not face.hide)
+    total = len(bm.faces)
+    if selected_count < 1:
+        raise ValueError('Select at least one face to extract')
+    if selected_count == total:
+        raise ValueError('Keep at least one unselected face for separate/extract')
+    previous_selection = tuple(context.selected_objects)
+    previous_active = original
+    previous_objects = {obj for obj in context.view_layer.objects if obj is not None}
+    clone = None
+    try:
+        # Leaving Edit Mode flushes the face-selection state to the original
+        # native Mesh. No source topology/UV/vertex-group edits are performed.
+        bpy.ops.object.mode_set(mode='OBJECT')
+        _editable(context, original)
+        if len(context.selected_objects) != 1:
+            raise ValueError('Select exactly one source mesh to extract')
+        clone = original.copy()
+        clone.data = original.data.copy()
+        context.scene.collection.objects.link(clone)
+        clone.matrix_world = original.matrix_world.copy()
+        _select(context, [clone], clone)
+        bpy.ops.object.mode_set(mode='EDIT')
+        # The copied mesh retains selected-face flags from source Edit Mode.
+        bm_copy = bmesh.from_edit_mesh(clone.data)
+        if not any(face.select and not face.hide for face in bm_copy.faces):
+            raise ValueError('Selected faces did not transfer to extraction copy')
+        result = bpy.ops.mesh.separate(type='SELECTED')
+        if 'FINISHED' not in result:
+            raise ValueError('Blender could not separate selected mesh faces')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        created = [obj for obj in context.view_layer.objects
+                   if obj is not None and obj not in previous_objects]
+        pieces = [obj for obj in created if obj != clone]
+        if len(pieces) != 1 or any(obj.type != 'MESH' for obj in created):
+            raise ValueError('Expected one native extracted face region')
+        if keep_original_visible:
+            # Keep only extracted geometry; leave the creator's source visible.
+            data = clone.data
+            bpy.data.objects.remove(clone, do_unlink=True)
+            if data.users == 0:
+                bpy.data.meshes.remove(data)
+            return [original], pieces
+        return [original], created
+    except Exception:
+        if context.mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        for obj in tuple(context.view_layer.objects):
+            if obj is None or obj in previous_objects:
+                continue
+            data = obj.data
+            bpy.data.objects.remove(obj, do_unlink=True)
+            if data is not None and data.users == 0:
+                bpy.data.meshes.remove(data)
+        for selected in tuple(context.selected_objects):
+            selected.select_set(False)
+        if context.view_layer.objects.get(original.name) == original:
+            original.select_set(True)
+            context.view_layer.objects.active = original
+            bpy.ops.object.mode_set(mode='EDIT')
+        raise
+
+
 def _create(session, context, action):
     if action in {'XR_JOIN_JOIN', 'XR_JOIN_COPY'}:
         sources, outputs = _join(context)
@@ -318,6 +398,9 @@ def _create(session, context, action):
         mode = 'SPLIT'
         kind = 'LOOSE' if action == 'XR_JOIN_LOOSE' else 'MATERIAL'
         sources, outputs = _split(context, kind)
+    elif action in {'XR_JOIN_SELECTED', 'XR_JOIN_EXTRACT_COPY'}:
+        mode = 'COPY' if action == 'XR_JOIN_EXTRACT_COPY' else 'SPLIT'
+        sources, outputs = _extract_faces(context, keep_original_visible=(mode == 'COPY'))
     else:
         raise ValueError('Unknown Join/Separate command')
     record = _remember(context, mode, sources, outputs)
@@ -387,12 +470,29 @@ def install_pages():
         ('BY MATERIAL', 'XR_JOIN_MATERIAL'),
         ('BACK', 'BACK'),
     )
+    menus.PAGES[_EDIT_PAGE] = (
+        ('SEPARATE SEL', 'XR_JOIN_SELECTED'),
+        ('EXTRACT COPY', 'XR_JOIN_EXTRACT_COPY'),
+        ('BACK', 'BACK'),
+    )
+    menus.TITLES[_EDIT_PAGE] = 'EXTRACT SELECTED FACES'
     menus.TITLES[_PAGE] = 'JOIN & UNMERGE'
     buttons = tuple(menus.PAGES['XR_ASSEMBLY_085'])
     if not any(action == 'XR_JOIN_MENU' for _, action in buttons):
         menus.PAGES['XR_ASSEMBLY_085'] = buttons[:-1] + (
             ('JOIN / SPLIT', 'XR_JOIN_MENU'), buttons[-1])
+    # Edit More has a single free cell. Keep existing modelling tools intact
+    # and expose selected-face extraction directly from Mesh Edit Mode.
+    edit_more = tuple(menus.PAGES['EDIT_MORE'])
+    if not any(action == 'XR_JOIN_EDIT_MENU' for _, action in edit_more):
+        if len(edit_more) >= 12:
+            raise ValueError('Edit More has no room for native face extraction')
+        menus.PAGES['EDIT_MORE'] = edit_more[:-1] + (
+            ('EXTRACT', 'XR_JOIN_EDIT_MENU'), edit_more[-1])
     v065.TOOLTIPS.update({
+        'XR_JOIN_EDIT_MENU': ('Face Extraction', 'Extract selected mesh faces as copy or separate from a retained source'),
+        'XR_JOIN_SELECTED': ('Separate Selected Faces', 'Keep both resulting native parts; preserve original for Unmerge'),
+        'XR_JOIN_EXTRACT_COPY': ('Extract Faces as Copy', 'Copy only selected faces into a new Blender object'),
         'XR_JOIN_MENU': ('Join/Separate Meshes', 'Join while retaining original parts for exact Unmerge'),
         'XR_JOIN_JOIN': ('Join + Retain Sources', 'Create one native mesh; hide and preserve originals in .blend'),
         'XR_JOIN_COPY': ('Join as Copy', 'Create one native mesh and keep source parts visible'),
@@ -413,12 +513,26 @@ def patch_runtime(Runtime):
         menu = getattr(self, 'menu', None)
         if menu is None:
             return previous(self, context, action)
+        if action == 'XR_JOIN_EDIT_MENU':
+            if context.mode != 'EDIT_MESH':
+                raise ValueError('Enter Mesh Edit Mode before extracting faces')
+            menu.page = _EDIT_PAGE
+            self.status = 'EXTRACT / SELECT FACES THEN CHOOSE OPERATION'
+            return
         if action == 'XR_JOIN_MENU':
             if context.mode != 'OBJECT':
                 raise ValueError('Switch to Object Mode for Join/Separate')
             menu.page = _PAGE
             self.status = 'JOIN/UNMERGE / SELECT NATIVE MESHES'
             return
+        if menu.page == _EDIT_PAGE:
+            if action == 'BACK':
+                menu.page = 'EDIT_MORE'
+                return
+            if action in {'XR_JOIN_SELECTED', 'XR_JOIN_EXTRACT_COPY'}:
+                _create(self, context, action)
+                menu.page = _PAGE  # Unmerge is immediately accessible.
+                return
         if menu.page == _PAGE:
             if action == 'BACK':
                 menu.page = 'XR_ASSEMBLY_085'
