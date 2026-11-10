@@ -110,8 +110,8 @@ def patch_runtime(Runtime):
             off_position = Vector(state.controller_grip_location_get(context, self.off))
             if off_pose.magnitude < .5:
                 if self.radial.active:
-                    self.radial.reset(require_release=True)
-                    self.status = 'RADIAL CANCELLED / TRACKING LOST'
+                    input_ownership_v080.cancel_tracking_loss(self)
+                    self.status = 'RADIAL CANCELLED / TRACKING LOST / RELEASE CONTROLS'
                     return
                 return old_tick(self, context)
             off_held = bool(actions.read(context, 'trigger', self.off)[0] > .55)
@@ -121,8 +121,8 @@ def patch_runtime(Runtime):
             self.radial_supported = True
         except (ValueError, RuntimeError, IndexError, TypeError):
             if self.radial.active:
-                self.radial.reset(require_release=True)
-                self.status = 'RADIAL CANCELLED / INPUT LOST'
+                input_ownership_v080.cancel_tracking_loss(self)
+                self.status = 'RADIAL CANCELLED / INPUT LOST / RELEASE CONTROLS'
                 return
             self.radial_supported = False  # Restore the classic ray menu.
             return old_tick(self, context)
