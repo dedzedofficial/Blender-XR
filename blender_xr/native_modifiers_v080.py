@@ -345,6 +345,11 @@ def patch_runtime(Runtime):
     previous_command = Runtime.command
 
     def command(self, context, action):
+        # Legacy operators and Blender integration tests may dispatch on a
+        # lightweight Runtime proxy before its XR hand menu exists.
+        menu = getattr(self, 'menu', None)
+        if menu is None:
+            return previous_command(self, context, action)
         if action == 'MODIFIER_MENU':
             v071._idle(self)
             _editable(context)
