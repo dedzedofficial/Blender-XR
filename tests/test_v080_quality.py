@@ -300,7 +300,9 @@ def run():
         stub._xr_rearm_required = False
         stub.radial.active = True
         before_radial = len(cancelled)
+        before_radial_resets = len(radial_resets)
         assert input_ownership_v080.cancel_tracking_loss(stub)
+        assert len(radial_resets) == before_radial_resets + 1
         assert stub._xr_rearm_required
         assert len(cancelled) == before_radial + 1
         assert radial_resets[-1] is True
