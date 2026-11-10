@@ -32,7 +32,7 @@ def install_page():
         ('TRAVEL', 'NAV_MENU'), ('FOCUS', 'FOCUS_MENU'),
         ('LAYOUT', 'LAYOUT_MENU'), ('OBJECT', 'OBJECT_ADVANCED'),
         ('MODIFIERS', 'MODIFIER_MENU'), ('RIGGING', 'RIG_MENU'),
-        ('WEIGHTS', 'MODE_WEIGHT_PAINT'), ('SHAPES', 'ADD_MENU'),
+        ('SCENE', 'SCENE_MENU'), ('SHAPES', 'ADD_MENU'),
         ('MATERIALS', 'MATERIAL_MENU'), ('UV', 'UV_MENU'),
         ('DELETE OBJ', 'DELETE_OBJECT'), ('BACK', 'BACK'),
     )
