@@ -170,7 +170,14 @@ def run():
         # Bad HEX preview does not mutate selected material or XR colour.
         old_preview = tuple(settings.object_color)
         settings.color_hex = '#XX1234'
-        assert bpy.ops.blender_xr.color_hex_preview() == {'CANCELLED'}
+        try:
+            result = bpy.ops.blender_xr.color_hex_preview()
+        except RuntimeError as exc:
+            # Blender's Python operator API raises for reported ERROR even
+            # when the operator returns CANCELLED, unlike normal UI dispatch.
+            assert 'HEX colour' in str(exc), str(exc)
+        else:
+            assert result == {'CANCELLED'}
         assert close(settings.object_color, old_preview)
 
         with TemporaryDirectory() as temp:
