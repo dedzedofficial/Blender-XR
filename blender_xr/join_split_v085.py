@@ -70,7 +70,7 @@ def _source_state(context, obj):
 
 
 def _sources(context, names):
-    mapping = {obj.name: obj for obj in context.view_layer.objects}
+    mapping = {obj.name: obj for obj in context.view_layer.objects if obj is not None}
     results = []
     for state in names:
         obj = mapping.get(state['name'])
@@ -113,7 +113,7 @@ def _record_metadata(record):
 
 def _outputs(context, record):
     objlist = [obj for obj in context.view_layer.objects
-               if obj.get(_META) and obj.get(_MARKER) == record['group']]
+               if obj is not None and obj.get(_META) and obj.get(_MARKER) == record['group']]
     expected = {item['name'] for item in record['outputs']}
     if {obj.name for obj in objlist} != expected:
         raise ValueError('Combined mesh parts were renamed, removed or duplicated')
@@ -155,7 +155,7 @@ def _take_snapshot(context, obj):
     meta = json.loads(str(raw))
     group = meta['group']
     objects = [candidate for candidate in context.view_layer.objects
-               if candidate.get(_MARKER) == group and candidate.get(_META)]
+               if candidate is not None and candidate.get(_MARKER) == group and candidate.get(_META)]
     if not objects:
         raise ValueError('No joined components found')
     states = {item['name']: item for item in meta['sources']}
@@ -218,6 +218,7 @@ def _activate_sources(context, record):
         bpy.data.objects.remove(obj, do_unlink=True)
         if data.users == 0:
             bpy.data.meshes.remove(data)
+    context.view_layer.update()
     return _restore_sources(context, record)
 
 
