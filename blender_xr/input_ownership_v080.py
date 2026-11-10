@@ -7,11 +7,11 @@ own their state transitions until the staged dispatcher migration is tested.
 """
 
 
-def owner(session):
-    """Return a single action owner or IDLE; no controller reads or mutation."""
+def _gesture_owner(session, honor_rearm=True):
+    """Resolve live gestures, optionally looking behind the rearm latch."""
     if session is None:
         return 'IDLE'
-    if getattr(session, '_xr_rearm_required', False):
+    if honor_rearm and getattr(session, '_xr_rearm_required', False):
         return 'REARM'
     radial = bool(getattr(getattr(session, 'radial', None), 'active', False))
     active = set()
@@ -43,6 +43,11 @@ def owner(session):
     return next(iter(active)) if active else 'IDLE'
 
 
+def owner(session):
+    """Return the public action owner, including the controller rearm latch."""
+    return _gesture_owner(session)
+
+
 def cancel_conflict(session):
     """Roll back incompatible concurrent gestures before another XR tick.
 
@@ -51,7 +56,7 @@ def cancel_conflict(session):
     accepting a new gesture so a still-held trigger cannot immediately
     restart the interrupted operation.
     """
-    if owner(session) != 'CONFLICT':
+    if _gesture_owner(session, honor_rearm=False) != 'CONFLICT':
         return False
     session.cancel_work()
     radial = getattr(session, 'radial', None)
