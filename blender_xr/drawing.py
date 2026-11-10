@@ -126,8 +126,8 @@ _ICON_BY_ACTION = {
     'RESET': 'view_camera',
     # Advanced object, geometry and modifier tools added in v0.7.1.
     'SCENE_MENU': 'object_data',
-    'HIER_BACK': 'back', 'HIER_UP': 'back',
-    'HIER_NEXT': 'next', 'HIER_PREV': 'back',
+    'HIER_BACK': 'undo', 'HIER_UP': 'undo',
+    'HIER_NEXT': 'redo', 'HIER_PREV': 'undo',
     'HIER_REFRESH': 'preferences',
     'HIER_SELECT': 'object_data', 'HIER_MULTI': 'object_data',
     'HIER_VISIBILITY': 'view_camera', 'HIER_LOCK': 'preferences',
