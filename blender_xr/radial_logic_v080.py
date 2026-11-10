@@ -23,6 +23,7 @@ CATEGORIES = frozenset((
     'XR_ASSEMBLY_MENU',
     'XR_BOOL_MENU',
     'XR_JOIN_MENU',
+    'XR_PAINT_MENU', 'XR_PAINT_RES_MENU',
 ))
 
 
