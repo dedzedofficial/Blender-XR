@@ -1,10 +1,6 @@
 name: Package and release Mesh XR
 # All supported Blender versions must pass before GitHub and Blender Extensions release.
 on:
-  push:
-    branches: [main]
-    paths: ["blender_xr/**", "scripts/build.py", ".github/workflows/release.yml", "RELEASE_NOTES.md"]
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       publish_existing_to_blender:

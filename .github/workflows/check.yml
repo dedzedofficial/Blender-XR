@@ -1,10 +1,8 @@
 name: Validate Mesh XR
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
   workflow_call:
+
 permissions:
   contents: read
 jobs:

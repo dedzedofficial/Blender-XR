@@ -1,12 +1,7 @@
 name: Build Blender UI icon textures
 
 on:
-  push:
-    branches:
-      - fix/v0.7.5-functional-ui-rigging-grab
-    paths:
-      - "blender_xr/icons_src/**"
-      - "tools/build_icon_textures.py"
+  workflow_dispatch:
 
 permissions:
   contents: write
