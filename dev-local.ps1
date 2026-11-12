@@ -8,10 +8,10 @@ function Run-Python([string[]]$Arguments) {
 }
 Push-Location $Root
 try {
-    Run-Python @('-m', 'compileall', '-q', 'blender_xr', 'tests')
-    Run-Python @('tests/test_platform_support.py')
-    Run-Python @('tests/test_gestures.py')
-    Run-Python @('tests/test_prune.py')
-    if ($Build) { Run-Python @('scripts/build.py') }
+    Run-Python -Arguments @('-m', 'compileall', '-q', 'blender_xr', 'tests')
+    Run-Python -Arguments @('tests/test_platform_support.py')
+    Run-Python -Arguments @('tests/test_gestures.py')
+    Run-Python -Arguments @('tests/test_prune.py')
+    if ($Build) { Run-Python -Arguments @('scripts/build.py') }
     Write-Host "Local Blender-XR checks passed. GitHub Actions was not used."
 } finally { Pop-Location }
