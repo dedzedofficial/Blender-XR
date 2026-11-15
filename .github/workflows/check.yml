@@ -23,6 +23,7 @@ jobs:
           python tests/test_v080_controls.py
           python tests/test_platform_support.py
           python tests/test_prune.py
+          python tests/test_release_readiness.py
       - name: Check Python syntax
         run: python -m compileall -q blender_xr tests
       - name: Regenerate and validate 256px icon textures
@@ -154,6 +155,18 @@ jobs:
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
         run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_scene_hierarchy_v080.py
+      - name: XR wrist hierarchy search and stale-result integration
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_hierarchy_search_v080.py
+      - name: Native 0.8.5 completion regressions
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_authoring_completion_v085.py
+      - name: Modifier preview transactions
+        env:
+          BLENDER_VERSION: ${{ matrix.blender }}
+        run: /tmp/blender-${BLENDER_VERSION}-linux-x64/blender --background --factory-startup --python-exit-code 1 --python tests/test_modifier_preview_v085.py
       - name: Native colour studio material and history integration
         env:
           BLENDER_VERSION: ${{ matrix.blender }}
@@ -255,6 +268,9 @@ jobs:
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_hands.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_v080_quality.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_scene_hierarchy_v080.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_hierarchy_search_v080.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_authoring_completion_v085.py
+          "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_modifier_preview_v085.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_color_studio_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_modifiers_v080.py
           "$BLENDER" --background --factory-startup --python-exit-code 1 --python tests/test_native_curves_v080.py
@@ -275,7 +291,6 @@ jobs:
           fi
 
   preview-package:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -292,8 +307,8 @@ jobs:
           python scripts/build.py
       - uses: actions/upload-artifact@v4
         with:
-          name: mesh-xr-v0.8.0-alpha-preview
+          name: mesh-xr-development-preview
           path: |
-            dist/mesh-xr-v0.8.0.zip
-            dist/mesh-xr-v0.8.0.zip.sha256
+            dist/mesh-xr-v*.zip
+            dist/mesh-xr-v*.zip.sha256
           retention-days: 30

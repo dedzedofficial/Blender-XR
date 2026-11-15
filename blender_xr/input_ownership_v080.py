@@ -17,6 +17,7 @@ def _gesture_owner(session, honor_rearm=True):
     active = set()
     fields = (
         ('_weight_stroke', 'WEIGHT_STROKE'),
+        ('_xr_modifier_preview', 'MODIFIER_PREVIEW'),
         ('_xr_gesture', 'DIRECT_TRANSFORM'),
         ('transaction', 'MESH_EDIT'),
         ('two_hand_scale', 'TWO_HAND_SCALE'),
@@ -92,6 +93,10 @@ def validate_command(session, action):
     Other callers must release the active edit/gesture first.
     """
     active = owner(session)
+    if active == 'MODIFIER_PREVIEW':
+        kind = session._xr_modifier_preview[2]
+        if action in {'BACK', 'XR_MODIFIER_APPLY', 'XR_MODIFIER_CANCEL', 'XR_MODIFIER_RESUME', 'XR_ARRAY_MODES_MENU'} or action.startswith('XR_' + kind + '_'):
+            return
     if active == 'IDLE' or action in _READ_ONLY_COMMANDS:
         return
     if (active == 'RADIAL'
@@ -144,7 +149,7 @@ def cancel_session_loss(session):
     a still-live mutation from rollback. Inspect actual gesture state before
     deciding that a stopped session is already clean.
     """
-    live_fields = ('_weight_stroke', '_xr_gesture', 'transaction',
+    live_fields = ('_xr_modifier_preview', '_weight_stroke', '_xr_gesture', 'transaction',
                    'two_hand_scale', 'axis_move', 'axis_drag', 'grab',
                    'air_grab', 'bone_drag', '_xr_curve_pending', '_xr_light_pending', '_xr_paint_pending')
     has_mutation = any(getattr(session, name, None) is not None

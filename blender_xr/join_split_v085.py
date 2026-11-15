@@ -141,6 +141,7 @@ def _remember(context, mode, source_objects, output_objects):
         record['outputs'].append({
             'name': obj.name, 'matrix': obj.matrix_world.copy(),
             'mesh': snapshot, 'signature': obj[_SIGNATURE],
+            'groups': [(g.name, g.lock_weight) for g in obj.vertex_groups],
             'display': obj.display_type,
             'hide_render': bool(obj.hide_render),
         })
@@ -173,6 +174,7 @@ def _take_snapshot(context, obj):
         record['outputs'].append({
             'name': part.name, 'matrix': part.matrix_world.copy(),
             'mesh': snapshot, 'signature': part[_SIGNATURE],
+            'groups': [(g.name, g.lock_weight) for g in part.vertex_groups],
             'display': part.display_type, 'hide_render': bool(part.hide_render)})
     return record
 
@@ -192,6 +194,9 @@ def _activate_outputs(context, record):
         for part in record['outputs']:
             obj = bpy.data.objects.new(part['name'], part['mesh'].copy())
             collection.objects.link(obj)
+            for name, locked in part.get('groups', []):
+                group = obj.vertex_groups.new(name=name)
+                group.lock_weight = locked
             obj.matrix_world = part['matrix'].copy()
             obj.display_type = part['display']
             obj.hide_render = part['hide_render']
@@ -277,10 +282,14 @@ def _join(context):
         raise
 
 
-def _split(context, kind):
+def _split(context, kind, extract=False):
     original = _editable(context, context.view_layer.objects.active)
     if len(context.selected_objects) != 1:
         raise ValueError('Select exactly one source mesh to Separate')
+    if kind == 'SELECTED':
+        count = sum(v.select for v in original.data.vertices)
+        if count == 0 or count == len(original.data.vertices):
+            raise ValueError('Select some, but not all, vertices in Edit Mode first')
     preexisting = set(context.view_layer.objects)
     clone = original.copy()
     clone.data = original.data.copy()
@@ -289,7 +298,8 @@ def _split(context, kind):
     try:
         _select(context, [clone])
         bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='SELECT')
+        if kind != 'SELECTED':
+            bpy.ops.mesh.select_all(action='SELECT')
         result = bpy.ops.mesh.separate(type=kind)
         if 'FINISHED' not in result:
             raise ValueError('Blender could not separate this mesh')
@@ -297,6 +307,12 @@ def _split(context, kind):
         parts = sorted(set(context.view_layer.objects) - preexisting, key=lambda obj: obj.name)
         if len(parts) < 2 or any(obj.type != 'MESH' for obj in parts):
             raise ValueError('There are no separate mesh parts for this method')
+        if extract:
+            parts.remove(clone)
+            data = clone.data
+            bpy.data.objects.remove(clone, do_unlink=True)
+            if data.users == 0:
+                bpy.data.meshes.remove(data)
         return [original], parts
     except Exception:
         if context.mode != 'OBJECT':
@@ -314,10 +330,10 @@ def _create(session, context, action):
     if action in {'XR_JOIN_JOIN', 'XR_JOIN_COPY'}:
         sources, outputs = _join(context)
         mode = 'COPY' if action == 'XR_JOIN_COPY' else 'JOIN'
-    elif action in {'XR_JOIN_LOOSE', 'XR_JOIN_MATERIAL'}:
-        mode = 'SPLIT'
-        kind = 'LOOSE' if action == 'XR_JOIN_LOOSE' else 'MATERIAL'
-        sources, outputs = _split(context, kind)
+    elif action in {'XR_JOIN_LOOSE', 'XR_JOIN_MATERIAL', 'XR_JOIN_SELECTED', 'XR_JOIN_EXTRACT'}:
+        mode = 'COPY' if action == 'XR_JOIN_EXTRACT' else 'SPLIT'
+        kind = {'XR_JOIN_LOOSE': 'LOOSE', 'XR_JOIN_MATERIAL': 'MATERIAL'}.get(action, 'SELECTED')
+        sources, outputs = _split(context, kind, extract=(action == 'XR_JOIN_EXTRACT'))
     else:
         raise ValueError('Unknown Join/Separate command')
     record = _remember(context, mode, sources, outputs)
@@ -385,6 +401,7 @@ def install_pages():
         ('UNMERGE', 'XR_JOIN_RESTORE'),
         ('LOOSE PARTS', 'XR_JOIN_LOOSE'),
         ('BY MATERIAL', 'XR_JOIN_MATERIAL'),
+        ('SELECTED', 'XR_JOIN_SELECTED'), ('EXTRACT COPY', 'XR_JOIN_EXTRACT'),
         ('BACK', 'BACK'),
     )
     menus.TITLES[_PAGE] = 'JOIN & UNMERGE'
@@ -393,6 +410,8 @@ def install_pages():
         menus.PAGES['XR_ASSEMBLY_085'] = buttons[:-1] + (
             ('JOIN / SPLIT', 'XR_JOIN_MENU'), buttons[-1])
     v065.TOOLTIPS.update({
+        'XR_JOIN_SELECTED': ('Separate Selection', 'Select geometry in Edit Mode, return to Object Mode, then separate; originals retained'),
+        'XR_JOIN_EXTRACT': ('Extract Selection Copy', 'Copy previously selected vertices into a new mesh; original remains visible'),
         'XR_JOIN_MENU': ('Join/Separate Meshes', 'Join while retaining original parts for exact Unmerge'),
         'XR_JOIN_JOIN': ('Join + Retain Sources', 'Create one native mesh; hide and preserve originals in .blend'),
         'XR_JOIN_COPY': ('Join as Copy', 'Create one native mesh and keep source parts visible'),

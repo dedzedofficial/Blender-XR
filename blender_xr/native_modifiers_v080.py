@@ -7,12 +7,15 @@ entry; no modal previews, evaluated meshes or hidden duplicate modifiers.
 """
 import bpy
 
-from . import menus, mesh, v065, v071
+from . import menus, mesh, v065, v071, native_curves_v080
 
 _MIRROR_PAGE = 'XR_MIRROR_EDIT'
 _ARRAY_PAGE = 'XR_ARRAY_EDIT'
 _ARRAY_MODE_PAGE = 'XR_ARRAY_MODES'
-_MODIFIER_KINDS = frozenset(('MIRROR', 'ARRAY'))
+_CURVE_PAGE = 'XR_CURVE_MODIFIER'
+_CONFIRM_PAGE = 'XR_MODIFIER_CONFIRM'
+_MANAGE_PAGE = 'XR_MODIFIER_MANAGE'
+_MODIFIER_KINDS = frozenset(('MIRROR', 'ARRAY', 'CURVE'))
 
 
 def _editable(context):
@@ -49,6 +52,8 @@ def _state(mod):
             mod.mirror_object.name if mod.mirror_object else None,
             bool(mod.show_viewport),
         )
+    if mod.type == 'CURVE':
+        return (mod.object.name if mod.object else None, mod.deform_axis, bool(mod.show_viewport))
     if mod.type == 'ARRAY':
         return (
             int(mod.count),
@@ -92,6 +97,12 @@ def _restore(mod, state):
         mod.use_object_offset = object_mode
         mod.offset_object = reference
         mod.show_viewport = visible
+    elif mod.type == 'CURVE':
+        target, axis, visible = state
+        reference = _reference(target)
+        if reference is not None and reference.type != 'CURVE':
+            raise ValueError('Curve reference is no longer a Curve')
+        mod.object, mod.deform_axis, mod.show_viewport = reference, axis, visible
     else:
         raise ValueError('Unsupported modifier for XR undo')
 
@@ -120,7 +131,7 @@ def _chosen(session, context, kind):
 
 
 def _page(session, kind):
-    session.menu.page = _MIRROR_PAGE if kind == 'MIRROR' else _ARRAY_PAGE
+    session.menu.page = {'MIRROR': _MIRROR_PAGE, 'ARRAY': _ARRAY_PAGE, 'CURVE': _CURVE_PAGE}[kind]
     session.status = '{} / {}'.format(kind, session._xr_native_modifier[3] or 'PRESS NEW')
 
 
@@ -154,8 +165,102 @@ def _history_entry(obj, mod, old, new, created=False, index=None):
             list(obj.modifiers).index(mod) if index is None else int(index))
 
 
+def _preview_begin(session, context, kind):
+    obj, mod = _chosen(session, context, kind)
+    if getattr(session, '_xr_modifier_preview', None) is not None:
+        raise ValueError('A modifier preview is already active')
+    session._xr_modifier_preview = (obj, mod.name, kind, _state(mod), _state(mod))
+    session._xr_modifier_release_required = False
+    session._xr_modifier_press = True
+    radial = getattr(session, 'radial', None)
+    if radial:
+        radial.reset(require_release=True)
+    session.menu.visible = True
+    _page(session, kind)
+    session.status = 'PREVIEW / AIM AT BUTTONS / BACK TO APPLY OR CANCEL'
+
+
+def _preview_modifier(session):
+    obj, name, kind, before, expected = session._xr_modifier_preview
+    if bpy.data.objects.get(obj.name) != obj:
+        raise ValueError('Preview object was removed')
+    mod = obj.modifiers.get(name)
+    if mod is None or mod.type != kind or not _same(_state(mod), expected):
+        raise ValueError('Modifier changed outside the preview; refusing to overwrite it')
+    return obj, mod, before
+
+
+def _preview_finish(session, apply=False):
+    if getattr(session, '_xr_modifier_preview', None) is None:
+        return
+    try:
+        obj, mod, before = _preview_modifier(session)
+    except (ValueError, ReferenceError):
+        # External edits take precedence; release capture without overwriting them.
+        session._xr_modifier_preview = None
+        session._xr_modifier_release_required = True
+        session.menu.page = 'MODIFIER_MENU'
+        raise
+    if apply:
+        entry = _history_entry(obj, mod, before, _state(mod))
+        if entry:
+            session.history.push(entry)
+    else:
+        _restore(mod, before)
+    session._xr_modifier_preview = None
+    session._xr_modifier_release_required = True
+    session.menu.page = 'MODIFIER_MENU'
+    session.status = 'MODIFIER APPLIED' if apply else 'MODIFIER PREVIEW CANCELLED'
+
+
+def _preview_tick(session, context):
+    # Capture input completely: preview buttons cannot also grab, select or fly.
+    try:
+        pressed, cancel, origin, direction = native_curves_v080._input_sample(session, context)
+        state = context.window_manager.xr_session_state
+        from mathutils import Vector, Quaternion
+        off_pose = Quaternion(state.controller_grip_rotation_get(context, session.off))
+        if off_pose.magnitude < .5:
+            raise ValueError('Offhand tracking lost')
+        if getattr(session, '_xr_modifier_release_required', False):
+            if not pressed and not cancel:
+                session._xr_modifier_release_required = False
+                session._xr_rearm_required = True
+            return
+        _preview_modifier(session)
+        obj = session._xr_modifier_preview[0]
+        if context.mode != 'OBJECT' or context.view_layer.objects.active != obj:
+            raise ValueError('Preview selection or mode changed')
+        session.menu.position(Vector(state.controller_grip_location_get(context, session.off)),
+                              Vector(state.viewer_pose_location), float(state.viewer_scale))
+        session.menu.visible = True
+        session.ray = origin, direction
+        session.hover, session.pointer = session.menu.hit(origin, direction)
+        session.target = session.gizmo = session.gizmo_hover = None
+        was_pressed = getattr(session, '_xr_modifier_press', True)
+        session._xr_modifier_press = pressed
+        if cancel and not was_pressed:
+            _preview_finish(session)
+        elif pressed and not was_pressed and session.hover and session.hover != 'PANEL':
+            session.command(context, session.hover)
+    except (ValueError, RuntimeError, ReferenceError, AttributeError, TypeError) as exc:
+        try:
+            _preview_finish(session)
+        except (ValueError, ReferenceError) as rollback_error:
+            exc = rollback_error
+        finally:
+            session._xr_modifier_release_required = False
+            session._xr_rearm_required = True
+            session.status = str(exc).upper() + ' / RELEASE CONTROLS'
+
+
 def _edit(session, context, kind, action):
     obj, mod = _chosen(session, context, kind)
+    pending = getattr(session, '_xr_modifier_preview', None)
+    if pending is not None:
+        preview_obj, preview_mod, _ = _preview_modifier(session)
+        if preview_obj != obj or preview_mod != mod:
+            raise ValueError('Return to the previewed modifier')
     before = _state(mod)
     try:
         if kind == 'MIRROR':
@@ -177,6 +282,21 @@ def _edit(session, context, kind, action):
                 mod.mirror_object = None
             else:
                 raise ValueError('Unknown Mirror action')
+        elif kind == 'CURVE':
+            if action == 'XR_CURVE_TARGET':
+                target = _target(context)
+                if target.type != 'CURVE' or target.hide_select or not target.visible_get():
+                    raise ValueError('Select one visible unlocked Curve as target')
+                mod.object = target
+            elif action == 'XR_CURVE_TARGET_CLEAR':
+                mod.object = None
+            elif action.startswith('XR_CURVE_AXIS_'):
+                axis = action.removeprefix('XR_CURVE_AXIS_')
+                if axis not in {'POS_X', 'POS_Y', 'POS_Z', 'NEG_X', 'NEG_Y', 'NEG_Z'}:
+                    raise ValueError('Unknown Curve axis')
+                mod.deform_axis = axis
+            else:
+                raise ValueError('Unknown Curve modifier action')
         else:
             if action in {'XR_ARRAY_COUNT_DOWN', 'XR_ARRAY_COUNT_UP'}:
                 delta = -1 if action.endswith('DOWN') else 1
@@ -218,7 +338,9 @@ def _edit(session, context, kind, action):
         _restore(mod, before)
         raise
     entry = _history_entry(obj, mod, before, _state(mod))
-    if entry:
+    if pending is not None:
+        session._xr_modifier_preview = (*pending[:4], _state(mod))
+    elif entry:
         session.history.push(entry)
     session.status = '{} / {}'.format(kind, action.replace('_', ' '))
     return entry
@@ -230,7 +352,7 @@ def _create(session, context, kind):
     if kind == 'MIRROR':
         mod.use_axis = (True, False, False)
         mod.use_clip = True
-    else:
+    elif kind == 'ARRAY':
         mod.count = 2
     session._xr_native_modifier = (obj.name, obj.as_pointer(), kind, mod.name)
     session.history.push(_history_entry(obj, mod, None, _state(mod), created=True))
@@ -296,14 +418,28 @@ def install_pages():
     menus.PAGES['MODIFIER_MENU'] = (
         ('MIRROR EDIT', 'MOD_MIRROR_EDIT_MENU'),
         ('ARRAY EDIT', 'MOD_ARRAY_EDIT_MENU'),
+        ('CURVE EDIT', 'MOD_CURVE_EDIT_MENU'),
         ('SOLIDIFY', 'MOD_SOLIDIFY'), ('COUNT +', 'MOD_COUNT_UP'),
         ('COUNT -', 'MOD_COUNT_DOWN'),
         ('THICK +', 'MOD_THICK_UP'), ('THICK -', 'MOD_THICK_DOWN'),
         ('SHOW/HIDE', 'MOD_TOGGLE'), ('REMOVE', 'MOD_REMOVE'),
         ('BACK', 'BACK'),
     )
+    menus.PAGES[_CURVE_PAGE] = (
+        ('MANAGE', 'XR_MODIFIER_MANAGE'), ('PREVIEW', 'XR_MODIFIER_PREVIEW'),
+        ('TARGET', 'XR_CURVE_TARGET'), ('CLEAR TARGET', 'XR_CURVE_TARGET_CLEAR'),
+        *((axis.replace('_', ' '), 'XR_CURVE_AXIS_' + axis) for axis in
+          ('POS_X', 'POS_Y', 'POS_Z', 'NEG_X', 'NEG_Y', 'NEG_Z')),
+        ('BACK', 'BACK'),
+    )
+    menus.PAGES[_CONFIRM_PAGE] = (('APPLY', 'XR_MODIFIER_APPLY'), ('CANCEL', 'XR_MODIFIER_CANCEL'), ('RESUME', 'XR_MODIFIER_RESUME'))
+    menus.PAGES[_MANAGE_PAGE] = (('BACK', 'BACK'),)
+    menus.TITLES[_CONFIRM_PAGE] = 'CONFIRM MODIFIER'
+    menus.TITLES[_MANAGE_PAGE] = 'MANAGE MODIFIER'
+    menus.TITLES[_CURVE_PAGE] = 'CURVE MODIFIER'
+    v065.TOOLTIPS['MOD_CURVE_EDIT_MENU'] = ('Curve Modifier', 'Deform a mesh along a native Curve; edit existing or explicitly create new')
     menus.PAGES[_MIRROR_PAGE] = (
-        ('NEW', 'XR_MIRROR_NEW'), ('NEXT', 'XR_MIRROR_NEXT'),
+        ('MANAGE', 'XR_MODIFIER_MANAGE'), ('PREVIEW', 'XR_MODIFIER_PREVIEW'),
         ('X', 'XR_MIRROR_X'), ('Y', 'XR_MIRROR_Y'),
         ('Z', 'XR_MIRROR_Z'), ('CLIPPING', 'XR_MIRROR_CLIP'),
         ('MERGE', 'XR_MIRROR_MERGE'),
@@ -313,7 +449,7 @@ def install_pages():
         ('CLEAR REF', 'XR_MIRROR_TARGET_CLEAR'), ('BACK', 'BACK'),
     )
     menus.PAGES[_ARRAY_PAGE] = (
-        ('NEW', 'XR_ARRAY_NEW'), ('NEXT', 'XR_ARRAY_NEXT'),
+        ('MANAGE', 'XR_MODIFIER_MANAGE'), ('PREVIEW', 'XR_MODIFIER_PREVIEW'),
         ('COUNT -', 'XR_ARRAY_COUNT_DOWN'), ('COUNT +', 'XR_ARRAY_COUNT_UP'),
         ('X -', 'XR_ARRAY_X_DOWN'), ('X +', 'XR_ARRAY_X_UP'),
         ('Y -', 'XR_ARRAY_Y_DOWN'), ('Y +', 'XR_ARRAY_Y_UP'),
@@ -342,7 +478,18 @@ def patch_runtime(Runtime):
         return
     _history_patch()
     install_pages()
-    previous_command = Runtime.command
+    previous_command, previous_tick, previous_cancel = Runtime.command, Runtime.tick, Runtime.cancel_work
+
+    def tick(self, context):
+        if getattr(self, '_xr_modifier_preview', None) is not None or getattr(self, '_xr_modifier_release_required', False):
+            return _preview_tick(self, context)
+        return previous_tick(self, context)
+
+    def cancel_work(self):
+        try:
+            _preview_finish(self)
+        finally:
+            previous_cancel(self)
 
     def command(self, context, action):
         # Legacy operators and Blender integration tests may dispatch on a
@@ -350,6 +497,43 @@ def patch_runtime(Runtime):
         menu = getattr(self, 'menu', None)
         if menu is None:
             return previous_command(self, context, action)
+        pending = getattr(self, '_xr_modifier_preview', None)
+        if action == 'XR_MODIFIER_APPLY' and pending:
+            _preview_finish(self, apply=True)
+            return
+        if action == 'XR_MODIFIER_CANCEL' and pending:
+            _preview_finish(self)
+            return
+        if action == 'XR_MODIFIER_RESUME' and pending:
+            _page(self, pending[2])
+            return
+        if action == 'BACK' and pending and menu.page != _ARRAY_MODE_PAGE:
+            menu.page = _CONFIRM_PAGE
+            return
+        if action == 'XR_MODIFIER_PREVIEW':
+            _preview_begin(self, context, self._xr_native_modifier[2])
+            return
+        if action == 'XR_MODIFIER_MANAGE':
+            if pending:
+                raise ValueError('Apply or cancel preview before changing modifiers')
+            kind = self._xr_native_modifier[2]
+            menus.PAGES[_MANAGE_PAGE] = (('NEW', 'XR_' + kind + '_NEW'),
+                                        ('NEXT', 'XR_' + kind + '_NEXT'), ('BACK', 'BACK'))
+            menu.page = _MANAGE_PAGE
+            return
+        if menu.page == _MANAGE_PAGE:
+            kind = self._xr_native_modifier[2]
+            if action == 'BACK':
+                _page(self, kind)
+                return
+            if pending and action in {'XR_' + kind + '_NEW', 'XR_' + kind + '_NEXT'}:
+                raise ValueError('Apply or cancel preview first')
+            if action == 'XR_' + kind + '_NEW':
+                _create(self, context, kind)
+                return
+            if action == 'XR_' + kind + '_NEXT':
+                _next(self, context, kind)
+                return
         if action == 'MODIFIER_MENU':
             v071._idle(self)
             _editable(context)
@@ -358,12 +542,12 @@ def patch_runtime(Runtime):
             self.menu.page = 'MODIFIER_MENU'
             self.status = 'MODIFIERS / SELECT MIRROR OR ARRAY'
             return
-        if action in {'MOD_MIRROR_EDIT_MENU', 'MOD_ARRAY_EDIT_MENU'}:
+        if action in {'MOD_MIRROR_EDIT_MENU', 'MOD_ARRAY_EDIT_MENU', 'MOD_CURVE_EDIT_MENU'}:
             v071._idle(self)
-            _open(self, context, 'MIRROR' if action == 'MOD_MIRROR_EDIT_MENU' else 'ARRAY')
+            _open(self, context, action.split('_')[1])
             return
         page = getattr(self.menu, 'page', None)
-        if action == 'BACK' and page in {_MIRROR_PAGE, _ARRAY_PAGE, _ARRAY_MODE_PAGE}:
+        if action == 'BACK' and page in {_MIRROR_PAGE, _ARRAY_PAGE, _ARRAY_MODE_PAGE, _CURVE_PAGE}:
             if page == _ARRAY_MODE_PAGE:
                 self.menu.page = _ARRAY_PAGE
             else:
@@ -376,9 +560,12 @@ def patch_runtime(Runtime):
             self.status = 'ARRAY SPACING / SELECT MODE'
             return
         kind = ('MIRROR' if page == _MIRROR_PAGE else
-                'ARRAY' if page in {_ARRAY_PAGE, _ARRAY_MODE_PAGE} else None)
+                'ARRAY' if page in {_ARRAY_PAGE, _ARRAY_MODE_PAGE} else
+                'CURVE' if page == _CURVE_PAGE else None)
         if kind and action.startswith('XR_'):
             v071._idle(self)
+            if pending and action in {'XR_' + kind + '_NEW', 'XR_' + kind + '_NEXT'}:
+                raise ValueError('Apply or cancel preview first')
             if action == 'XR_' + kind + '_NEW':
                 _create(self, context, kind)
             elif action == 'XR_' + kind + '_NEXT':
@@ -388,5 +575,7 @@ def patch_runtime(Runtime):
             return
         return previous_command(self, context, action)
 
+    Runtime.tick = tick
+    Runtime.cancel_work = cancel_work
     Runtime.command = command
     Runtime._xr_native_modifiers_patched = True

@@ -73,7 +73,7 @@ def test():
         assert buttons, 'Empty VR page: ' + page
         for _label, action in buttons:
             if action == 'PANEL':
-                assert page in {'MATERIAL_ADJUST', 'COLOR_STUDIO_HSV'}, 'Blank slots only for HSL/HSV sliders'
+                assert page in {'MATERIAL_ADJUST', 'COLOR_STUDIO_HSV', 'COLOR_STUDIO_WHEEL'}, 'Blank slots only for colour picker surfaces'
                 continue
             assert drawing._ICON_BY_ACTION.get(action), (page, action)
             source = drawing._ICON_BY_ACTION[action]
