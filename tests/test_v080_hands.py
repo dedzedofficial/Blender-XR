@@ -9,7 +9,7 @@ from blender_xr import hands_v080, radial_logic_v080, runtime, drawing, version
 
 
 def main():
-    assert version.VERSION == (0, 8, 0)
+    assert version.VERSION == (0, 8, 5)
     blender_xr.register()
     try:
         settings = bpy.context.scene.blender_xr

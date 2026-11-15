@@ -5,7 +5,7 @@ Updated 15 November 2026. **Development work is not a stable release.**
 
 ## Where we are
 
-- Published version and package metadata: **0.8.0**.
+- Published release: **0.8.0**. Current development package: **0.8.5**.
 - Current target: **0.8.5 — finish the core scene-authoring tools**.
 - Existing tools: mesh editing, freeform bones, weight painting, hand/radial UI,
   hierarchy, colour, curves, lights, atmosphere, parenting, joins, Booleans and image painting.
@@ -20,7 +20,7 @@ Updated 15 November 2026. **Development work is not a stable release.**
 | --- | --- | --- |
 | Scene hierarchy | Browse collections, search loaded objects, select/multi-select, hide and lock | Implemented; search integrated from PR #53 |
 | Colour studio | HSV wheel and sliders, RGB adjustments, headset HEX keypad, swatches, sampling, explicit local/shared edits | Implemented |
-| Mirror / Array | Edit native modifiers, references, axes, clipping, counts and offsets; one undo per button | Implemented |
+| Mirror / Array | Edit native modifiers, references, axes, clipping, counts and offsets; optional Preview/Apply/Cancel with one undo | Implemented |
 | Curve modifier | Existing/new modifier, Curve target, positive/negative deformation axes and undo | Implemented |
 | Editable curves | Place/edit Bézier points and handles, open/close paths, thickness and resolution | Implemented; freehand strokes later |
 | Lighting | Point/Spot/Area/Sun, aim/move, energy, colour, shape and presets | Implemented |
@@ -33,10 +33,10 @@ Updated 15 November 2026. **Development work is not a stable release.**
 | Boolean tools | Difference/Union/Intersect, retain cutters and guarded Apply | Implemented |
 | Texture painting | Native overlay images, ray-to-UV brush, erase/fill, size/opacity, layers, PNG export and stroke undo | Implemented with compatibility guards |
 | Input/data protection | Ownership guard, tracking-loss cancel/rearm, atomic strokes and recovery | Existing guards retained; full router migration remains a blocker to claiming full stability |
-| Release | Validate, document, then synchronize version, ZIP and release notes to 0.8.5 | Pending |
+| Release | Runtime, manifest, ZIP and notes synchronized to 0.8.5; development publication guard | Implemented; stable acceptance pending |
 
-**Deliberate boundary:** no continuous modifier-preview transaction in 0.8.5;
-confirmed button edits update Blender immediately and have Undo/Redo. New paint
+**Modifier Preview:** changes update Blender live, Apply commits one history entry,
+and Cancel or tracking loss restores the starting values. Regular button editing remains available. New paint
 layers are 256/512/1024 pixels. Join/paint reject unsafe modifier/shape-key cases.
 These restrictions must be visible in help, not described as universal support.
 
@@ -50,7 +50,7 @@ These restrictions must be visible in help, not described as universal support.
 - Vertex/edge/face/surface snapping with visible targets; precision grab and magnification.
 - Full isolation/X-Ray/selection restoration, including save/reopen and nested scenes.
 - Hierarchy rename, object properties, parent breadcrumbs and focus navigation.
-- Modifier preview/confirm/cancel transactions; measured dense-scene picking performance.
+- Measured dense-scene picking performance and further precision interaction improvements.
 
 ## 0.9 — complete the avatar and modelling workflow
 

@@ -1,3 +1,44 @@
+# Mesh XR v0.8.5 — development candidate
+
+This package is **unreleased development code**, not a certified stable build.
+The last published release remains v0.8.0. Platform-matrix and physical Quest 3/
+SteamVR acceptance remain outstanding; stable publication is blocked by the
+release-channel check.
+
+## Included
+
+- Searchable native wrist hierarchy with selection, visibility and locks.
+- HSV wheel/sliders, RGB adjustments, headset HEX keypad and saved swatches.
+- Native Mirror, Array and Curve modifier controls. Optional Preview captures input;
+  Back offers Apply/Cancel/Resume, Apply creates one undo entry, and tracking loss cancels.
+- Editable Bézier curves, Point/Spot/Area/Sun lighting and world/volume controls.
+- Approximate 2700/4000/6500 K light presets and explicit editable flicker keyframes.
+- Parenting, Empty groups, reversible Join/Join as Copy/Unmerge, Separate and Extract Copy.
+- Boolean Difference/Union/Intersect with protected native modifiers and guarded Apply.
+- Native image overlay painting, layers, brush/erase/fill and per-stroke undo/cancel.
+- Correct vertex-group names and locks when recreating Join/Separate outputs during redo.
+- One consolidated roadmap and current feature/release checklist.
+
+## Controls and limits
+
+For selected-geometry Separate/Extract, select vertices in Edit Mode and return to
+Object Mode. Source meshes remain retained. Texture Paint uses generated overlay
+layers and explicit PNG saving; unsafe linked/shared, modifier or shape-key cases
+are refused. Light flicker creates a 24-frame native action only when explicitly
+requested and never overwrites an existing animation. Full input-router replacement,
+freehand curve strokes, IK and animation tools remain future roadmap work.
+
+## Validation
+
+All 39 test scripts passed across Linux Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2,
+with Python used for pure/package checks. The 0.8.5 ZIP passes integrity checks.
+See TESTING.md for exact evidence. Automated Blender/package checks do not
+substitute for real headset control, interruption and comfort testing.
+
+---
+
+## Historical release notes
+
 # Mesh XR v0.7.6 — merged into main
 
 **Compared with v0.7.5, the most recent published release.** Version 0.7.6 was merged into `main` in [PR #18](https://github.com/dedzedofficial/Blender-XR/pull/18) on 25 October 2026, and the [v0.7.6 GitHub release](https://github.com/dedzedofficial/Blender-XR/releases/tag/v0.7.6) has since been published with an installable ZIP. Blender Extensions publication has not been independently verified.

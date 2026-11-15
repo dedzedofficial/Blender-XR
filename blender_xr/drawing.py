@@ -7,6 +7,9 @@ from . import materials, menus, version, icon_textures
 
 # Official Blender UI artwork, rasterized to transparent PNGs by the asset build.
 _ICON_BY_ACTION = {
+    'XR_MODIFIER_MANAGE': 'properties', 'XR_MODIFIER_PREVIEW': 'modifier',
+    'XR_MODIFIER_APPLY': 'checkmark', 'XR_MODIFIER_CANCEL': 'cancel',
+    'XR_MODIFIER_RESUME': 'modifier',
     # 0.8.5 authoring and wrist keyboard actions.
     'MOD_CURVE_EDIT_MENU': 'modifier',
     'XR_CURVE_NEW': 'add',

@@ -1,4 +1,4 @@
-# Mesh XR v0.8.0 (development alpha)
+# Mesh XR v0.8.5 (development alpha)
 
 **Development roadmap:** [one-page release plan](ROADMAP.md) · [0.8.5 completion checklist](V0_8_5_PLAN.md). Version 0.8.5 is not yet released.
 

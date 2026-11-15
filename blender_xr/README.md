@@ -1,4 +1,6 @@
-# Mesh XR v0.8.0
+# Mesh XR v0.8.5
+
+**Development build, not a stable release.** Platform and physical-headset acceptance remain outstanding.
 
 **macOS desktop support:** Both **macOS Apple Silicon** and **macOS Intel** desktop Blender builds are targeted, alongside the preserved Windows x64/Linux x64 add-on. Intel Macs use Blender 4.5 LTS or earlier. Mac VR is experimental (Blender 5.1+ for preliminary OpenXR), and actual headset support is not verified. No iOS/iPadOS or standalone mobile app is part of this project. See [Mac Compatibility](https://github.com/dedzedofficial/Blender-XR/blob/dev/v0.8.0/PLATFORM_COMPATIBILITY.md).
 
@@ -22,7 +24,7 @@ mode menu), so the previously hidden Quick Layout action is usable.
 Going Back from a directly opened Creator category returns to Creator;
 nested submenus retain their original navigation.
 
-**Included in the same 0.8.0 alpha ZIP:** atomic VR Weight Paint strokes,
+**Included in the same 0.8.5 development ZIP:** atomic VR Weight Paint strokes,
 controller-rearm/input-state checks, Scene Focus and X-Ray, read-only
 Scene Pulse, Weight Probe and Quick Layout, as well as the earlier
 hands/radial interface and regular modelling/material tools.
@@ -205,3 +207,12 @@ Public issue tracker: https://github.com/dedzedofficial/Blender-XR/issues
 Source repository: https://github.com/dedzedofficial/Blender-XR
 
 Mesh XR is licensed under GPL-3.0-or-later.
+
+
+## 0.8.5 modifier preview
+
+Open Mirror, Array or Curve modifier controls. Manage contains New/Next.
+Choose Preview to group live changes into one edit; aim at the wrist buttons.
+Back opens Apply/Cancel/Resume. Apply adds one Undo item; Cancel, offhand Trigger
+(after release), tracking loss or session shutdown restores the initial modifier.
+Other tools, saving and navigation are blocked until the preview ends.

@@ -31,6 +31,9 @@ jobs:
         run: |
           python tests/test_gestures.py
           python tests/test_prune.py
+          python tests/test_release_readiness.py
+      - name: Require stable release approval
+        run: python scripts/check_release_ready.py
       - name: Build extension
         run: python scripts/build.py
       - name: Verify bundled OpenVR wheel

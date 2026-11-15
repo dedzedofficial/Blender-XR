@@ -8,7 +8,9 @@
 - Headset HEX keypad, RGB controls and HSV wheel in the existing colour studio.
 - Native light-temperature presets and explicit editable 24-frame flicker animation.
 - Consolidated roadmap with honest implementation/release status and preserved historical ideas.
-- Release version remains 0.8.0 until the documented validation gates pass.
+- Development runtime, manifest, installer and release notes now identify 0.8.5; stable publication remains blocked until acceptance.
+- Added Mirror/Array/Curve Preview, Apply/Cancel, atomic history, exclusive input capture and tracking-loss rollback.
+- Fixed manual validation skipping the extension-preview job and removed hard-coded 0.8.0 artifact paths.
 
 ## v0.8.0 — alpha 2 safety, precision and diagnostics test build
 
