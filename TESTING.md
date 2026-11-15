@@ -262,3 +262,26 @@ Automated tests are not a substitute for headset validation. When reporting a co
 - Exact steps and result, preferably with logs/video for failures.
 
 Use the public issue tracker for reproducible problems: https://github.com/dedzedofficial/Blender-XR/issues
+
+
+## 0.8.5 completion checks
+
+Run `blender --background --factory-startup --python-exit-code 1 --python tests/test_authoring_completion_v085.py`.
+It covers Curve modifier targets/axes/history, headset HEX preview/cancel, RGB and wheel
+mapping, temperature undo, native flicker keys/history, selected-geometry extraction,
+and vertex-group preservation after redo. Run existing hierarchy/search, colour,
+modifier, curve, light, atmosphere, assembly, Boolean, join and paint regressions too.
+
+Headset acceptance still required: wheel hit/draw alignment, keypad paging, nested
+hierarchy search, Curve target choice, selected mesh split, flicker preview, undo/redo,
+tracking interruption and repeated mode/session changes. Test on a copy of a scene
+with multiple materials, UVs, groups and hidden/locked objects. Record exact hardware,
+Blender/runtime versions and results. No physical test is claimed by automated checks.
+
+Local validation recorded 15 November 2026 for the completion branch:
+all 37 `tests/test_*.py` scripts passed using Blender 4.5.0 for Blender-dependent
+checks and Python for the pure/package checks. The authoring and colour regressions
+also passed after the final hue-preservation adjustment. `scripts/build.py` and
+`git diff --check` passed. Selected new/existing authoring checks also passed on
+Blender 4.3.2. This does not claim the complete 4.2/4.5/5.0/5.2 and Windows/macOS
+matrix or any physical headset acceptance.

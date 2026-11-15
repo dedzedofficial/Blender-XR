@@ -1,5 +1,7 @@
 # Mesh XR — creator capability development plan
 
+> Current release order and implementation status: [ROADMAP.md](ROADMAP.md). This detailed document preserves earlier requirements; historical status tables may be stale.
+
 **Re-audited:** 9 November 2026  
 **Status:** Proposed implementation backlog, not a claim of completed features  
 **Source branch:** `main` at `1a115135ae500f66451c658a5f0c67be571936bb`  

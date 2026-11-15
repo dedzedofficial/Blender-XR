@@ -6,6 +6,7 @@ scene's Mesh XR settings. LOCAL or SHARED is required to change a material.
 Base Color links and unrelated shader nodes are never replaced.
 """
 import colorsys
+import math
 
 import bpy
 
@@ -13,6 +14,9 @@ from . import drawing, materials, menus, mesh, v056, v065
 
 _STUDIO = 'COLOR_STUDIO'
 _HSV = 'COLOR_STUDIO_HSV'
+_WHEEL = 'COLOR_STUDIO_WHEEL'
+_HEX = 'COLOR_STUDIO_HEX'
+_RGB = 'COLOR_STUDIO_RGB'
 _SWATCHES = 'COLOR_STUDIO_SWATCHES'
 _SLIDERS = ('STUDIO_HUE_SLIDER', 'STUDIO_SAT_SLIDER', 'STUDIO_VAL_SLIDER')
 _ROWS = (('HUE', _SLIDERS[0], .117),
@@ -193,6 +197,11 @@ def _read_color(session, color):
     session.settings.object_color = materials.rgba(color)
     session.settings.color_hex = materials.to_hex(color)
     h, s, v = colorsys.rgb_to_hsv(*materials.rgba(color)[:3])
+    previous = getattr(session, 'color_hsv', (h, s, v))
+    if s < 1e-8:
+        h = previous[0]
+    if v < 1e-8:
+        s = previous[1]
     session.color_hsv = [h, s, v]
     session.menu.color_hsv = tuple(session.color_hsv)
 
@@ -210,6 +219,25 @@ def _hsv_command(session, action):
     session.status = 'HSV ' + materials.to_hex(session.settings.object_color)
 
 
+def wheel_hs(x, y):
+    dx, dy = x - .025, y - .09
+    radius = math.hypot(dx, dy)
+    if radius > .07:
+        return None
+    return ((math.atan2(dy, dx) / (2 * math.pi)) % 1., radius / .07)
+
+
+def _hex_page(session):
+    page = getattr(session, '_xr_hex_page', 0) % 2
+    chars = '0123456789ABCDEF'[page * 8:page * 8 + 8]
+    menus.PAGES[_HEX] = tuple((c, 'STUDIO_HEX_CHAR_' + c) for c in chars) + (
+        ('NEXT', 'STUDIO_HEX_NEXT'), ('DELETE', 'STUDIO_HEX_DELETE'),
+        ('PREVIEW', 'STUDIO_HEX_ACCEPT'), ('CANCEL', 'STUDIO_HEX_CANCEL'))
+    menus.TITLES[_HEX] = 'HEX / ' + session._xr_hex_buffer
+    session.menu.page = _HEX
+    session.status = 'ENTER SIX HEX DIGITS / PREVIEW DOES NOT APPLY'
+
+
 def _patch_sliders():
     if getattr(drawing.Menu, '_xr_color_studio_sliders', False):
         return
@@ -217,6 +245,12 @@ def _patch_sliders():
 
     def hit(self, origin, direction):
         action, position = old_hit(self, origin, direction)
+        if self.page == _WHEEL and position is not None:
+            local = (position - self.center) / self.scale
+            hs = wheel_hs(local.dot(self.right), local.dot(self.up))
+            if hs is not None:
+                self.wheel_hs = hs
+                return 'STUDIO_WHEEL_PICK', position
         if self.page != _HSV or position is None:
             return action, position
         local = (position - self.center) / self.scale
@@ -232,6 +266,17 @@ def _patch_sliders():
     def draw(self, shader, tool, hover, step, status, settings=None,
              selection='', select_mode='FACE'):
         old_draw(self, shader, tool, hover, step, status, settings, selection, select_mode)
+        if self.page == _WHEEL and settings is not None and self.ready and self.visible:
+            value = colorsys.rgb_to_hsv(*tuple(settings.object_color[:3]))[2]
+            for ring in range(4):
+                r0, r1 = ring * .0175, (ring + 1) * .0175
+                for segment in range(48):
+                    a, b = segment * math.tau / 48, (segment + 1) * math.tau / 48
+                    points = [(r0, a), (r1, a), (r1, b), (r0, a), (r1, b), (r0, b)]
+                    vertices = [self.world(.025 + r * math.cos(t), .09 + r * math.sin(t), .003) for r, t in points]
+                    color = (*colorsys.hsv_to_rgb((segment + .5) / 48, (ring + .5) / 4, value), 1.)
+                    drawing.draw_batch(shader, 'TRIS', vertices, color)
+            return
         if self.page != _HSV or settings is None or not self.ready or not self.visible:
             return
         h, s, v = getattr(self, 'color_hsv',
@@ -285,11 +330,23 @@ def install_pages():
         ('EDIT COLOR', 'COLOR_STUDIO_MENU'), original[-1])
     menus.PAGES[_STUDIO] = (
         ('HSV', 'STUDIO_HSV'), ('READ MAT', 'STUDIO_READ'),
+        ('WHEEL', 'STUDIO_WHEEL'), ('HEX INPUT', 'STUDIO_HEX_INPUT'), ('RGB', 'STUDIO_RGB'),
         ('PICK', 'STUDIO_PICK'), ('LOCAL EDIT', 'STUDIO_LOCAL'),
         ('SHARED EDIT', 'STUDIO_SHARED'), ('HEX', 'STUDIO_HEX_LOAD'),
         ('SWATCHES', 'STUDIO_SWATCHES'), ('HSL', 'COLOR_ADJUST_MENU'),
         ('BACK', 'BACK'),
     )
+    menus.PAGES[_WHEEL] = (
+        *(('', 'PANEL') for _ in range(6)),
+        ('DARKER', 'STUDIO_VALUE_DOWN'), ('BRIGHTER', 'STUDIO_VALUE_UP'),
+        ('LOCAL EDIT', 'STUDIO_LOCAL'), ('SHARED EDIT', 'STUDIO_SHARED'),
+        ('HSV', 'STUDIO_HSV'), ('BACK', 'BACK'),
+    )
+    menus.PAGES[_RGB] = tuple((channel + suffix, 'STUDIO_RGB_' + channel + '_' + direction)
+        for channel in 'RGB' for suffix, direction in ((' -', 'DOWN'), (' +', 'UP'))) + (
+        ('LOCAL EDIT', 'STUDIO_LOCAL'), ('SHARED EDIT', 'STUDIO_SHARED'), ('BACK', 'BACK'))
+    menus.TITLES.update({_WHEEL: 'HSV WHEEL', _RGB: 'RGB COLOUR', _HEX: 'HEX INPUT'})
+    menus.PAGES[_HEX] = (('CANCEL', 'STUDIO_HEX_CANCEL'),)
     menus.PAGES[_HSV] = (
         ('', 'PANEL'), ('', 'PANEL'), ('', 'PANEL'), ('', 'PANEL'),
         ('', 'PANEL'), ('', 'PANEL'),
@@ -326,9 +383,60 @@ def patch_runtime(Runtime):
     old_command, old_tick = Runtime.command, Runtime.tick
 
     def command(self, context, action):
+        if getattr(self, 'menu', None) is None:
+            return old_command(self, context, action)
         if action == 'COLOR_STUDIO_MENU':
             self.menu.page = _STUDIO
             self.status = 'COLOUR PREVIEW / LOCAL OR SHARED'
+            return
+        if action == 'STUDIO_HEX_INPUT':
+            self._xr_hex_buffer = ''
+            self._xr_hex_page = 0
+            _hex_page(self)
+            return
+        if self.menu.page == _HEX:
+            if action.startswith('STUDIO_HEX_CHAR_'):
+                char = action.removeprefix('STUDIO_HEX_CHAR_')
+                if len(char) != 1 or char not in '0123456789ABCDEF':
+                    raise ValueError('Invalid HEX digit')
+                self._xr_hex_buffer = (self._xr_hex_buffer + char)[:6]
+            elif action == 'STUDIO_HEX_DELETE':
+                self._xr_hex_buffer = self._xr_hex_buffer[:-1]
+            elif action == 'STUDIO_HEX_NEXT':
+                self._xr_hex_page = 1 - self._xr_hex_page
+            elif action == 'STUDIO_HEX_ACCEPT':
+                color = materials.from_hex(self._xr_hex_buffer, alpha=self.settings.object_color[3])
+                _read_color(self, color)
+                self.menu.page = _STUDIO
+                return
+            elif action in {'STUDIO_HEX_CANCEL', 'BACK'}:
+                self.menu.page = _STUDIO
+                return
+            else:
+                return old_command(self, context, action)
+            _hex_page(self)
+            return
+        if action in {'STUDIO_WHEEL', 'STUDIO_RGB'}:
+            _read_color(self, self.settings.object_color)
+            self.menu.page = _WHEEL if action == 'STUDIO_WHEEL' else _RGB
+            return
+        if action == 'STUDIO_WHEEL_PICK' and self.menu.page == _WHEEL:
+            h, sat = self.menu.wheel_hs
+            value = self.color_hsv[2]
+            self.color_hsv = [h, sat, value]
+            _read_color(self, (*colorsys.hsv_to_rgb(h, sat, value), self.settings.object_color[3]))
+            return
+        if action in {'STUDIO_VALUE_UP', 'STUDIO_VALUE_DOWN'} and self.menu.page == _WHEEL:
+            h, sat, value = self.color_hsv
+            value = min(1., max(0., value + (.05 if action.endswith('UP') else -.05)))
+            _read_color(self, (*colorsys.hsv_to_rgb(h, sat, value), self.settings.object_color[3]))
+            return
+        if action.startswith('STUDIO_RGB_') and self.menu.page == _RGB:
+            channel, direction = action.removeprefix('STUDIO_RGB_').split('_')
+            color = list(self.settings.object_color)
+            index = 'RGB'.index(channel)
+            color[index] = min(1., max(0., color[index] + (.05 if direction == 'UP' else -.05)))
+            _read_color(self, color)
             return
         if action == 'STUDIO_HSV':
             _read_color(self, self.settings.object_color)
@@ -342,7 +450,7 @@ def patch_runtime(Runtime):
             if self.menu.page == _SWATCHES:
                 self.menu.page = getattr(self, '_xr_swatch_parent', _STUDIO)
                 return
-            if self.menu.page == _HSV:
+            if self.menu.page in {_HSV, _WHEEL, _RGB}:
                 self.menu.page = _STUDIO
                 return
             if self.menu.page == _STUDIO:
@@ -398,6 +506,10 @@ def patch_runtime(Runtime):
 
     def tick(self, context):
         result = old_tick(self, context)
+        if (self.menu.page == _WHEEL and getattr(self, 'trigger', None) and
+                self.trigger.down and getattr(self, 'hover', None) == 'STUDIO_WHEEL_PICK' and
+                not getattr(getattr(self, 'radial', None), 'active', False)):
+            self.command(context, 'STUDIO_WHEEL_PICK')
         if (self.menu.page == _HSV and getattr(self, 'trigger', None) and
                 self.trigger.down and getattr(self, 'hover', None) in _SLIDERS and
                 getattr(self.menu, 'slider_value', None) is not None and

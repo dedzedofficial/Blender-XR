@@ -12,7 +12,8 @@ from . import menus, mesh, v065, v071
 _MIRROR_PAGE = 'XR_MIRROR_EDIT'
 _ARRAY_PAGE = 'XR_ARRAY_EDIT'
 _ARRAY_MODE_PAGE = 'XR_ARRAY_MODES'
-_MODIFIER_KINDS = frozenset(('MIRROR', 'ARRAY'))
+_CURVE_PAGE = 'XR_CURVE_MODIFIER'
+_MODIFIER_KINDS = frozenset(('MIRROR', 'ARRAY', 'CURVE'))
 
 
 def _editable(context):
@@ -49,6 +50,8 @@ def _state(mod):
             mod.mirror_object.name if mod.mirror_object else None,
             bool(mod.show_viewport),
         )
+    if mod.type == 'CURVE':
+        return (mod.object.name if mod.object else None, mod.deform_axis, bool(mod.show_viewport))
     if mod.type == 'ARRAY':
         return (
             int(mod.count),
@@ -92,6 +95,12 @@ def _restore(mod, state):
         mod.use_object_offset = object_mode
         mod.offset_object = reference
         mod.show_viewport = visible
+    elif mod.type == 'CURVE':
+        target, axis, visible = state
+        reference = _reference(target)
+        if reference is not None and reference.type != 'CURVE':
+            raise ValueError('Curve reference is no longer a Curve')
+        mod.object, mod.deform_axis, mod.show_viewport = reference, axis, visible
     else:
         raise ValueError('Unsupported modifier for XR undo')
 
@@ -120,7 +129,7 @@ def _chosen(session, context, kind):
 
 
 def _page(session, kind):
-    session.menu.page = _MIRROR_PAGE if kind == 'MIRROR' else _ARRAY_PAGE
+    session.menu.page = {'MIRROR': _MIRROR_PAGE, 'ARRAY': _ARRAY_PAGE, 'CURVE': _CURVE_PAGE}[kind]
     session.status = '{} / {}'.format(kind, session._xr_native_modifier[3] or 'PRESS NEW')
 
 
@@ -177,6 +186,21 @@ def _edit(session, context, kind, action):
                 mod.mirror_object = None
             else:
                 raise ValueError('Unknown Mirror action')
+        elif kind == 'CURVE':
+            if action == 'XR_CURVE_TARGET':
+                target = _target(context)
+                if target.type != 'CURVE' or target.hide_select or not target.visible_get():
+                    raise ValueError('Select one visible unlocked Curve as target')
+                mod.object = target
+            elif action == 'XR_CURVE_TARGET_CLEAR':
+                mod.object = None
+            elif action.startswith('XR_CURVE_AXIS_'):
+                axis = action.removeprefix('XR_CURVE_AXIS_')
+                if axis not in {'POS_X', 'POS_Y', 'POS_Z', 'NEG_X', 'NEG_Y', 'NEG_Z'}:
+                    raise ValueError('Unknown Curve axis')
+                mod.deform_axis = axis
+            else:
+                raise ValueError('Unknown Curve modifier action')
         else:
             if action in {'XR_ARRAY_COUNT_DOWN', 'XR_ARRAY_COUNT_UP'}:
                 delta = -1 if action.endswith('DOWN') else 1
@@ -230,7 +254,7 @@ def _create(session, context, kind):
     if kind == 'MIRROR':
         mod.use_axis = (True, False, False)
         mod.use_clip = True
-    else:
+    elif kind == 'ARRAY':
         mod.count = 2
     session._xr_native_modifier = (obj.name, obj.as_pointer(), kind, mod.name)
     session.history.push(_history_entry(obj, mod, None, _state(mod), created=True))
@@ -296,12 +320,22 @@ def install_pages():
     menus.PAGES['MODIFIER_MENU'] = (
         ('MIRROR EDIT', 'MOD_MIRROR_EDIT_MENU'),
         ('ARRAY EDIT', 'MOD_ARRAY_EDIT_MENU'),
+        ('CURVE EDIT', 'MOD_CURVE_EDIT_MENU'),
         ('SOLIDIFY', 'MOD_SOLIDIFY'), ('COUNT +', 'MOD_COUNT_UP'),
         ('COUNT -', 'MOD_COUNT_DOWN'),
         ('THICK +', 'MOD_THICK_UP'), ('THICK -', 'MOD_THICK_DOWN'),
         ('SHOW/HIDE', 'MOD_TOGGLE'), ('REMOVE', 'MOD_REMOVE'),
         ('BACK', 'BACK'),
     )
+    menus.PAGES[_CURVE_PAGE] = (
+        ('NEW', 'XR_CURVE_NEW'), ('NEXT', 'XR_CURVE_NEXT'),
+        ('TARGET', 'XR_CURVE_TARGET'), ('CLEAR TARGET', 'XR_CURVE_TARGET_CLEAR'),
+        *((axis.replace('_', ' '), 'XR_CURVE_AXIS_' + axis) for axis in
+          ('POS_X', 'POS_Y', 'POS_Z', 'NEG_X', 'NEG_Y', 'NEG_Z')),
+        ('BACK', 'BACK'),
+    )
+    menus.TITLES[_CURVE_PAGE] = 'CURVE MODIFIER'
+    v065.TOOLTIPS['MOD_CURVE_EDIT_MENU'] = ('Curve Modifier', 'Deform a mesh along a native Curve; edit existing or explicitly create new')
     menus.PAGES[_MIRROR_PAGE] = (
         ('NEW', 'XR_MIRROR_NEW'), ('NEXT', 'XR_MIRROR_NEXT'),
         ('X', 'XR_MIRROR_X'), ('Y', 'XR_MIRROR_Y'),
@@ -358,12 +392,12 @@ def patch_runtime(Runtime):
             self.menu.page = 'MODIFIER_MENU'
             self.status = 'MODIFIERS / SELECT MIRROR OR ARRAY'
             return
-        if action in {'MOD_MIRROR_EDIT_MENU', 'MOD_ARRAY_EDIT_MENU'}:
+        if action in {'MOD_MIRROR_EDIT_MENU', 'MOD_ARRAY_EDIT_MENU', 'MOD_CURVE_EDIT_MENU'}:
             v071._idle(self)
-            _open(self, context, 'MIRROR' if action == 'MOD_MIRROR_EDIT_MENU' else 'ARRAY')
+            _open(self, context, action.split('_')[1])
             return
         page = getattr(self.menu, 'page', None)
-        if action == 'BACK' and page in {_MIRROR_PAGE, _ARRAY_PAGE, _ARRAY_MODE_PAGE}:
+        if action == 'BACK' and page in {_MIRROR_PAGE, _ARRAY_PAGE, _ARRAY_MODE_PAGE, _CURVE_PAGE}:
             if page == _ARRAY_MODE_PAGE:
                 self.menu.page = _ARRAY_PAGE
             else:
@@ -376,7 +410,8 @@ def patch_runtime(Runtime):
             self.status = 'ARRAY SPACING / SELECT MODE'
             return
         kind = ('MIRROR' if page == _MIRROR_PAGE else
-                'ARRAY' if page in {_ARRAY_PAGE, _ARRAY_MODE_PAGE} else None)
+                'ARRAY' if page in {_ARRAY_PAGE, _ARRAY_MODE_PAGE} else
+                'CURVE' if page == _CURVE_PAGE else None)
         if kind and action.startswith('XR_'):
             v071._idle(self)
             if action == 'XR_' + kind + '_NEW':

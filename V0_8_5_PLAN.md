@@ -4,6 +4,32 @@
 
 **Status:** In development; not released. Keep add-on manifest/version at 0.8.0 until all accepted v0.8.5 capabilities have merged and the release gate passes.
 
+## Completion scope — 15 November 2026
+
+The creator requested a practical 0.8.5 completion plus one simple giant roadmap.
+[ROADMAP.md](ROADMAP.md) is now the release-order index. Earlier detailed plans remain
+historical requirements; their old status tables must not be treated as a current audit.
+
+Implementation in the completion branch:
+
+- [x] Integrate wrist hierarchy search from PR #53 without dropping assembly controls.
+- [x] Add selected-geometry Separate and Extract Copy, preserving retained originals.
+- [x] Preserve object vertex-group definitions/locks when redoing joined/separated output.
+- [x] Add native Curve modifier target and six deformation-axis controls.
+- [x] Add headset HEX entry, RGB adjustments and an HSV wheel to the existing colour studio.
+- [x] Add light-temperature presets as approximate native linear RGB colours.
+- [x] Add explicit editable native flicker keyframes with Undo/Redo and existing-animation guards.
+- [x] Add real Blender regression coverage for the new controls and preservation paths.
+- [ ] Complete the supported Blender/platform matrix and extension preview for this branch.
+- [ ] Record physical Quest 3/SteamVR acceptance, including wheel aiming and interrupted edits.
+- [ ] Resolve remaining input-router stability acceptance before a stable release claim.
+- [ ] Update release version/manifest/README/ZIP naming together only after gates pass.
+
+0.8.5 uses immediate undoable modifier button edits. Continuous preview/confirm/cancel,
+freehand curve strokes, hierarchy rename, precision selection and IK are scheduled in
+the roadmap rather than being misrepresented as finished. Native curve objects and
+the Curve deformation modifier are separate delivered features.
+
 ## Accepted v0.8.5 scope
 
 1. **General object parenting** — select multiple children and an active parent; change or clear parent while retaining each child's world transform; refuse cycles, linked/hidden/locked objects and unsafe parenting relationships.

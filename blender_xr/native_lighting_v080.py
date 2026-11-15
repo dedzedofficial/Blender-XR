@@ -41,6 +41,18 @@ _PRESET_ENERGY = {
 }
 
 
+def kelvin_color(kelvin):
+    """Approximate black-body temperature as linear RGB for native light colour."""
+    t = max(1000., min(40000., float(kelvin))) / 100.
+    red = 255. if t <= 66 else 329.698727446 * (t - 60) ** -.1332047592
+    green = 99.4708025861 * math.log(t) - 161.1195681661 if t <= 66 else 288.1221695283 * (t - 60) ** -.0755148492
+    blue = 255. if t >= 66 else (0. if t <= 19 else 138.5177312231 * math.log(t - 10) - 305.0447927307)
+    def linear(channel):
+        value = max(0., min(255., channel)) / 255.
+        return value / 12.92 if value <= .04045 else ((value + .055) / 1.055) ** 2.4
+    return tuple(linear(c) for c in (red, green, blue))
+
+
 def _editable(context, obj=None):
     if context.mode != 'OBJECT':
         raise ValueError('Light editing requires Object Mode')
@@ -61,7 +73,7 @@ def _editable(context, obj=None):
     # We edit only native properties; custom light shader nodes stay intact.
     if ((obj.animation_data and (obj.animation_data.action or obj.animation_data.drivers)) or
             (obj.data.animation_data and
-             (obj.data.animation_data.action or obj.data.animation_data.drivers))):
+             ((obj.data.animation_data.action and not obj.data.animation_data.action.get('_meshxr_flicker')) or obj.data.animation_data.drivers or obj.data.animation_data.nla_tracks))):
         raise ValueError('Animated Lights need their original editor')
     return obj
 
@@ -237,6 +249,11 @@ def _mutate(session, context, action, world=None, direction=None):
             if direction is None or Vector(direction).length < .5:
                 raise ValueError('Aim the controller before rotating a Light')
             obj.matrix_world = _aim_matrix(obj, direction)
+        elif action.startswith('XR_LIGHT_KELVIN_'):
+            kelvin = int(action.rsplit('_', 1)[1])
+            if kelvin not in {2700, 4000, 6500}:
+                raise ValueError('Unsupported temperature preset')
+            data.color = kelvin_color(kelvin)
         elif action == 'XR_LIGHT_POWER_UP':
             data.energy = min(1000000.0, data.energy * 1.25 if data.energy > .01 else 100.0)
         elif action == 'XR_LIGHT_POWER_DOWN':
@@ -385,12 +402,65 @@ def _capture_tick(session, context):
             session.trigger.update(1.0)
 
 
+def _action_signature(action):
+    if hasattr(action, 'fcurves'):
+        curves = list(action.fcurves)
+    else:
+        curves = [curve for layer in action.layers for strip in layer.strips
+                  for bag in strip.channelbags for curve in bag.fcurves]
+    return tuple((curve.data_path, curve.array_index,
+                  tuple((tuple(key.co), key.interpolation) for key in curve.keyframe_points),
+                  len(curve.modifiers)) for curve in curves)
+
+
+def _flicker(session, context):
+    obj = _selection(session, context)
+    light = obj.data
+    animation = light.animation_data
+    if animation and (animation.action or animation.drivers or animation.nla_tracks):
+        raise ValueError('Remove or undo existing animation before adding flicker')
+    energy = float(light.energy)
+    action = None
+    try:
+        start = context.scene.frame_current
+        for offset, multiplier in ((0, 1.), (3, .65), (5, .95), (9, .4), (12, 1.), (18, .75), (24, 1.)):
+            light.energy = energy * multiplier
+            light.keyframe_insert(data_path='energy', frame=start + offset)
+        action = light.animation_data.action
+        action.name = 'Mesh XR Editable Flicker'
+        action['_meshxr_flicker'] = True
+        slot = getattr(light.animation_data, 'action_slot', None)
+        slot_id = slot.identifier if slot else None
+        action.use_fake_user = True
+        session.history.push(('XR_LIGHT_FLICKER', light, action, slot_id,
+                              energy, _action_signature(action)))
+        session.status = 'FLICKER / 24 FRAMES / EDIT IN BLENDER TIMELINE'
+    except Exception:
+        if light.animation_data:
+            action = light.animation_data.action
+            light.animation_data.action = None
+        if action and action.users == 0:
+            bpy.data.actions.remove(action)
+        raise
+    finally:
+        light.energy = energy
+
+
 def _patch_history():
     if getattr(mesh.History, '_xr_native_light_history', False):
         return
     original_step, original_release = mesh.History.step, mesh.History.release
 
     def release(entry):
+        if entry[0] == 'XR_LIGHT_FLICKER':
+            action = entry[2]
+            try:
+                action.use_fake_user = False
+                if action.users == 0:
+                    bpy.data.actions.remove(action)
+            except ReferenceError:
+                pass
+            return
         if entry[0] == 'XR_LIGHT_EDIT':
             return
         if entry[0] == 'XR_LIGHT_CREATE':
@@ -404,6 +474,21 @@ def _patch_history():
         return original_release(entry)
 
     def step(self, backwards=True):
+        source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
+        if source and source[-1][0] == 'XR_LIGHT_FLICKER':
+            _, light, action, slot_id, energy, signature = source[-1]
+            if light.library or light.users != 1 or _action_signature(action) != signature:
+                raise ValueError('Flicker data changed outside XR history')
+            animation = light.animation_data_create()
+            expected = action if backwards else None
+            if animation.action != expected or animation.drivers or animation.nla_tracks:
+                raise ValueError('Light animation changed outside XR history')
+            animation.action = None if backwards else action
+            if not backwards and slot_id is not None:
+                animation.action_slot = next(slot for slot in action.slots if slot.identifier == slot_id)
+            light.energy = energy
+            dest.append(source.pop())
+            return True
         source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
         if not source or source[-1][0] not in {'XR_LIGHT_EDIT', 'XR_LIGHT_CREATE'}:
             return original_step(self, backwards)
@@ -472,6 +557,8 @@ def install_pages():
         ('WHITE', 'XR_LIGHT_COLOR_WHITE'), ('WARM', 'XR_LIGHT_COLOR_WARM'),
         ('COOL', 'XR_LIGHT_COLOR_COOL'), ('RED', 'XR_LIGHT_COLOR_RED'),
         ('GREEN', 'XR_LIGHT_COLOR_GREEN'), ('BLUE', 'XR_LIGHT_COLOR_BLUE'),
+        ('2700 K', 'XR_LIGHT_KELVIN_2700'), ('4000 K', 'XR_LIGHT_KELVIN_4000'),
+        ('6500 K', 'XR_LIGHT_KELVIN_6500'),
         ('BACK', 'BACK'),
     )
     menus.PAGES[_SHAPE] = (('BACK', 'BACK'),)
@@ -480,7 +567,8 @@ def install_pages():
         ('TORCH', 'XR_LIGHT_PRESET_TORCH'),
         ('MOON', 'XR_LIGHT_PRESET_MOON'),
         ('NEON', 'XR_LIGHT_PRESET_NEON'),
-        ('HORROR', 'XR_LIGHT_PRESET_HORROR'), ('BACK', 'BACK'),
+        ('HORROR', 'XR_LIGHT_PRESET_HORROR'),
+        ('KEY FLICKER', 'XR_LIGHT_FLICKER'), ('BACK', 'BACK'),
     )
     menus.TITLES.update({_HOME: 'NATIVE LIGHTS', _EDIT: 'EDIT LIGHT',
                          _COLOR: 'LIGHT COLOR', _SHAPE: 'LIGHT SIZE',
@@ -550,6 +638,9 @@ def patch_runtime(Runtime):
                        'XR_LIGHT_SHAPE_MENU': _SHAPE,
                        'XR_LIGHT_PRESET_MENU': _PRESETS}[action]
             _page(self, context, subpage)
+            return
+        if action == 'XR_LIGHT_FLICKER':
+            _flicker(self, context)
             return
         if action in _AIM:
             _arm(self, context, action)
