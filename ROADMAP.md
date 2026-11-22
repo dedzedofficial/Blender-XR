@@ -40,6 +40,16 @@ and Cancel or tracking loss restores the starting values. Regular button editing
 layers are 256/512/1024 pixels. Join/paint reject unsafe modifier/shape-key cases.
 These restrictions must be visible in help, not described as universal support.
 
+**Native mesh selection authoring (development implementation, pending owner testing):**
+Added a hand-menu workflow for ALL/NONE/INVERT, LINKED, GROW/SHRINK,
+BOUNDARY/NON-MANIFOLD, LOOSE and SHARP. Uses Blender's existing
+editable BMesh and active vertex/edge/face selection mode. Each change
+is independently undoable inside XR; history verifies object/data identity,
+mode, original selected indices, mesh connectivity and hidden-element flags
+before restoring state. Accessible from Edit More → Options → Selection,
+which also retains Step +/−, Precision Pick and Axis Nudge. No loss of
+earlier modelling actions, no GitHub Actions and no release claim.
+
 ## 0.8.6 — interaction and precision
 **Controller safety increment (source implemented, awaiting creator testing):**
 A common finite-input validator protects tracked controller rotations and
