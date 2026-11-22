@@ -59,10 +59,13 @@ def _topology(bm):
     """
     h = hashlib.blake2b(digest_size=16)
     h.update(struct.pack('<III', len(bm.verts), len(bm.edges), len(bm.faces)))
+    for vert in bm.verts:
+        h.update(struct.pack('<B', int(vert.hide)))
     for edge in bm.edges:
-        h.update(struct.pack('<II', edge.verts[0].index, edge.verts[1].index))
+        h.update(struct.pack('<IIB', edge.verts[0].index, edge.verts[1].index,
+                             int(edge.hide)))
     for face in bm.faces:
-        h.update(struct.pack('<I', len(face.verts)))
+        h.update(struct.pack('<IB', len(face.verts), int(face.hide)))
         for vert in face.verts:
             h.update(struct.pack('<I', vert.index))
     return h.digest()
@@ -75,16 +78,21 @@ def _selected(items):
 
 def _set_selection(obj, mode, indices):
     bm, items = _current(obj, mode)
-    for group in (bm.faces, bm.edges, bm.verts):
-        for item in group:
-            if item.is_valid and item.select:
-                item.select_set(False)
+    # Validate the entire destination before clearing *any* selection.
+    # A partial selection clear is not an acceptable failed Undo/Redo.
+    targets = []
     for index in indices:
         if index < 0 or index >= len(items):
             raise ValueError('Selection indices changed outside XR history')
         item = items[index]
         if not item.is_valid or item.hide:
             raise ValueError('Cannot select a hidden or deleted mesh element')
+        targets.append(item)
+    for group in (bm.faces, bm.edges, bm.verts):
+        for item in group:
+            if item.is_valid and item.select:
+                item.select_set(False)
+    for item in targets:
         item.select_set(True)
     bm.select_mode = {mode}
     bm.select_flush_mode()
