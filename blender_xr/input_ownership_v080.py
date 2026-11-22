@@ -157,6 +157,10 @@ def cancel_session_loss(session):
                        for name in live_fields)
     radial = getattr(session, 'radial', None)
     radial_active = bool(getattr(radial, 'active', False))
+    # A cancelled frame must never leave a validated sample available to a
+    # specialized handler or a later legacy input reader.
+    session._xr_validated_controls = None
+    session._xr_validated_poses = None
     # Even an idle stopped session invalidates the controller edge state.
     # Otherwise a held trigger on reconnect can start an unintended edit.
     if has_mutation or radial_active:
