@@ -43,6 +43,31 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 native mesh-selection tools development preview
+
+In **Mesh Edit Mode**, open **More → Options → Selection** from the XR
+wrist/radial controls. **Select All**, **None**, **Invert**, **Linked**,
+**Grow**, **Shrink**, **Mesh Boundary**, **Non-Manifold**, **Loose** and
+**Sharp** operate directly on Blender's native BMesh vertex, edge or
+face selection (according to the current mode). Linked finds connected
+components, Grow adds one ring, and Shrink contracts a selected region.
+Boundary and non-manifold commands find open topology and topology that
+does not have exactly two attached faces. Loose and Sharp apply in
+vertex/edge modes; they report an explanatory error in face mode.
+
+Every completed selection change forms one **XR-local Undo/Redo** action,
+and undo refuses to restore indices if the original mesh identity,
+connectivity, element visibility, selection mode, or expected selection
+state changed outside XR. The previous selection is not cleared until the
+entire proposed destination has passed validation. The existing geometry
+modelling commands are preserved; their formerly named **Step** submenu
+is now **Options**, containing Step +/−, Precision Pick, Axis Nudge
+and Selection. No mesh data duplicates, modifiers, hidden custom properties
+or external assets are created by these selection actions.
+
+Source-implemented as a stacked development draft. Blender, Windows and
+headset verification remain the owner's responsibility.
+
 ## v0.8.6 controller recovery development preview
 
 Controller actions are now activated before the first XR input frame; fresh
