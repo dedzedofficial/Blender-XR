@@ -57,6 +57,8 @@ def _nudge(context, session, axis, direction):
         raise ValueError('Invalid axis command')
     if input_ownership_v080.is_editing(session):
         raise ValueError('Finish the current controller gesture first')
+    if getattr(session, 'history', None) is None:
+        raise ValueError('XR history is required for precise movement')
     obj, mode = _eligible(context)
     distance = _step(session) * direction
     normal = Vector(tuple(1.0 if c == axis else 0.0 for c in 'XYZ'))
@@ -97,8 +99,6 @@ def _nudge(context, session, axis, direction):
         obj.matrix_world = after
         entry = ('OBJECT', obj.name, None, before, obj.matrix_world.copy())
 
-    if getattr(session, 'history', None) is None:
-        raise ValueError('XR history is required for precise movement')
     session.history.push(entry)
     session.status = 'NUDGE / {} {} {:.4f} / {}'.format(
         axis, '+' if direction > 0 else '-', abs(distance),
