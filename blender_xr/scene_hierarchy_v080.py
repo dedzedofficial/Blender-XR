@@ -11,6 +11,7 @@ _LIST = 'SCENE_HIERARCHY'
 _ITEM = 'SCENE_HIERARCHY_ITEM'
 _PAGE_SIZE = 6
 _SEARCH = 'SCENE_HIERARCHY_SEARCH'
+_CHILDREN = 'SCENE_HIERARCHY_CHILDREN'
 _ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ '
 
 
@@ -92,8 +93,53 @@ def _render_search(session):
     session.status = 'SEARCH / ' + (getattr(session, '_xr_hierarchy_query', '') or '(EMPTY)')
 
 
-def _render_item(session, context):
+def _active_item(session, context):
     obj = _object(context, getattr(session, '_xr_hierarchy_object', None))
+    token = getattr(session, '_xr_hierarchy_object_ptr', None)
+    if token is not None and obj.as_pointer() != token:
+        raise ValueError('Hierarchy object changed; reopen hierarchy')
+    return obj
+
+
+def _set_item(session, context, obj):
+    if context.view_layer.objects.get(obj.name) != obj:
+        raise ValueError('Object is outside the active view layer')
+    session._xr_hierarchy_object = obj.name
+    session._xr_hierarchy_object_ptr = obj.as_pointer()
+    session._xr_hierarchy_children_page = 0
+    _render_item(session, context)
+
+
+def _child_rows(context, parent):
+    return tuple((obj.name, obj.as_pointer())
+                 for obj in sorted(context.view_layer.objects,
+                                   key=lambda obj: (obj.name.casefold(), obj.name))
+                 if obj.parent == parent)
+
+
+def _render_children(session, context):
+    parent = _active_item(session, context)
+    entries = _child_rows(context, parent)
+    page = max(0, int(getattr(session, '_xr_hierarchy_children_page', 0)))
+    page = min(page, (len(entries) - 1) // _PAGE_SIZE if entries else 0)
+    session._xr_hierarchy_children_page = page
+    start = page * _PAGE_SIZE
+    session._xr_hierarchy_children_rows = entries[start:start + _PAGE_SIZE]
+    buttons = [('O: ' + name[:17], 'HIER_CHILD_ROW_' + str(index))
+               for index, (name, _ptr) in enumerate(session._xr_hierarchy_children_rows)]
+    if page:
+        buttons.append(('PREVIOUS', 'HIER_CHILD_PREV'))
+    if start + _PAGE_SIZE < len(entries):
+        buttons.append(('NEXT', 'HIER_CHILD_NEXT'))
+    buttons.append(('BACK', 'HIER_BACK'))
+    menus.PAGES[_CHILDREN] = tuple(buttons)
+    menus.TITLES[_CHILDREN] = ('CHILDREN / ' + parent.name)[:21]
+    session.menu.page = _CHILDREN
+    session.status = 'CHILDREN / {} / PAGE {}'.format(len(entries), page + 1)
+
+
+def _render_item(session, context):
+    obj = _active_item(session, context)
     hidden = obj.hide_get(view_layer=context.view_layer)
     locked = obj.hide_select
     menus.PAGES[_ITEM] = (
@@ -101,6 +147,9 @@ def _render_item(session, context):
         ('ADD/REMOVE', 'HIER_MULTI'),
         ('SHOW' if hidden else 'HIDE', 'HIER_VISIBILITY'),
         ('UNLOCK' if locked else 'LOCK', 'HIER_LOCK'),
+        ('PARENT', 'HIER_PARENT'),
+        ('CHILDREN', 'HIER_CHILDREN'),
+        ('RENAME', 'HIER_RENAME'),
         ('ASSEMBLY', 'XR_ASSEMBLY_MENU'),
         ('BACK', 'HIER_BACK'),
     )
@@ -160,9 +209,11 @@ def install_pages():
     menus.PAGES[_LIST] = (('BACK', 'HIER_BACK'),)
     menus.PAGES[_ITEM] = (('BACK', 'HIER_BACK'),)
     menus.PAGES[_SEARCH] = (('RESULTS', 'HIER_SEARCH_DONE'),)
+    menus.PAGES[_CHILDREN] = (('BACK', 'HIER_BACK'),)
     menus.TITLES[_LIST] = 'SCENE HIERARCHY'
     menus.TITLES[_ITEM] = 'OBJECT SETTINGS'
     menus.TITLES[_SEARCH] = 'SEARCH OBJECTS'
+    menus.TITLES[_CHILDREN] = 'DIRECT CHILDREN'
     v065.TOOLTIPS.update({
         'SCENE_MENU': ('Scene Hierarchy', 'Browse collections and select, hide or lock loaded objects on your offhand'),
         'HIER_SELECT': ('Select Object', 'Select this visible unlocked object exclusively'),
@@ -171,6 +222,9 @@ def install_pages():
         'HIER_LOCK': ('Toggle Selection Lock', 'Prevent selecting and editing this object'),
         'HIER_REFRESH': ('Refresh Hierarchy', 'Rebuild the object list after a scene change'),
         'HIER_SEARCH': ('Search Loaded Objects', 'Filter the current view-layer objects by name'),
+        'HIER_PARENT': ('Parent Breadcrumb', 'Open the selected object parent in the current view layer'),
+        'HIER_CHILDREN': ('Browse Direct Children', 'Inspect the native Blender children of this object'),
+        'HIER_RENAME': ('Rename Object', 'Open the headset keyboard to rename a local unlocked object'),
     })
 
 
@@ -188,6 +242,7 @@ def patch_runtime(Runtime):
             self._xr_hierarchy_path = []
             self._xr_hierarchy_page = 0
             self._xr_hierarchy_object = None
+            self._xr_hierarchy_object_ptr = None
             self._xr_hierarchy_query = ''
             self._xr_hierarchy_search_page = 0
             self._creator_parent_page = None
@@ -219,6 +274,39 @@ def patch_runtime(Runtime):
                 self._xr_hierarchy_page = 0
                 _render_list(self, context)
                 return
+        if action == 'HIER_PARENT' and self.menu.page == _ITEM:
+            obj = _active_item(self, context)
+            if obj.parent is None:
+                raise ValueError('Object has no parent')
+            _set_item(self, context, obj.parent)
+            return
+        if action == 'HIER_CHILDREN' and self.menu.page == _ITEM:
+            _render_children(self, context)
+            return
+        if self.menu.page == _CHILDREN and action in {'HIER_CHILD_NEXT', 'HIER_CHILD_PREV'}:
+            self._xr_hierarchy_children_page += 1 if action == 'HIER_CHILD_NEXT' else -1
+            _render_children(self, context)
+            return
+        if self.menu.page == _CHILDREN and action.startswith('HIER_CHILD_ROW_'):
+            parent = _active_item(self, context)
+            page = self._xr_hierarchy_children_page
+            rows = tuple(getattr(self, '_xr_hierarchy_children_rows', ()))
+            live = _child_rows(context, parent)
+            if rows != live[page * _PAGE_SIZE:(page + 1) * _PAGE_SIZE]:
+                _render_children(self, context)
+                raise ValueError('Child list changed; select again')
+            try:
+                index = int(action[len('HIER_CHILD_ROW_'):])
+                name, pointer = rows[index]
+            except (ValueError, IndexError):
+                raise ValueError('Child selection expired') from None
+            if index < 0:
+                raise ValueError('Child selection expired')
+            obj = _object(context, name)
+            if obj.as_pointer() != pointer:
+                raise ValueError('Child object changed; refresh')
+            _set_item(self, context, obj)
+            return
         if action == 'HIER_REFRESH' and self.menu.page == _LIST:
             _render_list(self, context)
             return
@@ -233,7 +321,9 @@ def patch_runtime(Runtime):
             _render_list(self, context)
             return
         if action == 'HIER_BACK':
-            if self.menu.page == _ITEM:
+            if self.menu.page == _CHILDREN:
+                _render_item(self, context)
+            elif self.menu.page == _ITEM:
                 _render_list(self, context)
             elif self.menu.page == _LIST:
                 if getattr(self, '_xr_hierarchy_query', ''):
@@ -270,12 +360,11 @@ def patch_runtime(Runtime):
                 self._xr_hierarchy_page = 0
                 _render_list(self, context)
             else:
-                self._xr_hierarchy_object = name
-                _render_item(self, context)
+                _set_item(self, context, _object(context, name))
             return
         if action in {'HIER_SELECT', 'HIER_MULTI',
                       'HIER_VISIBILITY', 'HIER_LOCK'} and self.menu.page == _ITEM:
-            obj = _object(context, getattr(self, '_xr_hierarchy_object', None))
+            obj = _active_item(self, context)
             if action in {'HIER_SELECT', 'HIER_MULTI'}:
                 _select(context, obj, additive=(action == 'HIER_MULTI'))
                 _render_item(self, context)
