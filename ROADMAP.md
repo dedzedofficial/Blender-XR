@@ -50,6 +50,16 @@ before restoring state. Accessible from Edit More → Options → Selection,
 which also retains Step +/−, Precision Pick and Axis Nudge. No loss of
 earlier modelling actions, no GitHub Actions and no release claim.
 
+**Native flatten-to-plane modelling increment (source implemented, user testing pending):**
+Mesh Edit → More → Options → Flatten now supports exact X/Y/Z
+plane alignment of selected native edit-mesh vertices (including the
+vertices of selected edges/faces). Local/world axis choice and average,
+minimum, maximum or 3D-cursor plane references are built in. World-space
+projection uses the full inverse object matrix, so rotated and non-uniform
+object scales preserve truly world-aligned geometry. Every change records
+an existing XR mesh snapshot, while no-op changes leave history untouched.
+No duplicate meshes, permanent custom layers or GitHub Actions introduced.
+
 ## 0.8.6 — interaction and precision
 **Controller safety increment (source implemented, awaiting creator testing):**
 A common finite-input validator protects tracked controller rotations and
