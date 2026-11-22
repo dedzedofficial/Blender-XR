@@ -43,6 +43,10 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 hierarchy development preview
+
+From **Creator → Scene Hierarchy**, choose a Blender object and use **Parent** or **Children** to move through actual native Blender parent relationships. **Rename** opens a controller keyboard: **More Keys** switches pages, **Lowercase/Uppercase** changes typed letter case, **Delete/Clear** edits the proposed name, and **Save/Cancel** commits or discards it. Names must be unique, no longer than 63 UTF-8 bytes and belong to a visible unlocked local object. If earlier Mesh XR undo/redo entries exist, the interface asks before clearing them; rename itself can then be undone with XR Undo. No object name changes while typing. Development feature; physical/headset acceptance belongs to the tester.
+
 ## New in 0.8 alpha 2 — for testing
 
 - Calibrate the 3D hands from Session; enable fine controller grabs from Model.

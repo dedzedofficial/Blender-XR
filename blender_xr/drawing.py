@@ -30,6 +30,19 @@ _ICON_BY_ACTION = {
     'STUDIO_VALUE_UP': 'material',
     'STUDIO_VALUE_DOWN': 'material',
     'HIER_SEARCH': 'cursor',
+    'HIER_PARENT': 'bone_data',
+    'HIER_CHILDREN': 'object_data',
+    'HIER_RENAME': 'properties',
+    'HIER_CHILD_NEXT': 'properties',
+    'HIER_CHILD_PREV': 'properties',
+    'HIER_RENAME_NEXT': 'properties',
+    'HIER_RENAME_CASE': 'properties',
+    'HIER_RENAME_DELETE': 'delete',
+    'HIER_RENAME_CLEAR': 'cancel',
+    'HIER_RENAME_SAVE': 'checkmark',
+    'HIER_RENAME_CANCEL': 'cancel',
+    'HIER_RENAME_CONFIRM': 'checkmark',
+    'HIER_RENAME_EDIT': 'properties',
     'HIER_SEARCH_DONE': 'checkmark',
     'HIER_SEARCH_NEXT': 'properties',
     'HIER_SEARCH_DELETE': 'delete',
@@ -543,6 +556,9 @@ class Menu:
                 color=(0.12,0.42,0.55,1)
             rect(bx,by,w,h,color,0.0005)
             icon_name = _ICON_BY_ACTION.get(action)
+            if icon_name is None and (action.startswith('HIER_CHILD_ROW_') or
+                                      action.startswith('HIER_RENAME_KEY_')):
+                icon_name = 'object_data' if action.startswith('HIER_CHILD_ROW_') else 'properties'
             # PANEL cells are reserved for the three H/S/L sliders, not buttons.
             # All actionable buttons get an icon even when PNG/GPU loading fails.
             has_icon = action != 'PANEL'
