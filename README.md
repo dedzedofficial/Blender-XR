@@ -43,6 +43,21 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 selected-mesh reflection development preview
+
+**Mesh Edit → More → Options → Reflect** mirrors selected native vertices
+across the X, Y or Z plane without duplicating geometry or adding a
+modifier. Choose **Local / World** to change the coordinate frame and
+**Median / Cursor** to choose the reflection plane's position. The cursor
+uses Blender's native 3D cursor. World reflection accounts for rotated and
+non-uniformly scaled object transforms.
+
+Each real change is one guarded XR-local mesh Undo/Redo transaction;
+no-op operations leave history unchanged. Reflections reverse the shape of
+the selected coordinates, but do not change mesh topology, face winding or
+materials. Use a Mirror modifier if duplicate symmetric geometry is wanted.
+Creator-owned testing remains pending.
+
 ## v0.8.6 precision mesh snapping development preview
 
 From **Mesh Edit → More → Options → Snap**, snap selected native Blender
