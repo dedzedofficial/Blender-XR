@@ -14,6 +14,7 @@ import bmesh
 from . import input_ownership_v080, menus, mesh, selection, v065
 
 _PAGE = 'XR_SELECTION_TOOLS_086'
+_FLOWS_PAGE = 'XR_EDGE_FLOWS_086'
 _TAG = 'XR_MESH_SELECTION_086'
 _ACTIONS = {
     'XR_SEL_ALL': 'ALL',
@@ -26,6 +27,11 @@ _ACTIONS = {
     'XR_SEL_NONMANIFOLD': 'NONMANIFOLD',
     'XR_SEL_LOOSE': 'LOOSE',
     'XR_SEL_SHARP': 'SHARP',
+    'XR_SEL_EDGE_LOOP': 'EDGE_LOOP',
+    'XR_SEL_EDGE_RING': 'EDGE_RING',
+    'XR_SEL_BOUNDARY_CHAIN': 'BOUNDARY_CHAIN',
+    'XR_SEL_SEAM_CHAIN': 'SEAM_CHAIN',
+    'XR_SEL_SHARP_CHAIN': 'SHARP_CHAIN',
 }
 _GROUPS = {'VERT': 'verts', 'EDGE': 'edges', 'FACE': 'faces'}
 
@@ -153,6 +159,12 @@ def _sharp(item, mode):
 def _target_indices(bm, items, mode, operation):
     visible = tuple(item for item in items if item.is_valid and not item.hide)
     selected = {item for item in visible if item.select}
+    if operation in {'EDGE_LOOP', 'EDGE_RING', 'BOUNDARY_CHAIN',
+                     'SEAM_CHAIN', 'SHARP_CHAIN'}:
+        if mode != 'EDGE':
+            raise ValueError('Enter Edge Select mode before selecting edge flows')
+        from . import edge_selection_v086
+        return edge_selection_v086.select_flow(bm, operation)
     if operation == 'ALL':
         target = set(visible)
     elif operation == 'NONE':
@@ -287,9 +299,19 @@ def install_pages():
         ('NON-MANIFOLD', 'XR_SEL_NONMANIFOLD'),
         ('LOOSE', 'XR_SEL_LOOSE'),
         ('SHARP', 'XR_SEL_SHARP'),
+        ('EDGE FLOWS', 'XR_SEL_LOOPS_MENU'),
+        ('BACK', 'BACK'),
+    )
+    menus.PAGES[_FLOWS_PAGE] = (
+        ('EDGE LOOP', 'XR_SEL_EDGE_LOOP'),
+        ('EDGE RING', 'XR_SEL_EDGE_RING'),
+        ('BOUNDARY', 'XR_SEL_BOUNDARY_CHAIN'),
+        ('SEAM CHAIN', 'XR_SEL_SEAM_CHAIN'),
+        ('SHARP CHAIN', 'XR_SEL_SHARP_CHAIN'),
         ('BACK', 'BACK'),
     )
     menus.TITLES[_PAGE] = 'MESH SELECTION'
+    menus.TITLES[_FLOWS_PAGE] = 'EDGE FLOWS'
     v065.TOOLTIPS['STEP_MENU'] = (
         'Edit Options', 'Step size, precision picking, axis movement and mesh selection')
     v065.TOOLTIPS.update({
@@ -304,6 +326,12 @@ def install_pages():
         'XR_SEL_NONMANIFOLD': ('Select Non-Manifold', 'Select elements associated with non-manifold edges'),
         'XR_SEL_LOOSE': ('Select Loose Elements', 'Find disconnected vertices or edges with no faces'),
         'XR_SEL_SHARP': ('Select Sharp Elements', 'Find hard-shaded edges or adjoining vertices'),
+        'XR_SEL_LOOPS_MENU': ('Edge Flow Selection', 'Follow visible quad loops/rings and marked edge chains'),
+        'XR_SEL_EDGE_LOOP': ('Select Quad Edge Loop', 'Continue across regular quad vertices; stop at poles and boundaries'),
+        'XR_SEL_EDGE_RING': ('Select Quad Edge Ring', 'Traverse opposite edges on successive visible quad faces'),
+        'XR_SEL_BOUNDARY_CHAIN': ('Select Boundary Chain', 'Follow an existing open boundary without branching'),
+        'XR_SEL_SEAM_CHAIN': ('Select Seam Chain', 'Follow connected edges marked as native Blender UV seams'),
+        'XR_SEL_SHARP_CHAIN': ('Select Sharp Chain', 'Follow connected hard-shaded edges without branching'),
     })
 
 
@@ -329,9 +357,25 @@ def patch_runtime(Runtime):
             if action == 'BACK':
                 menu.page = 'STEP_MENU'
                 return
-            if action in _ACTIONS:
+            if action == 'XR_SEL_LOOPS_MENU':
+                if selection.mode(context) != 'EDGE':
+                    raise ValueError('Use Edge Select mode for edge flow tools')
+                menu.page = _FLOWS_PAGE
+                self.status = 'EDGE FLOWS / LOOP, RING, BOUNDARY, SEAM, SHARP'
+                return
+            if action in _ACTIONS and not action.endswith('_CHAIN'):
                 return _apply(self, context, action)
             raise ValueError('Finish or exit Selection Tools first')
+        if menu.page == _FLOWS_PAGE:
+            if action == 'BACK':
+                menu.page = _PAGE
+                return
+            if action in {
+                    'XR_SEL_EDGE_LOOP', 'XR_SEL_EDGE_RING',
+                    'XR_SEL_BOUNDARY_CHAIN', 'XR_SEL_SEAM_CHAIN',
+                    'XR_SEL_SHARP_CHAIN'}:
+                return _apply(self, context, action)
+            raise ValueError('Finish or exit Edge Flow tools first')
         return previous_command(self, context, action)
 
     Runtime.command = command
