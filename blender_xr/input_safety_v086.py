@@ -83,6 +83,21 @@ def viewer_frame(state):
     return viewer, scale
 
 
+
+def viewer_orientation(state):
+    """Return a validated headset rotation for locomotion direction.
+
+    A lost headset orientation must not feed non-finite values into the
+    OpenXR navigation transform even if both controllers remain tracked.
+    """
+    from mathutils import Quaternion
+
+    rotation = Quaternion(state.viewer_pose_rotation)
+    if not valid_rotation(rotation):
+        raise ValueError('XR viewer rotation is invalid')
+    return rotation
+
+
 def control_value(value):
     """Normalize a trigger or grip with a small hardware rounding tolerance."""
     (number,) = _floats((value,), 1, 'trigger/grip')
