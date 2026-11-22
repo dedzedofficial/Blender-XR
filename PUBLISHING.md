@@ -1,56 +1,69 @@
-# Mesh XR — GitHub and Blender Extensions publishing
+# Mesh XR — local validation and manual publishing
 
-## Automated workflow
+GitHub Actions workflows were removed from `main` on **18 November 2026** to
+avoid unattended runner usage. Mesh XR is a native Blender desktop extension,
+not a GitHub-hosted service. Commits and pull requests do **not** automatically
+validate or publish an installer. Do not restore the deleted workflows merely
+to fix a draft pull-request conflict.
 
-On a new main-branch version, `.github/workflows/release.yml` calls the complete
-four-version Blender validation matrix before packaging. If any check fails,
-publication stops. When validation passes, the workflow creates an immutable
-versioned GitHub release and submits the exact version to Blender Extensions.
-Existing release tags and assets are not force-updated.
+## Build and validate locally
 
-Blender Extensions uses the stable extension ID `blender_xr`. The add-on itself
-does not contain an updater, as this is prohibited by the official platform.
+On Windows, from the repository root in PowerShell:
 
-## One-time secret setup (required)
+```powershell
+.\dev-local.ps1 -Build -BlenderPath 'C:\Program Files\Blender Foundation\Blender 4.5\blender.exe'
+```
 
-1. On the Blender Extensions website, create a publishing API token in the account
-   that maintains Mesh XR.
-2. In **this repository** open **Settings > Secrets and variables > Actions**.
-3. Add a **repository secret** named exactly `BLENDER_EXTENSIONS_TOKEN`.
-4. Paste the token as its value. Do **not** commit it to source code, issues,
-   logs, build artifacts or documentation.
+`-Build` compiles the Python sources, runs the hardware-free regressions,
+builds the versioned extension ZIP and verifies its contents/checksum.
+`-BlenderPath` runs every Blender-dependent `tests/test_*.py` script in a
+fresh, isolated Blender process. The command fails on the first failing test.
+You can omit either parameter for a quicker partial check, but a partial check
+does not establish release readiness.
 
-A secret in `CubeZ-Auto` or another GitHub repository is **not** automatically
-available to Blender-XR workflows. Each repository must be granted access.
+Repeat the Blender integration suite using supported Blender versions 4.2,
+4.5, 5.0 and 5.2, and verify packaging on Windows, Linux and both macOS
+architectures where applicable. Test Mac OpenXR capability separately from
+desktop installability. Record the exact Blender binary/version, platform,
+result and any failures. See `TESTING.md` for full hardware acceptance.
 
-## Retry an already released version
+## Stable-release gate
 
-If a GitHub release succeeds but the Blender Extensions submission fails due
-to a missing token or API error:
+Version 0.8.5 currently has `RELEASE_CHANNEL = "development"`. Before
+publishing anything marked stable:
 
-1. Add/fix `BLENDER_EXTENSIONS_TOKEN`.
-2. Open **Actions > Package and release Mesh XR > Run workflow**.
-3. Choose branch `main` and enable `publish_existing_to_blender`.
-4. Run the workflow and inspect **Publish to Blender Extensions** for success.
+1. Resolve code conflicts, finish release-scoped features and run the local
+   source, package and supported-version checks.
+2. Install the built ZIP into a clean Blender profile, then verify registration
+   and representative modeling, material, rigging, and scene data round trips.
+3. Obtain real Quest 3/SteamVR controller sign-off, including interrupted edits,
+   tracking-loss rollback and spatial UI accuracy.
+4. Only then explicitly set the release channel to `stable` and run
+   `python scripts/check_release_ready.py`. Do not bypass its guard.
+5. Build the final ZIP and verify its `.sha256` file; manually create a
+   versioned GitHub release using those exact artifacts. Never overwrite an
+   existing release tag or asset in place.
+6. Submit the exact release ZIP to Blender Extensions using the publisher
+   account's approved manual upload procedure. Submission does not mean
+   moderation approval.
 
-The workflow will rebuild and verify the current manifest version without
-overwriting the existing GitHub release or force-moving its tag.
+The official Blender extension ID remains `blender_xr`; user updates are
+managed by Blender **Preferences > Get Extensions > Check for Updates**.
+The extension must not self-update behind Blender's built-in mechanism.
 
-## Review and user updates
+## Credentials and troubleshooting
 
-A successful API upload means *submitted*, not necessarily *approved*.
-Check the Mesh XR version history on Blender Extensions for moderation status.
-Users of the official Blender extension repository still use Blender's
-**Preferences > Get Extensions > Check for Updates** feature to find updates;
-the extension must not self-update behind Blender's back.
+If the Blender Extensions publishing API is used manually, create its API
+token in the publishing account and supply it only to that local submission
+process. Do not store credentials in Git, tickets, logs or artifacts. An old
+repository `BLENDER_EXTENSIONS_TOKEN` Actions secret no longer triggers
+publication, because the Actions workflows are absent.
 
-## Troubleshooting
-
-- **Missing token:** the upload step must fail with an explicit error; configure
-  the secret in this repository, then retry manually.
-- **Compatibility test fails:** fix the failed Blender version first. Do not
-  bypass or delete a failing test solely to publish.
-- **Version already exists:** bump the manifest and Python version for a genuinely
-  new release; never rewrite an approved release tag.
-- **API responds with an error:** read its returned response body and check
-  the extension ID, account permissions, package version and upload status.
+- If a Blender test fails, fix the underlying code and repeat that version's
+  suite rather than publishing an unvalidated package.
+- If the ZIP check fails, regenerate the icons/build and check the manifest,
+  OpenVR wheel hash and version consistency.
+- If a release version already exists, use a new correctly incremented
+  version after validation, not a force-updated tag.
+- If the Extensions website/API rejects a submission, verify account
+  permissions, extension ID, version and moderation status before retrying.
