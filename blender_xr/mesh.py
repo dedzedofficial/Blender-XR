@@ -357,7 +357,14 @@ def apply_tool(obj, tool, amount, segments=2, axis=None, mode=None):
 
 
 def _snapshot_operation(obj, callback):
+    """Run one native edit-mesh transaction with owned snapshot cleanup.
+
+    A callback may fail after partially editing BMesh, or Blender may fail
+    while updating/snapshotting. Never leak either temporary Mesh datablock
+    and never conceal the original exception with a rollback failure.
+    """
     before = snapshot(obj)
+    after = None
     try:
         callback()
         bm = editable(obj)
@@ -366,10 +373,43 @@ def _snapshot_operation(obj, callback):
         update(obj)
         after = snapshot(obj)
         return ('MESH', obj.name, obj.data.name, before, after)
-    except Exception:
-        restore(obj, before)
-        bpy.data.meshes.remove(before)
+    except BaseException:
+        try:
+            restore(obj, before)
+        except Exception:
+            # Keep the original mutation error; a failed restore is still
+            # observable in Blender's traceback and requires session reset.
+            import traceback
+            traceback.print_exc()
+        finally:
+            for temporary in (after, before):
+                if temporary is not None and temporary.name in bpy.data.meshes:
+                    bpy.data.meshes.remove(temporary)
         raise
+
+
+def snapshot_and_push(obj, callback, history):
+    """Atomic XR snapshot + history handoff.
+
+    History.push can fail (e.g. while disposing stale redo snapshots).
+    If so, restore the original edit mesh and release both snapshots rather
+    than leaving an untracked edit or leaking Blender mesh datablocks.
+    """
+    entry = _snapshot_operation(obj, callback)
+    try:
+        history.push(entry)
+    except BaseException:
+        try:
+            restore(obj, entry[3])
+        except Exception:
+            import traceback
+            traceback.print_exc()
+        finally:
+            for temporary in entry[3:5]:
+                if temporary is not None and temporary.name in bpy.data.meshes:
+                    bpy.data.meshes.remove(temporary)
+        raise
+    return entry
 
 
 def delete_selected(obj, mode=None):
