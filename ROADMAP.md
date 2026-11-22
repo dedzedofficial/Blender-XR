@@ -60,6 +60,14 @@ object scales preserve truly world-aligned geometry. Every change records
 an existing XR mesh snapshot, while no-op changes leave history untouched.
 No duplicate meshes, permanent custom layers or GitHub Actions introduced.
 
+**Topology-aware edge flows (source implemented; creator acceptance pending):**
+New Edge Select → Options → Selection → Edge Flows menu provides quad
+edge-loop and edge-ring following and boundary/seam/sharp-chain tracing.
+The walkers operate directly on native BMesh adjacency, respect hidden
+geometry, and stop at poles/non-quad or ambiguous branches. Existing XR
+selection snapshot guards provide undo/redo; no topology edits, scene
+metadata or GitHub Actions are introduced.
+
 ## 0.8.6 — interaction and precision
 **Controller safety increment (source implemented, awaiting creator testing):**
 A common finite-input validator protects tracked controller rotations and

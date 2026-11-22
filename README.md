@@ -43,6 +43,24 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 edge-loop and edge-ring selection development preview
+
+In **Mesh Edit Mode → Edge Select**, use **More → Options → Selection →
+Edge Flows**. **Edge Loop** follows an unbroken path through regular quad
+vertices. **Edge Ring** follows the opposite edge across successive quad
+faces. The additional **Boundary Chain**, **Seam Chain** and **Sharp Chain**
+actions trace connected open-boundary, native UV seam and hard-shaded
+edge markings, stopping rather than branching at ambiguous junctions.
+
+The implementation deliberately stops when encountering mesh poles,
+triangles, non-manifold ambiguities or hidden geometry. Every operation
+starts from selected visible edges, adds the traversed result to the current
+edge selection, and records the normal XR-local selection Undo/Redo history
+with its existing connectivity/visibility checks. It does not change mesh
+topology, create duplicate elements or require Blender editor operators.
+
+This is source implementation only. Creator testing is still required.
+
 ## v0.8.6 native Flatten / Align to Plane development preview
 
 From **Mesh Edit → More → Options → Flatten**, choose **X**, **Y** or
