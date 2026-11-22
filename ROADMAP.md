@@ -78,6 +78,13 @@ all other mesh data/selection modes untouched. Creator-owned Blender and
 VR acceptance remain outstanding.
 
 
+**Selected-mesh reflection (source implemented, creator testing pending):**
+Added native local/world axis-plane reflection about selected median or
+Blender 3D cursor for existing edit-mesh vertices. Reuses XR-local mesh
+snapshot Undo/Redo, preserves topology and material data, and provides
+an integrated six-action headset page. This is coordinate reflection,
+not duplicate geometry or a modifier.
+
 ## 0.8.6 — interaction and precision
 **Controller safety increment (source implemented, awaiting creator testing):**
 A common finite-input validator protects tracked controller rotations and
