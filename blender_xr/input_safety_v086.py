@@ -89,3 +89,58 @@ def controller_sample(context, bridge=None):
 
 def neutral(sample):
     return all(value < REARM_THRESHOLD for hand in sample for value in hand)
+
+
+def guard_specialized_frame(session, context):
+    """Preflight editing wrappers that intercept tick before the radial router.
+
+    Live modifier preview, Curve point placement, Light aiming and texture
+    painting take exclusive ownership and never enter input_v080.tick until
+    they are finished. Apply the same pose/control/rearm guarantees here,
+    rather than letting their own held-button readers interpret bad data as
+    a release. Returns False when the caller must not process this frame.
+    """
+    import bpy
+    from mathutils import Quaternion, Vector
+    from . import input_ownership_v080
+
+    session._xr_validated_controls = None
+    state = context.window_manager.xr_session_state
+    try:
+        if state is None or not bpy.types.XrSessionState.is_running(context):
+            input_ownership_v080.cancel_session_loss(session)
+            return False
+        for hand in (session.dom, session.off):
+            validate_pose(
+                Quaternion(state.controller_aim_rotation_get(context, hand)),
+                Vector(state.controller_aim_location_get(context, hand)))
+            validate_pose(
+                Quaternion(state.controller_grip_rotation_get(context, hand)),
+                Vector(state.controller_grip_location_get(context, hand)))
+        if input_ownership_v080.cancel_conflict(session):
+            return False
+        samples = controller_sample(context, getattr(session, 'bridge', None))
+    except (RuntimeError, TypeError, ValueError, IndexError, AttributeError,
+            OverflowError, ReferenceError):
+        input_ownership_v080.cancel_tracking_loss(session)
+        session.status = 'XR INPUT LOST / EDIT CANCELLED / RELEASE HANDS'
+        return False
+    session._xr_validated_controls = samples
+    if getattr(session, '_xr_rearm_required', False):
+        if not neutral(samples):
+            session._xr_neutral_count = 0
+            session.status = 'RELEASE TRIGGERS AND GRIPS TO REARM'
+            return False
+        session._xr_neutral_count = getattr(session, '_xr_neutral_count', 0) + 1
+        if session._xr_neutral_count < NEUTRAL_FRAMES:
+            session.status = 'CONTROLLERS NEUTRAL / STABILIZING'
+            return False
+        session._xr_neutral_count = 0
+        session._xr_rearm_required = False
+        for field in ('trigger', 'off_trigger', 'grip', 'other_grip'):
+            button = getattr(session, field, None)
+            if button is not None:
+                button.update(0.0)
+        session.status = 'CONTROLS REARMED'
+        return False
+    return True
