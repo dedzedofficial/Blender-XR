@@ -49,6 +49,17 @@ def patch_runtime(Runtime):
             if hasattr(self, 'radial') and not cancelled:
                 self.radial.reset(require_release=True)
             return old_tick(self, context)
+        if (not getattr(self, 'navigation_initialized', False)
+                and hasattr(self, 'initialize_navigation')):
+            # The action set must be activated before querying trigger/grip
+            # states. Activate once, then require two neutral frames; never
+            # interpret startup-held buttons as a first edit or menu press.
+            if not self.initialize_navigation(context, state):
+                return
+            self._xr_rearm_required = True
+            self._xr_neutral_count = 0
+            self.status = 'XR CONTROLLERS READY / RELEASE TRIGGERS AND GRIPS'
+            return
 
         # Validate both hands before allowing *any* legacy handler to process
         # a movement, trigger release, radial selection or transform finish.
