@@ -41,6 +41,18 @@ layers are 256/512/1024 pixels. Join/paint reject unsafe modifier/shape-key case
 These restrictions must be visible in help, not described as universal support.
 
 ## 0.8.6 — interaction and precision
+**Controller safety increment (source implemented, awaiting creator testing):**
+A common finite-input validator protects tracked controller rotations and
+positions, native OpenXR and optional hand-bridge trigger/grip samples, and
+thumbstick vectors. Action-set startup now precedes the input preflight.
+Lost tracking, incomplete packets and overlapping edit owners cancel active
+work and require two stable all-neutral input frames before rearming. Each
+legacy and exclusive editing handler (mesh transforms, Curve placement, Light
+aiming, modifier preview, texture paint) uses validated control snapshots
+instead of interpreting dropouts as button releases. Radial submenu
+navigation includes hierarchy and precision authoring controls. Existing
+local-first/no GitHub Actions policy remains in effect.
+
 
 **Exact-step axis nudge source increment (development, untested):**
 Headset X±/Y±/Z± movement for the active mesh object or selected native
