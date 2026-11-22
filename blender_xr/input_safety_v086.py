@@ -196,22 +196,17 @@ def guard_specialized_frame(session, context):
     a release. Returns False when the caller must not process this frame.
     """
     import bpy
-    from mathutils import Quaternion, Vector
     from . import input_ownership_v080
 
     session._xr_validated_controls = None
+    session._xr_validated_poses = None
     state = context.window_manager.xr_session_state
     try:
         if state is None or not bpy.types.XrSessionState.is_running(context):
             input_ownership_v080.cancel_session_loss(session)
             return False
-        for hand in (session.dom, session.off):
-            validate_pose(
-                Quaternion(state.controller_aim_rotation_get(context, hand)),
-                Vector(state.controller_aim_location_get(context, hand)))
-            validate_pose(
-                Quaternion(state.controller_grip_rotation_get(context, hand)),
-                Vector(state.controller_grip_location_get(context, hand)))
+        session._xr_validated_poses = controller_poses(
+            state, context, (session.dom, session.off))
         if input_ownership_v080.cancel_conflict(session):
             return False
         samples = controller_sample(context, getattr(session, 'bridge', None))
