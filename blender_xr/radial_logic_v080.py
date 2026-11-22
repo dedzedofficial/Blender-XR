@@ -26,7 +26,7 @@ CATEGORIES = frozenset((
     'XR_PAINT_MENU', 'XR_PAINT_RES_MENU',
     # New nested XR menus must navigate while radial capture stays active.
     'HIER_SEARCH', 'HIER_CHILDREN', 'HIER_RENAME',
-    'XR_PICK_MENU', 'XR_NUDGE_MENU', 'XR_SEL_MENU',
+    'XR_PICK_MENU', 'XR_NUDGE_MENU', 'XR_SEL_MENU', 'XR_FLAT_MENU',
 ))
 
 

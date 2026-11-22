@@ -43,6 +43,25 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 native Flatten / Align to Plane development preview
+
+From **Mesh Edit → More → Options → Flatten**, choose **X**, **Y** or
+**Z** to flatten the selected Blender geometry onto a plane without
+changing object transforms or mesh topology. The same tool works for
+vertices selected directly, or vertices implied by selected edges/faces.
+
+Choose **Local** to align in editable mesh coordinates or **World**
+to align on an actual world axis, even when the object has a rotated or
+non-uniformly scaled transform. Choose the reference for that plane:
+**Centre** (average coordinate), **Minimum**, **Maximum**, or the
+native **3D Cursor**. An action only changes selected vertex positions;
+unselected vertices, modifiers, UVs and the object's transform are left
+alone. Every real edit creates an existing guarded XR mesh snapshot for
+Undo/Redo; a no-op does not create history.
+
+This is development source code, not a tested or released headset feature.
+The project owner retains all Blender, Windows and controller testing.
+
 ## v0.8.6 native mesh-selection tools development preview
 
 In **Mesh Edit Mode**, open **More → Options → Selection** from the XR
