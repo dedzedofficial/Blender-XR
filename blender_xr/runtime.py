@@ -936,5 +936,5 @@ class Runtime:
                                    self.settings.turn_angle,self.settings.turn_speed)
         if angle:
             # Include this tick's translation in the pivot to keep the head fixed.
-            pivot = Vector(state.viewer_pose_location) + delta
+            pivot = viewer + delta
             turn_view(state,angle,self.base_origin,pivot)
