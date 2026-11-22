@@ -658,8 +658,17 @@ class Runtime:
             self.error = START_ERROR
             self.request_stop = True
             return
-        pose = Quaternion(state.controller_aim_rotation_get(context, self.dom))
-        off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
+        # The outer router captured and validated both hands once for this
+        # frame. Never mix those validated poses with a later OpenXR read:
+        # tracking may disappear between calls, producing a stale release.
+        validated_poses = getattr(self, '_xr_validated_poses', None)
+        if validated_poses is not None:
+            pose, origin = validated_poses[self.dom][0]
+            off_pose, hand = validated_poses[self.off][1]
+            grip_rot, grip_pos = validated_poses[self.dom][1]
+        else:
+            pose = Quaternion(state.controller_aim_rotation_get(context, self.dom))
+            off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
         if pose.magnitude < 0.5 or off_pose.magnitude < 0.5:
             self.cancel_work()
             self.trigger = Button()
@@ -674,11 +683,22 @@ class Runtime:
                 self.bridge.armed = False
             self.status = 'WAITING FOR TRACKED HAND POSES'
             return
-        origin = Vector(state.controller_aim_location_get(context, self.dom))
+        if validated_poses is None:
+            origin = Vector(state.controller_aim_location_get(context, self.dom))
+            hand = Vector(state.controller_grip_location_get(context, self.off))
+            grip_pos = Vector(state.controller_grip_location_get(context, self.dom))
+            grip_rot = Quaternion(state.controller_grip_rotation_get(context, self.dom))
         direction = pose @ Vector((0,0,-1))
-        hand = Vector(state.controller_grip_location_get(context, self.off))
-        viewer = Vector(state.viewer_pose_location)
-        scale = state.viewer_scale if hasattr(state,'viewer_scale') else 1.0
+        # The menu, gizmo and placement tools must share a validated viewer
+        # frame. Invalid headset scale/position must not reach mesh tools.
+        from . import input_safety_v086
+        try:
+            viewer, scale = input_safety_v086.viewer_frame(state)
+            viewer_rotation = input_safety_v086.viewer_orientation(state)
+        except (ValueError, RuntimeError, TypeError, AttributeError, OverflowError):
+            from . import input_ownership_v080
+            input_ownership_v080.cancel_tracking_loss(self)
+            return
         self.menu.position(hand, viewer, scale)
         self.ray = (origin, direction)
         self.hover, self.pointer = self.menu.hit(origin, direction)
@@ -744,7 +764,9 @@ class Runtime:
         if self.air_grab:
             index = self.air_grab[0]
             held = self.grip.down if index == self.dom else self.other_grip.down
-            self.move_air(state, Vector(state.controller_grip_location_get(context, index)), held)
+            air_position = (validated_poses[index][1][1] if validated_poses is not None
+                            else Vector(state.controller_grip_location_get(context, index)))
+            self.move_air(state, air_position, held)
             return
         if self.transaction:
             if obj != self.transaction.obj or obj.mode != 'EDIT':
@@ -803,8 +825,6 @@ class Runtime:
                 self.axis_move=None;self.axis_drag=None
                 self.status='OBJECT '+('MOVED' if mode=='MOVE' else 'SCALED')
             return
-        grip_pos = Vector(state.controller_grip_location_get(context,self.dom))
-        grip_rot = Quaternion(state.controller_grip_rotation_get(context,self.dom))
         grip_matrix = Matrix.LocRotScale(grip_pos,grip_rot,Vector((1,1,1)))
         if self.grab:
             target, before, inverse_start = self.grab
@@ -863,8 +883,11 @@ class Runtime:
         for index, pressed in ((self.dom, grab_press), (self.off, other_grab_press)):
             if not pressed:
                 continue
-            aim_origin = Vector(state.controller_aim_location_get(context, index))
-            aim_rotation = Quaternion(state.controller_aim_rotation_get(context, index))
+            if validated_poses is not None:
+                aim_rotation, aim_origin = validated_poses[index][0]
+            else:
+                aim_origin = Vector(state.controller_aim_location_get(context, index))
+                aim_rotation = Quaternion(state.controller_aim_rotation_get(context, index))
             if aim_rotation.magnitude < 0.5:
                 continue
             aim_direction = aim_rotation @ Vector((0,0,-1))
@@ -905,7 +928,7 @@ class Runtime:
                 self.status = 'THUMBSTICK UNAVAILABLE / MOVEMENT PAUSED'
                 return
         boosted = self.settings.fast_flight or (not self.bridge and actions.boost(context))
-        delta = flight_delta(Quaternion(state.viewer_pose_rotation),stick,right[1],dt,
+        delta = flight_delta(viewer_rotation,stick,right[1],dt,
                              self.settings.move_speed*(4 if boosted else 1),scale,
                              self.settings.fly_mode)
         if delta.length:
@@ -914,5 +937,5 @@ class Runtime:
                                    self.settings.turn_angle,self.settings.turn_speed)
         if angle:
             # Include this tick's translation in the pivot to keep the head fixed.
-            pivot = Vector(state.viewer_pose_location) + delta
+            pivot = viewer + delta
             turn_view(state,angle,self.base_origin,pivot)
