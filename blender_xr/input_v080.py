@@ -20,6 +20,7 @@ def patch_runtime(Runtime):
         self.radial = radial_logic_v080.RadialState()
         self.hand_controls = ((0., 0.), (0., 0.))
         self._xr_validated_controls = None
+        self._xr_validated_poses = None
         self.radial_supported = True
         self._xr_neutral_count = 0
 
@@ -34,14 +35,18 @@ def patch_runtime(Runtime):
         # This snapshot is valid for only the current outer XR frame. Legacy
         # handlers reuse it so a second read cannot invent a trigger release.
         self._xr_validated_controls = None
+        self._xr_validated_poses = None
         state = context.window_manager.xr_session_state
+        import bpy
+        if not isinstance(context, bpy.types.Context):
+            # Preserve compatibility with lightweight non-Blender proxies.
+            return old_tick(self, context)
         try:
             running = (state is not None and
-                       __import__('bpy').types.XrSessionState.is_running(context))
-        except (TypeError, RuntimeError, ValueError):
-            # Blender's older regression tests intentionally provide a
-            # lightweight simulated context, not a native bpy.Context.
-            return old_tick(self, context)
+                       bpy.types.XrSessionState.is_running(context))
+        except (TypeError, RuntimeError, ValueError, AttributeError):
+            input_ownership_v080.cancel_session_loss(self)
+            return
         if not running:
             # A stopped session can bypass pose-loss handling entirely.
             # Roll back every live mutation, not just the paint brush.
@@ -67,13 +72,8 @@ def patch_runtime(Runtime):
         # a movement, trigger release, radial selection or transform finish.
         # A NaN rotation (or position) is NOT a valid tracked pose.
         try:
-            for hand in (self.dom, self.off):
-                input_safety_v086.validate_pose(
-                    Quaternion(state.controller_aim_rotation_get(context, hand)),
-                    Vector(state.controller_aim_location_get(context, hand)))
-                input_safety_v086.validate_pose(
-                    Quaternion(state.controller_grip_rotation_get(context, hand)),
-                    Vector(state.controller_grip_location_get(context, hand)))
+            self._xr_validated_poses = input_safety_v086.controller_poses(
+                state, context, (self.dom, self.off))
         except (RuntimeError, TypeError, ValueError, AttributeError, OverflowError):
             input_ownership_v080.cancel_tracking_loss(self)
             return
@@ -113,15 +113,7 @@ def patch_runtime(Runtime):
         # recovery guards and the in-headset input diagnostic.
         blocked = input_ownership_v080.owner(self) != 'IDLE'
         try:
-            off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
-            off_position = Vector(state.controller_grip_location_get(context, self.off))
-            if off_pose.magnitude < .5:
-                # An unusable offhand grip is tracking loss even when the
-                # radial menu is closed. Forwarding to legacy would allow
-                # transforms and locomotion with a missing controller.
-                input_ownership_v080.cancel_tracking_loss(self)
-                self.status = 'OFFHAND TRACKING LOST / RELEASE CONTROLS'
-                return
+            off_pose, off_position = self._xr_validated_poses[self.off][1]
             off_held = self.hand_controls[self.off][0] > .55
             raw_stick = actions.read(context, 'stick', self.off)
         except (RuntimeError, ValueError, IndexError, TypeError, AttributeError):
@@ -146,14 +138,16 @@ def patch_runtime(Runtime):
 
         # Reuse the world-space menu's original offhand-facing placement, but
         # never let the dominant controller decide radial wedges.
-        viewer = Vector(state.viewer_pose_location)
-        scale = float(getattr(state, 'viewer_scale', 1.0))
+        try:
+            viewer, scale = input_safety_v086.viewer_frame(state)
+        except (RuntimeError, TypeError, ValueError, OverflowError, AttributeError):
+            input_ownership_v080.cancel_tracking_loss(self)
+            self.status = 'VIEWER TRACKING LOST / RELEASE CONTROLS'
+            return
         self.menu.position(off_position, viewer, scale)
         self.menu.visible = True
-        self.ray = (
-            Vector(state.controller_aim_location_get(context, self.dom)),
-            Quaternion(state.controller_aim_rotation_get(context, self.dom))
-            @ Vector((0., 0., -1.)))
+        aim_rotation, aim_location = self._xr_validated_poses[self.dom][0]
+        self.ray = (aim_location.copy(), aim_rotation @ Vector((0., 0., -1.)))
         self.pointer = None
         self.hover = None
         self.target = None
