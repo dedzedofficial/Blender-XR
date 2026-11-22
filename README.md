@@ -43,6 +43,28 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 controller recovery development preview
+
+Controller actions are now activated before the first XR input frame; fresh
+sessions require **two complete neutral trigger/grip snapshots** before
+accepting a new edit. When either controller loses tracking, a trigger/grip
+sample is missing or non-finite, or competing XR gestures conflict, the
+runtime cancels the active edit and requires a deliberate release/rearm.
+An incomplete input sample is **never treated as a trigger release** or as
+permission to apply a transform. A validated two-hand snapshot is reused
+through the legacy selection and direct-transform handlers in each frame.
+
+The same recovery gate also protects exclusive modifier previews, Curve
+point placement, Light aiming and texture-paint strokes, which bypass the
+normal radial input path while editing. Their shared controller sampler now
+uses validated per-frame data; malformed thumbsticks cannot move or rotate
+the viewer. New nested Scene Hierarchy, Precision Pick and Axis Nudge menus
+also remain reachable through the radial controller navigation.
+
+This is **source implementation awaiting creator testing**, not a verified
+Blender/SteamVR/Quest release. The creator owns all software and hardware
+testing and release acceptance.
+
 ## v0.8.6 exact-step movement development preview
 
 In Mesh Edit Mode choose **More → Step → Axis Nudge**, or in Object
