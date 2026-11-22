@@ -104,8 +104,7 @@ def _apply(session, context, action):
         for idx, co in plan.items():
             bm.verts[idx].co = co
 
-    entry = mesh._snapshot_operation(obj, mutate)
-    session.history.push(entry)
+    mesh.snapshot_and_push(obj, mutate, session.history)
     session._xr_precision_last_ray = None
     session.status = 'REFLECT / {} / {} / {}'.format('XYZ'[axis], space, pivot)
     return True
