@@ -42,6 +42,19 @@ These restrictions must be visible in help, not described as universal support.
 
 ## 0.8.6 — interaction and precision
 
+**Precision selection source increment (development, untested):** Optional
+controller ray-picker for native edit-mesh vertices and edges. Four world-space
+pick radii (12/30/70/120 mm), front-surface filtering or explicit through-mesh
+targeting, deterministic depth ordered candidates, and Next/Previous cycling
+from the last recorded controller ray. Geometry candidates are recomputed
+against live Blender BMesh data before cycling. Object/armature selection,
+faces and legacy transforms continue using the established Select workflow.
+Accessible under Edit → More → Step → Precision; no global mode or persistent
+scene properties. This increment requires creator-side Blender/controller
+testing and is not a shipped release.
+
+## 0.8.6 — interaction and precision
+
 **In development on the stacked `feature/v086-hierarchy-navigation-rename` branch:** the existing XR Scene Hierarchy now supports one-click navigation to an object's parent, paginated browsing of its direct children, and a headset rename keyboard with alphabetic case, digits, spaces, underscores, dashes and dots. The rename operation rejects linked/locked or missing objects, prevents exact-name conflicts and is undoable in the active XR session. Because earlier XR undo records refer to old object names, applying a rename with pending history requires an explicit **Rename + Reset Undo** confirmation. This work is source-implemented, not user-tested, merged or released.
 
 
