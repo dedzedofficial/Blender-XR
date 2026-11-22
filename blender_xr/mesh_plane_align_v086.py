@@ -114,8 +114,7 @@ def _apply(session, context, axis):
                 raise ValueError('Selection changed before flattening; try again')
             bm.verts[index].co = target
 
-    entry = mesh._snapshot_operation(obj, operation)
-    session.history.push(entry)
+    mesh.snapshot_and_push(obj, operation, session.history)
     # Selection is unchanged, but a recorded ray point can now be stale.
     session._xr_precision_last_ray = None
     session.status = 'FLATTEN / {} / {} / {}'.format('XYZ'[axis], space, anchor)

@@ -127,8 +127,7 @@ def _apply(session, context, action):
         for idx, target in plan.items():
             bm.verts[idx].co = target
 
-    entry = mesh._snapshot_operation(obj, mutate)
-    history.push(entry)
+    mesh.snapshot_and_push(obj, mutate, session.history)
     session._xr_precision_last_ray = None
     session.status = 'SNAP / {} / STEP {:.4f}'.format(operation.replace('_', ' '), step)
     return True
