@@ -43,6 +43,25 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 precision mesh snapping development preview
+
+From **Mesh Edit → More → Options → Snap**, snap selected native Blender
+vertices, edges or faces to world/local tool-step grids. **Local Grid**
+and **World Grid** snap each selected vertex independently (which may change
+shape); **Local Centre** and **World Centre** move the selection *as a group*
+to the closest grid intersection without changing its internal proportions.
+**To 3D Cursor**, **To Object Origin** and **To World Origin** also preserve
+the shape while moving the selection's centre to the chosen native reference.
+
+Grid spacing follows the existing **Step +/−** control (or the presets
+under Axis Nudge). World-space operations correctly account for rotated,
+scaled objects using the full object transform. Every actual change is
+recorded as one existing guarded XR mesh snapshot for Undo/Redo; a no-op
+adds no history. The tool never changes UV layers, modifiers, object
+transforms or user files, and does not create new mesh copies in the scene.
+
+The branch is **source-implemented, awaiting creator-owned testing**.
+
 ## v0.8.6 edge-loop and edge-ring selection development preview
 
 In **Mesh Edit Mode → Edge Select**, use **More → Options → Selection →
