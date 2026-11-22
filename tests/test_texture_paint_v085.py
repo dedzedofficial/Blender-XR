@@ -132,7 +132,7 @@ def run():
         guarded = paint.PaintStroke(session, ctx, 'PAINT')
         assert guarded.dab(ctx, (0, 0, 2), (0, 0, -1))
         foreign = paint._pixel_data(image)
-        foreign[0:4] = (.1, .2, .3, .4)
+        foreign[0] = .1
         paint._write_pixels(image, foreign)
         guarded.cancel()
         assert rgba_at(image, 0, 0)[0] > .09
