@@ -67,6 +67,7 @@ def cancel_conflict(session):
     if radial is not None:
         radial.reset(require_release=True)
     session._xr_rearm_required = True
+    session._xr_neutral_count = 0
     session.status = 'INPUT CONFLICT / RELEASE BOTH HANDS TO REARM'
     return True
 
@@ -164,6 +165,7 @@ def cancel_session_loss(session):
     if radial is not None:
         radial.reset(require_release=True)
     session._xr_rearm_required = True
+    session._xr_neutral_count = 0
     session.status = ('XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
                       if has_mutation or radial_active else
                       'XR SESSION STOPPED / RELEASE CONTROLS TO REARM')
