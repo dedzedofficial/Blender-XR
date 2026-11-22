@@ -43,6 +43,24 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 precision selection development preview
+
+In **Mesh Edit Mode**, open **More → Step → Precision** to enable an optional
+controller-ray picker for vertices and edges. Choose **Narrow (12 mm)**,
+**Normal (30 mm)**, **Wide (70 mm)** or **Extra Wide (120 mm)**. The radius
+is measured in Blender world units (assuming 1 Blender unit = 1 metre).
+**Front / Through** controls whether geometry behind the first visible
+surface can be picked. With **Select** active, aim at an element and press
+trigger. **Next Hit** and **Previous Hit** cycle the candidates under that
+recorded ray, rechecking the current mesh instead of reusing stale elements.
+Cycle chooses one element; ordinary additive selection remains available
+with controller modifiers. Face selection and all other tools keep the
+existing behavior. The preference is session-local, off until enabled,
+and does not create any proprietary mesh data.
+
+This is source-implemented development work in a stacked draft branch. It
+has not received Blender, Windows, headset or controller acceptance testing.
+
 ## v0.8.6 hierarchy development preview
 
 From **Creator → Scene Hierarchy**, choose a Blender object and use **Parent** or **Children** to move through actual native Blender parent relationships. **Rename** opens a controller keyboard: **More Keys** switches pages, **Lowercase/Uppercase** changes typed letter case, **Delete/Clear** edits the proposed name, and **Save/Cancel** commits or discards it. Names must be unique, no longer than 63 UTF-8 bytes and belong to a visible unlocked local object. If earlier Mesh XR undo/redo entries exist, the interface asks before clearing them; rename itself can then be undone with XR Undo. No object name changes while typing. Development feature; physical/headset acceptance belongs to the tester.
