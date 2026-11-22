@@ -388,6 +388,8 @@ class PaintStroke:
     def cancel(self):
         if self.before:
             image = _history_image(self.image_name, self.image_ptr)
+            if tuple(image.size) != (self.width, self.height):
+                raise ValueError('Paint image dimensions changed during stroke')
             # Re-read live pixels: preserve edits to unrelated pixels and
             # reject conflicts instead of overwriting another editor's work.
             _apply_pixels(image, {
@@ -402,7 +404,7 @@ class PaintStroke:
         if not changes:
             return None
         return ('XR_PAINT_STROKE_085', self.image_name,
-                self.image_ptr, changes)
+                self.image_ptr, changes, (self.width, self.height))
 
 
 def _arm(session, context, action):
@@ -524,6 +526,8 @@ def _save(session, context):
 def _apply_pixels(image, pairs, backwards):
     buf = _pixel_data(image)
     for idx, (before, after) in pairs.items():
+        if idx < 0 or idx + 4 > len(buf):
+            raise ValueError('Paint image dimensions changed outside XR history')
         expected = after if backwards else before
         for n in range(4):
             if abs(buf[idx+n] - expected[n]) > 2e-5:
@@ -555,6 +559,8 @@ def _history_patch():
         if entry[0] in {'XR_PAINT_STROKE_085', 'XR_PAINT_IMAGE_085'}:
             image = _history_image(entry[1], entry[2])
             if entry[0] == 'XR_PAINT_STROKE_085':
+                if len(entry) > 4 and tuple(image.size) != tuple(entry[4]):
+                    raise ValueError('Paint image dimensions changed outside XR history')
                 _apply_pixels(image, entry[3], backwards)
             else:
                 before, after = entry[3:5]
