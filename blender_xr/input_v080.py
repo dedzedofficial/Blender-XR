@@ -19,6 +19,7 @@ def patch_runtime(Runtime):
         old_init(self, *args, **kwargs)
         self.radial = radial_logic_v080.RadialState()
         self.hand_controls = ((0., 0.), (0., 0.))
+        self._xr_validated_controls = None
         self.radial_supported = True
         self._xr_neutral_count = 0
 
@@ -30,6 +31,9 @@ def patch_runtime(Runtime):
                 xr.show_controllers = False
 
     def tick(self, context):
+        # This snapshot is valid for only the current outer XR frame. Legacy
+        # handlers reuse it so a second read cannot invent a trigger release.
+        self._xr_validated_controls = None
         state = context.window_manager.xr_session_state
         try:
             running = (state is not None and
@@ -71,6 +75,7 @@ def patch_runtime(Runtime):
         try:
             self.hand_controls = input_safety_v086.controller_sample(
                 context, getattr(self, 'bridge', None))
+            self._xr_validated_controls = self.hand_controls
         except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
             input_ownership_v080.cancel_tracking_loss(self)
             self.status = 'CONTROLLER SAMPLE LOST / RELEASE BOTH HANDS'
