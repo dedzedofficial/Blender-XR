@@ -694,6 +694,7 @@ class Runtime:
         from . import input_safety_v086
         try:
             viewer, scale = input_safety_v086.viewer_frame(state)
+            viewer_rotation = input_safety_v086.viewer_orientation(state)
         except (ValueError, RuntimeError, TypeError, AttributeError, OverflowError):
             from . import input_ownership_v080
             input_ownership_v080.cancel_tracking_loss(self)
@@ -927,7 +928,7 @@ class Runtime:
                 self.status = 'THUMBSTICK UNAVAILABLE / MOVEMENT PAUSED'
                 return
         boosted = self.settings.fast_flight or (not self.bridge and actions.boost(context))
-        delta = flight_delta(Quaternion(state.viewer_pose_rotation),stick,right[1],dt,
+        delta = flight_delta(viewer_rotation,stick,right[1],dt,
                              self.settings.move_speed*(4 if boosted else 1),scale,
                              self.settings.fly_mode)
         if delta.length:
