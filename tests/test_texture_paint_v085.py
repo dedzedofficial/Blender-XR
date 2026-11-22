@@ -88,6 +88,17 @@ def run():
         assert bsdf.inputs['Base Color'].links[0].from_node == mix
         assert tex.image == image
 
+        # Refuse undo that would destroy other shader links to the layer.
+        external = mat.node_tree.nodes.new('ShaderNodeEmission')
+        mat.node_tree.links.new(tex.outputs['Color'], external.inputs['Color'])
+        refused(lambda: paint._remove_layer(
+            mat, bsdf.name, tex.name, mix.name,
+            (rgb.name, rgb.outputs['Color'].identifier),
+            tuple(bsdf.inputs['Base Color'].default_value)), 'outside its layer')
+        assert tex.image == image
+        assert bsdf.inputs['Base Color'].links[0].from_node == mix
+        mat.node_tree.nodes.remove(external)
+
         uv = paint._uv_hit(ctx, obj, Vector((0, 0, 2)), Vector((0, 0, -1)))
         assert uv is not None and all(.45 < v < .55 for v in uv)
 
