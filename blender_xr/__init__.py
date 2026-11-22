@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, hierarchy_rename_v086, precision_selection_v086, axis_nudge_v086, mesh_selection_tools_v086, mesh_plane_align_v086, mesh_snap_v086, color_studio_v080, native_modifiers_v080, native_curves_v080, native_lighting_v080, world_atmosphere_v080, assembly_v085, booleans_v085, join_split_v085, texture_paint_v085, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, hierarchy_rename_v086, precision_selection_v086, axis_nudge_v086, mesh_selection_tools_v086, mesh_plane_align_v086, mesh_snap_v086, mesh_reflect_v086, color_studio_v080, native_modifiers_v080, native_curves_v080, native_lighting_v080, world_atmosphere_v080, assembly_v085, booleans_v085, join_split_v085, texture_paint_v085, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -31,6 +31,7 @@ axis_nudge_v086.patch_runtime(runtime.Runtime)
 mesh_selection_tools_v086.patch_runtime(runtime.Runtime)
 mesh_plane_align_v086.patch_runtime(runtime.Runtime)
 mesh_snap_v086.patch_runtime(runtime.Runtime)
+mesh_reflect_v086.patch_runtime(runtime.Runtime)
 color_studio_v080.patch_runtime(runtime.Runtime)
 native_modifiers_v080.patch_runtime(runtime.Runtime)
 native_curves_v080.patch_runtime(runtime.Runtime)
