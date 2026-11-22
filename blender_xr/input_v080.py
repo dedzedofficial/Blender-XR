@@ -5,7 +5,7 @@ When a radial menu is active this wrapper does NOT dispatch the legacy XR
 tick: locomotion, turning, picking and editing cannot run underneath the menu.
 """
 from mathutils import Vector, Quaternion
-from . import actions, radial_logic_v080, input_ownership_v080
+from . import actions, radial_logic_v080, input_ownership_v080, input_safety_v086
 
 
 def patch_runtime(Runtime):
@@ -19,7 +19,9 @@ def patch_runtime(Runtime):
         old_init(self, *args, **kwargs)
         self.radial = radial_logic_v080.RadialState()
         self.hand_controls = ((0., 0.), (0., 0.))
+        self._xr_validated_controls = None
         self.radial_supported = True
+        self._xr_neutral_count = 0
 
     def configure(self):
         old_configure(self)
@@ -29,6 +31,9 @@ def patch_runtime(Runtime):
                 xr.show_controllers = False
 
     def tick(self, context):
+        # This snapshot is valid for only the current outer XR frame. Legacy
+        # handlers reuse it so a second read cannot invent a trigger release.
+        self._xr_validated_controls = None
         state = context.window_manager.xr_session_state
         try:
             running = (state is not None and
@@ -44,16 +49,30 @@ def patch_runtime(Runtime):
             if hasattr(self, 'radial') and not cancelled:
                 self.radial.reset(require_release=True)
             return old_tick(self, context)
-
-        # Tracking-loss rearm: after a lost pose, do not act upon a still-held
-        # trigger/grip when the controller comes back into range.
-        try:
-            dom_pose = Quaternion(state.controller_aim_rotation_get(context, self.dom))
-            off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
-            if dom_pose.magnitude < .5 or off_pose.magnitude < .5:
-                input_ownership_v080.cancel_tracking_loss(self)
+        if (not getattr(self, 'navigation_initialized', False)
+                and hasattr(self, 'initialize_navigation')):
+            # The action set must be activated before querying trigger/grip
+            # states. Activate once, then require two neutral frames; never
+            # interpret startup-held buttons as a first edit or menu press.
+            if not self.initialize_navigation(context, state):
                 return
-        except (RuntimeError, TypeError, ValueError):
+            self._xr_rearm_required = True
+            self._xr_neutral_count = 0
+            self.status = 'XR CONTROLLERS READY / RELEASE TRIGGERS AND GRIPS'
+            return
+
+        # Validate both hands before allowing *any* legacy handler to process
+        # a movement, trigger release, radial selection or transform finish.
+        # A NaN rotation (or position) is NOT a valid tracked pose.
+        try:
+            for hand in (self.dom, self.off):
+                input_safety_v086.validate_pose(
+                    Quaternion(state.controller_aim_rotation_get(context, hand)),
+                    Vector(state.controller_aim_location_get(context, hand)))
+                input_safety_v086.validate_pose(
+                    Quaternion(state.controller_grip_rotation_get(context, hand)),
+                    Vector(state.controller_grip_location_get(context, hand)))
+        except (RuntimeError, TypeError, ValueError, AttributeError, OverflowError):
             input_ownership_v080.cancel_tracking_loss(self)
             return
         # The pure owner diagnostic is also a runtime safety invariant:
@@ -61,45 +80,46 @@ def patch_runtime(Runtime):
         # receives another sample, never merely reported as CONFLICT.
         if input_ownership_v080.cancel_conflict(self):
             return
+        # Invalid or missing inputs are never silently mapped to (0, 0).
+        # Zero would masquerade as a trigger release and could commit a
+        # partially completed mesh edit or direct object transform.
+        try:
+            self.hand_controls = input_safety_v086.controller_sample(
+                context, getattr(self, 'bridge', None))
+            self._xr_validated_controls = self.hand_controls
+        except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
+            input_ownership_v080.cancel_tracking_loss(self)
+            self.status = 'CONTROLLER SAMPLE LOST / RELEASE BOTH HANDS'
+            return
         if getattr(self, '_xr_rearm_required', False):
-            try:
-                if self.bridge is None:
-                    values = [actions.read(context, control, hand)[0]
-                              for hand in (0, 1) for control in ('trigger', 'grab')]
-                else:
-                    sample = self.bridge.read()
-                    values = ([v for pair in sample for v in pair]
-                              if sample is not None else [1.0])
-                if any(float(v) >= .25 for v in values):
-                    self.status = 'RELEASE TRIGGER AND GRIP TO REARM'
-                    return
-            except (RuntimeError, TypeError, ValueError, IndexError):
-                self.status = 'WAITING FOR CONTROLLER INPUT'
+            if not input_safety_v086.neutral(self.hand_controls):
+                self._xr_neutral_count = 0
+                self.status = 'RELEASE TRIGGER AND GRIP TO REARM'
                 return
+            self._xr_neutral_count = getattr(self, '_xr_neutral_count', 0) + 1
+            if self._xr_neutral_count < input_safety_v086.NEUTRAL_FRAMES:
+                self.status = 'CONTROLLERS NEUTRAL / STABILIZING'
+                return
+            self._xr_neutral_count = 0
             self._xr_rearm_required = False
             self.trigger.update(0.0)
             self.off_trigger.update(0.0)
             self.grip.update(0.0)
             self.other_grip.update(0.0)
             self.status = 'CONTROLS REARMED'
-        # Collect one consistent, visual controller sample. Menu acquisition
-        # uses the exact same physical offhand index as the trigger.
-        if self.bridge:
-            self.hand_controls = ((0., 0.), (0., 0.))
-        else:
-            try:
-                values = tuple((float(actions.read(context, 'trigger', h)[0]),
-                                float(actions.read(context, 'grab', h)[0]))
-                               for h in (0, 1))
-                self.hand_controls = values
-            except (ValueError, RuntimeError, IndexError, TypeError):
-                self.hand_controls = ((0., 0.), (0., 0.))
+            # No action is dispatched on the rearm frame: it is a barrier
+            # between interrupted edits and subsequent fresh presses.
+            return
 
         if (getattr(self.settings, 'menu_style', 'CLASSIC') != 'RADIAL'
                 or self.bridge is not None):
             self.radial_supported = self.bridge is None
             if self.radial.active:
-                self.radial.reset()
+                self.radial.reset(require_release=True)
+                self._xr_rearm_required = True
+                self._xr_neutral_count = 0
+                self.status = 'MENU MODE CHANGED / RELEASE CONTROLS'
+                return
             return old_tick(self, context)
 
         # A single shared rule now owns arbitration for radial capture,
@@ -114,18 +134,23 @@ def patch_runtime(Runtime):
                     self.status = 'RADIAL CANCELLED / TRACKING LOST / RELEASE CONTROLS'
                     return
                 return old_tick(self, context)
-            off_held = bool(actions.read(context, 'trigger', self.off)[0] > .55)
-            off_stick = tuple(float(v) for v in actions.read(context, 'stick', self.off))
-            if len(off_stick) != 2:
-                raise ValueError('No thumbstick axes available')
-            self.radial_supported = True
-        except (ValueError, RuntimeError, IndexError, TypeError):
+            off_held = self.hand_controls[self.off][0] > .55
+            raw_stick = actions.read(context, 'stick', self.off)
+        except (RuntimeError, ValueError, IndexError, TypeError, AttributeError):
             if self.radial.active:
                 input_ownership_v080.cancel_tracking_loss(self)
                 self.status = 'RADIAL CANCELLED / INPUT LOST / RELEASE CONTROLS'
                 return
-            self.radial_supported = False  # Restore the classic ray menu.
+            # Missing thumbstick action: retain the original classic menu.
+            self.radial_supported = False
             return old_tick(self, context)
+        try:
+            off_stick = input_safety_v086.stick_axes(raw_stick)
+        except ValueError:
+            input_ownership_v080.cancel_tracking_loss(self)
+            self.status = 'INVALID THUMBSTICK / RELEASE CONTROLS'
+            return
+        self.radial_supported = True
 
         capture = self.radial.active or (off_held and not blocked)
         if not capture:

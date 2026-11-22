@@ -611,6 +611,33 @@ class Runtime:
         self.axis_drag=(anchor,axis.copy(),value[0],factor,local_axis,name)
         self.status='DRAG '+name+' / RELEASE TO APPLY'
 
+    def initialize_navigation(self, context, state):
+        """Activate the XR action set without dispatching any controller input.
+
+        The outer input router calls this first and then requires neutral
+        controls before the first actionable frame. It is also available to
+        the standalone legacy tick for old Blender integration paths.
+        """
+        if START_ERROR:
+            self.error = START_ERROR
+            self.request_stop = True
+            return False
+        try:
+            ready = state.active_action_set_set(context, actions.SET)
+        except (RuntimeError, TypeError, ValueError, AttributeError) as exc:
+            self.error = 'Controller action activation failed: ' + str(exc)[:160]
+            self.request_stop = True
+            return False
+        if not ready:
+            self.error = 'Controller actions could not be activated'
+            self.request_stop = True
+            return False
+        state.navigation_location = (0, 0, 0)
+        state.navigation_rotation = Quaternion()
+        state.navigation_scale = 1.0
+        self.navigation_initialized = True
+        return True
+
     def tick(self, context):
         now = time.monotonic()
         dt = min(now-self.last_tick, 0.1)
@@ -625,14 +652,8 @@ class Runtime:
                 self.request_stop = True
             return
         if not self.navigation_initialized:
-            if not state.active_action_set_set(context, actions.SET):
-                self.error = 'Controller actions could not be activated'
-                self.request_stop = True
+            if not self.initialize_navigation(context, state):
                 return
-            state.navigation_location = (0, 0, 0)
-            state.navigation_rotation = Quaternion()
-            state.navigation_scale = 1.0
-            self.navigation_initialized = True
         if START_ERROR:
             self.error = START_ERROR
             self.request_stop = True
@@ -670,7 +691,15 @@ class Runtime:
             target_hit = self.object_hit(context,origin,direction)
             if target_hit:
                 self.target, self.pointer = target_hit
-        if self.bridge:
+        # The outer input router validates one complete two-hand sample.
+        # Reuse it throughout the frame, including gesture/legacy handlers.
+        # Without this, a transient missing bridge packet between two reads
+        # could look like a released trigger and commit a partial transform.
+        validated_controls = getattr(self, '_xr_validated_controls', None)
+        if validated_controls is not None:
+            trigger_value, grab_value = validated_controls[self.dom]
+            off_value, other_grab_value = validated_controls[self.off]
+        elif self.bridge:
             inputs = self.bridge.read()
             if inputs is None:
                 self.cancel_work()
@@ -689,6 +718,7 @@ class Runtime:
             grab_value = actions.read(context, 'grab', self.dom)[0]
             off_value = actions.read(context, 'trigger', self.off)[0]
             other_grab_value = actions.read(context, 'grab', self.off)[0]
+        if not self.bridge:
             if self.finger_touch:
                 # Holding both touch sensors fires once, until the fingers lift.
                 touch_events = [self.touch_holds[i].update(actions.touch(context, i), now)
@@ -859,8 +889,21 @@ class Runtime:
                 self.status = 'GRAB OBJECT'
                 return
         # Always the physical LEFT stick, independent of dominant-hand choice.
-        stick = (0, 0) if self.bridge else actions.read(context,'stick',0)
-        right = (0,0) if self.bridge else actions.read(context,'stick',1)
+        # A missing/non-finite thumbstick is not valid movement input. Trigger
+        # and grip have already been validated; abandon this locomotion frame
+        # rather than passing NaN coordinates into the OpenXR navigation pose.
+        if self.bridge:
+            stick, right = (0.0, 0.0), (0.0, 0.0)
+        else:
+            from . import input_safety_v086
+            try:
+                stick = input_safety_v086.stick_axes(
+                    actions.read(context, 'stick', 0))
+                right = input_safety_v086.stick_axes(
+                    actions.read(context, 'stick', 1))
+            except (ValueError, TypeError, RuntimeError, IndexError, AttributeError):
+                self.status = 'THUMBSTICK UNAVAILABLE / MOVEMENT PAUSED'
+                return
         boosted = self.settings.fast_flight or (not self.bridge and actions.boost(context))
         delta = flight_delta(Quaternion(state.viewer_pose_rotation),stick,right[1],dt,
                              self.settings.move_speed*(4 if boosted else 1),scale,

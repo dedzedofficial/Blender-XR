@@ -266,19 +266,19 @@ def _input_sample(session, context):
     state = context.window_manager.xr_session_state
     if state is None or not bpy.types.XrSessionState.is_running(context):
         raise ValueError('XR tracking ended while placing a Curve point')
+    from . import input_safety_v086
     pose = Quaternion(state.controller_aim_rotation_get(context, session.dom))
-    if pose.magnitude < .5:
-        raise ValueError('Controller tracking lost while placing a Curve point')
-    if getattr(session, 'bridge', None) is not None:
-        sample = session.bridge.read()
-        if sample is None:
-            raise ValueError('Finger input lost while placing a Curve point')
-        held = float(sample[session.dom][0])
-        cancel = float(sample[session.off][0]) >= .6
-    else:
-        held = float(actions.read(context, 'trigger', session.dom)[0])
-        cancel = float(actions.read(context, 'trigger', session.off)[0]) >= .6
     origin = Vector(state.controller_aim_location_get(context, session.dom))
+    input_safety_v086.validate_pose(pose, origin)
+    # The owner preflight captures the only accepted input snapshot for this
+    # XR frame; do not read a second packet and misinterpret dropouts as
+    # trigger release while painting, aiming lights or placing points.
+    sample = getattr(session, '_xr_validated_controls', None)
+    if sample is None:
+        sample = input_safety_v086.controller_sample(
+            context, getattr(session, 'bridge', None))
+    held = sample[session.dom][0]
+    cancel = sample[session.off][0] >= .6
     direction = pose @ Vector((0, 0, -1))
     return held >= .6, cancel, origin, direction
 
@@ -442,6 +442,9 @@ def patch_runtime(Runtime):
     def tick(self, context):
         if (getattr(self, '_xr_curve_pending', None) is not None or
                 getattr(self, '_xr_curve_release_required', False)):
+            from . import input_safety_v086
+            if not input_safety_v086.guard_specialized_frame(self, context):
+                return
             _capture_tick(self, context)
             return
         return previous_tick(self, context)

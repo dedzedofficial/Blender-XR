@@ -598,6 +598,9 @@ def patch_runtime(Runtime):
     def tick(self, context):
         if (getattr(self, '_xr_light_pending', None) is not None or
                 getattr(self, '_xr_light_release_required', False)):
+            from . import input_safety_v086
+            if not input_safety_v086.guard_specialized_frame(self, context):
+                return
             _capture_tick(self, context)
             return
         return previous_tick(self, context)

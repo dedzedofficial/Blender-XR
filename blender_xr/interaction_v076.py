@@ -613,7 +613,7 @@ def patch_runtime(Runtime):
         state = context.window_manager.xr_session_state
         gesture = getattr(self, '_xr_gesture', None)
         if gesture:
-            from . import actions, runtime
+            from . import actions, runtime, input_ownership_v080, input_safety_v086
             if state is None or not bpy.types.XrSessionState.is_running(context):
                 restore_transform(context, gesture)
                 self._xr_gesture = None
@@ -625,17 +625,24 @@ def patch_runtime(Runtime):
             rot = Quaternion(state.controller_aim_rotation_get(context, self.dom)
                              if source == 'trigger' else
                              state.controller_grip_rotation_get(context, self.dom))
-            if self.bridge:
-                sample = self.bridge.read()
-                if sample is None:
-                    restore_transform(context, gesture)
-                    self._xr_gesture = None
-                    return
-                held = sample[self.dom][0 if source == 'trigger' else 1] >= .45
-            else:
-                held = actions.read(context,
-                                    'trigger' if source == 'trigger' else 'grab',
-                                    self.dom)[0] >= .45
+            try:
+                sample = getattr(self, '_xr_validated_controls', None)
+                if sample is not None:
+                    pressed = sample[self.dom][0 if source == 'trigger' else 1]
+                elif self.bridge:
+                    pressed = input_safety_v086.controller_sample(
+                        context, self.bridge)[self.dom][0 if source == 'trigger' else 1]
+                else:
+                    pressed = input_safety_v086.control_value(
+                        actions.read(context,
+                                     'trigger' if source == 'trigger' else 'grab',
+                                     self.dom)[0])
+            except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
+                # An unreadable grip/trigger is tracking loss, NOT release.
+                # Roll back before the transform can be marked applied.
+                input_ownership_v080.cancel_tracking_loss(self)
+                return
+            held = pressed >= .45
             if held:
                 update_transform(context, gesture, pos, rot)
                 self.status = gesture['tool'] + ' / RELEASE TO APPLY'
@@ -654,10 +661,21 @@ def patch_runtime(Runtime):
                 and getattr(self, 'navigation_initialized', False)
                 and not self.transaction and not self.grab and
                 not self.axis_move and not self.air_grab):
-            from . import actions
-            sample = self.bridge.read() if self.bridge else None
-            grip_held = (bool(sample and sample[self.dom][1] >= .45) if self.bridge
-                         else actions.read(context, 'grab', self.dom)[0] >= .45)
+            from . import actions, input_ownership_v080, input_safety_v086
+            try:
+                sample = getattr(self, '_xr_validated_controls', None)
+                if sample is not None:
+                    grip_value = sample[self.dom][1]
+                elif self.bridge:
+                    grip_value = input_safety_v086.controller_sample(
+                        context, self.bridge)[self.dom][1]
+                else:
+                    grip_value = input_safety_v086.control_value(
+                        actions.read(context, 'grab', self.dom)[0])
+            except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
+                input_ownership_v080.cancel_tracking_loss(self)
+                return
+            grip_held = grip_value >= .45
             if grip_held and not self.grip.down:
                 obj = context.view_layer.objects.active
                 origin = Vector(state.controller_aim_location_get(context, self.dom))
