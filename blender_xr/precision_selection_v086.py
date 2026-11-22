@@ -11,7 +11,6 @@ No scene objects, hidden geometry, mesh data, or persistent custom properties
 are written. Precision Pick is an XR-session option, not a global Blender mode.
 """
 import heapq
-import math
 
 import bmesh
 from mathutils import Vector
