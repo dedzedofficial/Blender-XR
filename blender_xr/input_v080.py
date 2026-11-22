@@ -45,10 +45,12 @@ def patch_runtime(Runtime):
         if not running:
             # A stopped session can bypass pose-loss handling entirely.
             # Roll back every live mutation, not just the paint brush.
-            cancelled = input_ownership_v080.cancel_session_loss(self)
-            if hasattr(self, 'radial') and not cancelled:
-                self.radial.reset(require_release=True)
-            return old_tick(self, context)
+            input_ownership_v080.cancel_session_loss(self)
+            # Never forward a stopped OpenXR frame into the legacy tick.
+            # That path can read stale button edges and accidentally commit
+            # an interrupted transform as if the controller were released.
+            self._xr_validated_controls = None
+            return
         if (not getattr(self, 'navigation_initialized', False)
                 and hasattr(self, 'initialize_navigation')):
             # The action set must be activated before querying trigger/grip
@@ -129,21 +131,21 @@ def patch_runtime(Runtime):
             off_pose = Quaternion(state.controller_grip_rotation_get(context, self.off))
             off_position = Vector(state.controller_grip_location_get(context, self.off))
             if off_pose.magnitude < .5:
-                if self.radial.active:
-                    input_ownership_v080.cancel_tracking_loss(self)
-                    self.status = 'RADIAL CANCELLED / TRACKING LOST / RELEASE CONTROLS'
-                    return
-                return old_tick(self, context)
+                # An unusable offhand grip is tracking loss even when the
+                # radial menu is closed. Forwarding to legacy would allow
+                # transforms and locomotion with a missing controller.
+                input_ownership_v080.cancel_tracking_loss(self)
+                self.status = 'OFFHAND TRACKING LOST / RELEASE CONTROLS'
+                return
             off_held = self.hand_controls[self.off][0] > .55
             raw_stick = actions.read(context, 'stick', self.off)
         except (RuntimeError, ValueError, IndexError, TypeError, AttributeError):
-            if self.radial.active:
-                input_ownership_v080.cancel_tracking_loss(self)
-                self.status = 'RADIAL CANCELLED / INPUT LOST / RELEASE CONTROLS'
-                return
-            # Missing thumbstick action: retain the original classic menu.
+            # A missing stick action is not a neutral stick. Do not silently
+            # fall through to legacy interaction with partially read inputs.
+            input_ownership_v080.cancel_tracking_loss(self)
             self.radial_supported = False
-            return old_tick(self, context)
+            self.status = 'OFFHAND INPUT LOST / RELEASE CONTROLS'
+            return
         try:
             off_stick = input_safety_v086.stick_axes(raw_stick)
         except ValueError:
