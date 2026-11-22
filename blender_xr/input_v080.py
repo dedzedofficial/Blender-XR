@@ -93,24 +93,9 @@ def patch_runtime(Runtime):
             input_ownership_v080.cancel_tracking_loss(self)
             self.status = 'CONTROLLER SAMPLE LOST / RELEASE BOTH HANDS'
             return
-        if getattr(self, '_xr_rearm_required', False):
-            if not input_safety_v086.neutral(self.hand_controls):
-                self._xr_neutral_count = 0
-                self.status = 'RELEASE TRIGGER AND GRIP TO REARM'
-                return
-            self._xr_neutral_count = getattr(self, '_xr_neutral_count', 0) + 1
-            if self._xr_neutral_count < input_safety_v086.NEUTRAL_FRAMES:
-                self.status = 'CONTROLLERS NEUTRAL / STABILIZING'
-                return
-            self._xr_neutral_count = 0
-            self._xr_rearm_required = False
-            self.trigger.update(0.0)
-            self.off_trigger.update(0.0)
-            self.grip.update(0.0)
-            self.other_grip.update(0.0)
-            self.status = 'CONTROLS REARMED'
-            # No action is dispatched on the rearm frame: it is a barrier
-            # between interrupted edits and subsequent fresh presses.
+        if input_safety_v086.advance_rearm(self, context, self.hand_controls):
+            # The second neutral frame clears the latch but is never routed
+            # into legacy handlers. Fresh press edges begin next frame.
             return
 
         if (getattr(self.settings, 'menu_style', 'CLASSIC') != 'RADIAL'

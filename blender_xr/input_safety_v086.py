@@ -91,6 +91,66 @@ def neutral(sample):
     return all(value < REARM_THRESHOLD for hand in sample for value in hand)
 
 
+STICK_REARM_THRESHOLD = 0.25
+
+
+def neutral_rearm_frame(session, context, samples):
+    """Require released buttons AND a centered radial stick before rearming.
+
+    A controller that reconnects with its offhand stick deflected must not
+    immediately open or select a radial wedge on the first resumed frame.
+    SteamVR hand-bridge input does not provide the same native stick action;
+    it is intentionally guarded by its validated trigger/grip packet only.
+    An absent native stick is input loss, not a neutral sample.
+    """
+    if not neutral(samples):
+        return False
+    if (getattr(session, 'bridge', None) is not None or
+            getattr(getattr(session, 'settings', None), 'menu_style', 'CLASSIC') != 'RADIAL'):
+        return True
+    stick = stick_axes(actions.read(context, 'stick', session.off))
+    return max(abs(stick[0]), abs(stick[1])) < STICK_REARM_THRESHOLD
+
+
+def advance_rearm(session, context, samples):
+    """Advance one fully neutral frame; never dispatch on the release frame.
+
+    Returns True only when the caller must suppress normal input handling.
+    A malformed stick invalidates the entire frame and restarts the neutral
+    count; it never produces an accidental selection.
+    """
+    if not getattr(session, '_xr_rearm_required', False):
+        return False
+    try:
+        is_neutral = neutral_rearm_frame(session, context, samples)
+    except (RuntimeError, TypeError, ValueError, IndexError, AttributeError, OverflowError):
+        from . import input_ownership_v080
+        input_ownership_v080.cancel_tracking_loss(session)
+        session._xr_neutral_count = 0
+        session.status = 'REARM INPUT LOST / RELEASE BOTH HANDS'
+        return True
+    if not is_neutral:
+        session._xr_neutral_count = 0
+        session.status = 'RELEASE TRIGGERS, GRIPS AND RADIAL STICK'
+        return True
+    session._xr_neutral_count = getattr(session, '_xr_neutral_count', 0) + 1
+    if session._xr_neutral_count < NEUTRAL_FRAMES:
+        session.status = 'CONTROLLERS NEUTRAL / STABILIZING'
+        return True
+    session._xr_neutral_count = 0
+    session._xr_rearm_required = False
+    # A snap-turn may have been armed before tracking disappeared. Reset its
+    # edge state as well; the next non-neutral stick motion must be fresh.
+    turning = getattr(session, 'turning', None)
+    if turning is not None and hasattr(turning, 'armed'):
+        turning.armed = True
+    for field in ('trigger', 'off_trigger', 'grip', 'other_grip'):
+        button = getattr(session, field, None)
+        if button is not None:
+            button.update(0.0)
+    session.status = 'CONTROLS REARMED'
+    return True
+
 def guard_specialized_frame(session, context):
     """Preflight editing wrappers that intercept tick before the radial router.
 
@@ -126,21 +186,6 @@ def guard_specialized_frame(session, context):
         session.status = 'XR INPUT LOST / EDIT CANCELLED / RELEASE HANDS'
         return False
     session._xr_validated_controls = samples
-    if getattr(session, '_xr_rearm_required', False):
-        if not neutral(samples):
-            session._xr_neutral_count = 0
-            session.status = 'RELEASE TRIGGERS AND GRIPS TO REARM'
-            return False
-        session._xr_neutral_count = getattr(session, '_xr_neutral_count', 0) + 1
-        if session._xr_neutral_count < NEUTRAL_FRAMES:
-            session.status = 'CONTROLLERS NEUTRAL / STABILIZING'
-            return False
-        session._xr_neutral_count = 0
-        session._xr_rearm_required = False
-        for field in ('trigger', 'off_trigger', 'grip', 'other_grip'):
-            button = getattr(session, field, None)
-            if button is not None:
-                button.update(0.0)
-        session.status = 'CONTROLS REARMED'
+    if advance_rearm(session, context, samples):
         return False
     return True
