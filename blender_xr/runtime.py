@@ -611,6 +611,33 @@ class Runtime:
         self.axis_drag=(anchor,axis.copy(),value[0],factor,local_axis,name)
         self.status='DRAG '+name+' / RELEASE TO APPLY'
 
+    def initialize_navigation(self, context, state):
+        """Activate the XR action set without dispatching any controller input.
+
+        The outer input router calls this first and then requires neutral
+        controls before the first actionable frame. It is also available to
+        the standalone legacy tick for old Blender integration paths.
+        """
+        if START_ERROR:
+            self.error = START_ERROR
+            self.request_stop = True
+            return False
+        try:
+            ready = state.active_action_set_set(context, actions.SET)
+        except (RuntimeError, TypeError, ValueError, AttributeError) as exc:
+            self.error = 'Controller action activation failed: ' + str(exc)[:160]
+            self.request_stop = True
+            return False
+        if not ready:
+            self.error = 'Controller actions could not be activated'
+            self.request_stop = True
+            return False
+        state.navigation_location = (0, 0, 0)
+        state.navigation_rotation = Quaternion()
+        state.navigation_scale = 1.0
+        self.navigation_initialized = True
+        return True
+
     def tick(self, context):
         now = time.monotonic()
         dt = min(now-self.last_tick, 0.1)
@@ -625,14 +652,8 @@ class Runtime:
                 self.request_stop = True
             return
         if not self.navigation_initialized:
-            if not state.active_action_set_set(context, actions.SET):
-                self.error = 'Controller actions could not be activated'
-                self.request_stop = True
+            if not self.initialize_navigation(context, state):
                 return
-            state.navigation_location = (0, 0, 0)
-            state.navigation_rotation = Quaternion()
-            state.navigation_scale = 1.0
-            self.navigation_initialized = True
         if START_ERROR:
             self.error = START_ERROR
             self.request_stop = True
