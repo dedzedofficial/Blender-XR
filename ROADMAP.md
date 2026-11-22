@@ -68,6 +68,16 @@ geometry, and stop at poles/non-quad or ambiguous branches. Existing XR
 selection snapshot guards provide undo/redo; no topology edits, scene
 metadata or GitHub Actions are introduced.
 
+**Precision mesh snapping (source implemented, untested):**
+Mesh Edit → Options → Snap now supports individual local/world grid
+vertex snapping, local/world centre-to-grid translation, and rigid
+centre-to-cursor/object-origin/world-origin movement. Uses the established
+positive XR modelling Step size and full native world↔local conversions,
+records mesh edits via existing XR-local guarded snapshots, and leaves
+all other mesh data/selection modes untouched. Creator-owned Blender and
+VR acceptance remain outstanding.
+
+
 ## 0.8.6 — interaction and precision
 **Controller safety increment (source implemented, awaiting creator testing):**
 A common finite-input validator protects tracked controller rotations and
