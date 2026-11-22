@@ -139,6 +139,11 @@ def advance_rearm(session, context, samples):
         return True
     session._xr_neutral_count = 0
     session._xr_rearm_required = False
+    # A snap-turn may have been armed before tracking disappeared. Reset its
+    # edge state as well; the next non-neutral stick motion must be fresh.
+    turning = getattr(session, 'turning', None)
+    if turning is not None and hasattr(turning, 'armed'):
+        turning.armed = True
     for field in ('trigger', 'off_trigger', 'grip', 'other_grip'):
         button = getattr(session, field, None)
         if button is not None:
