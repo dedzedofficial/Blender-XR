@@ -42,6 +42,15 @@ These restrictions must be visible in help, not described as universal support.
 
 ## 0.8.6 — interaction and precision
 
+**Exact-step axis nudge source increment (development, untested):**
+Headset X±/Y±/Z± movement for the active mesh object or selected native
+mesh geometry, with local/world axes, quick 0.001/0.01/0.1/1-unit step
+presets and one XR-local undo entry per press. Accessible under
+Edit → More → Step → Axis Nudge or Creator → Layout → Axis Nudge.
+Guards linked/locked object state, world-scale singularities, unconstrained
+object movement and completed XR input ownership. Source complete in a
+stacked draft, pending creator-run Blender and VR acceptance.
+
 **Precision selection source increment (development, untested):** Optional
 controller ray-picker for native edit-mesh vertices and edges. Four world-space
 pick radii (12/30/70/120 mm), front-surface filtering or explicit through-mesh
