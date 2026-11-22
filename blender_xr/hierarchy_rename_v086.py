@@ -42,7 +42,6 @@ def _state_object(session, context):
 
 def _keyboard(session):
     state = session._xr_hierarchy_rename_state
-    pages = (_LIMIT + _KEYS_PER_PAGE - 1) // _KEYS_PER_PAGE
     # The symbol set is independent of the allowed name length.
     pages = (len(_SYMBOLS) + _KEYS_PER_PAGE - 1) // _KEYS_PER_PAGE
     state['page'] %= pages
