@@ -80,6 +80,25 @@ def run():
         assert mix.inputs[1].links[0].from_node == rgb
         assert mat.node_tree.nodes.get(rgb.name) == rgb
         assert history.undo[-1][0] == 'XR_PAINT_LAYER_085'
+        # Failed layer undo must leave the original graph intact.
+        refused(lambda: paint._remove_layer(
+            mat, bsdf.name, tex.name, mix.name,
+            ('MISSING SOURCE', 'Color'), tuple(bsdf.inputs['Base Color'].default_value)),
+            'original base color link')
+        assert bsdf.inputs['Base Color'].links[0].from_node == mix
+        assert tex.image == image
+
+        # Refuse undo that would destroy other shader links to the layer.
+        external = mat.node_tree.nodes.new('ShaderNodeEmission')
+        mat.node_tree.links.new(tex.outputs['Color'], external.inputs['Color'])
+        refused(lambda: paint._remove_layer(
+            mat, bsdf.name, tex.name, mix.name,
+            (rgb.name, rgb.outputs['Color'].identifier),
+            tuple(bsdf.inputs['Base Color'].default_value)), 'outside its layer')
+        assert tex.image == image
+        assert bsdf.inputs['Base Color'].links[0].from_node == mix
+        mat.node_tree.nodes.remove(external)
+
         uv = paint._uv_hit(ctx, obj, Vector((0, 0, 2)), Vector((0, 0, -1)))
         assert uv is not None and all(.45 < v < .55 for v in uv)
 
@@ -96,6 +115,50 @@ def run():
         assert paint._pixel_data(image) == before
         assert history.step(False)
         assert paint._pixel_data(image) == changed
+
+        # Names can be reused after deleting or renaming image datablocks.
+        # A stale XR entry must never write into a different native image.
+        original_name = image.name
+        image.name = original_name + ' - original'
+        replacement = bpy.data.images.new(original_name, width=256, height=256, alpha=True)
+        replacement_before = paint._pixel_data(replacement)
+        refused(lambda: history.step(True), 'removed or replaced')
+        assert history.undo[-1] == entry
+        assert paint._pixel_data(replacement) == replacement_before
+        bpy.data.images.remove(replacement)
+        image.name = original_name
+
+        # A live stroke cannot continue onto another image assigned to the
+        # original paint node, even if that image is local and single-user.
+        guarded = paint.PaintStroke(session, ctx, 'PAINT')
+        replacement = bpy.data.images.new('XR Paint Swapped Target', width=256,
+                                          height=256, alpha=True)
+        tex.image = replacement
+        refused(lambda: guarded.dab(ctx, (0, 0, 2), (0, 0, -1)),
+                'paint target changed')
+        tex.image = image
+        bpy.data.images.remove(replacement)
+
+        # Cancelling a stroke must preserve an unrelated external pixel edit.
+        guarded = paint.PaintStroke(session, ctx, 'PAINT')
+        assert guarded.dab(ctx, (0, 0, 2), (0, 0, -1))
+        foreign = paint._pixel_data(image)
+        foreign[0] = .1
+        paint._write_pixels(image, foreign)
+        guarded.cancel()
+        assert rgba_at(image, 0, 0)[0] > .09
+        assert rgba_at(image, 128, 128) == tuple(changed[(128*256+128)*4:(128*256+128)*4+4])
+        paint._write_pixels(image, changed)
+
+        # Conflicting edits to touched pixels must fail closed, not clobber.
+        guarded = paint.PaintStroke(session, ctx, 'PAINT')
+        assert guarded.dab(ctx, (0, 0, 2), (0, 0, -1))
+        foreign = paint._pixel_data(image)
+        p = (128*256+128)*4
+        foreign[p] = .12345
+        paint._write_pixels(image, foreign)
+        refused(guarded.cancel, 'changed outside')
+        paint._write_pixels(image, changed)
 
         eraser = paint.PaintStroke(session, ctx, 'ERASE')
         assert eraser.dab(ctx, (0, 0, 2), (0, 0, -1))

@@ -107,6 +107,13 @@ def _make_nodes(mat, principled, image, old_link=None, original_color=None,
     base = principled.inputs['Base Color']
     if base.links:
         raise ValueError('Base Color changed outside Paint Studio')
+    original_socket = None
+    if old_link is not None:
+        source_node = tree.nodes.get(old_link[0])
+        original_socket = (source_node.outputs.get(old_link[1])
+                           if source_node else None)
+        if original_socket is None:
+            raise ValueError('Existing Base Color node link was removed')
     mix = tree.nodes.new('ShaderNodeMixRGB')
     mix.name = label
     mix.label = 'Mesh XR Image Paint Layer'
@@ -126,13 +133,8 @@ def _make_nodes(mat, principled, image, old_link=None, original_color=None,
     mix.location = (principled.location.x - 240, principled.location.y - 220)
     tex.location = (mix.location.x - 280, mix.location.y)
     uv_node.location = (tex.location.x - 220, tex.location.y)
-    if old_link is not None:
-        source_node = tree.nodes.get(old_link[0])
-        source_socket = (source_node.outputs.get(old_link[1])
-                         if source_node else None)
-        if source_socket is None:
-            raise ValueError('Existing Base Color node link was removed')
-        tree.links.new(source_socket, mix.inputs[1])
+    if original_socket is not None:
+        tree.links.new(original_socket, mix.inputs[1])
     tree.links.new(tex.outputs['Color'], mix.inputs[2])
     tree.links.new(tex.outputs['Alpha'], mix.inputs[0])
     tree.links.new(mix.outputs['Color'], base)
@@ -158,20 +160,38 @@ def _remove_layer(mat, bsdf_name, tex_name, mix_name, prior, base_color):
     base = bsdf.inputs['Base Color']
     if not base.links or base.links[0].from_node != mix:
         raise ValueError('Paint layer is no longer the top Base Color layer')
+    # Preflight every dependency before removing anything. An outside edit to
+    # the previous colour source must not leave a half-deleted paint stack.
+    prior_output = None
+    if prior is not None:
+        source = tree.nodes.get(prior[0])
+        prior_output = source.outputs.get(prior[1]) if source else None
+        if prior_output is None:
+            raise ValueError('Original Base Color link was deleted')
+    # Refuse to delete shared paint nodes that have been connected to
+    # unrelated material outputs since creation.
+    for output in tex.outputs:
+        if any(link.to_node != mix for link in output.links):
+            raise ValueError('Paint texture is connected outside its layer')
+    for output in mix.outputs:
+        if any(link.to_socket != base for link in output.links):
+            raise ValueError('Paint mix is connected outside its layer')
     image = tex.image
     uv_node = (tex.inputs['Vector'].links[0].from_node
                if tex.inputs['Vector'].links else None)
+    # Other shaders may reuse the UV mapping node. Only delete it when the
+    # paint texture is its sole consumer.
+    private_uv = (uv_node is not None and uv_node.type == 'UVMAP'
+                  and uv_node.name.startswith('Mesh XR Paint UV')
+                  and all(link.to_node == tex
+                          for output in uv_node.outputs for link in output.links))
     tree.nodes.remove(mix)
     tree.nodes.remove(tex)
-    if uv_node is not None and uv_node.type == 'UVMAP' and uv_node.name.startswith('Mesh XR Paint UV'):
+    if private_uv:
         tree.nodes.remove(uv_node)
     base.default_value = base_color
-    if prior is not None:
-        source = tree.nodes.get(prior[0])
-        output = source.outputs.get(prior[1]) if source else None
-        if output is None:
-            raise ValueError('Original Base Color link was deleted')
-        tree.links.new(output, base)
+    if prior_output is not None:
+        tree.links.new(prior_output, base)
     if image is not None and image.users == 0:
         bpy.data.images.remove(image)
 
@@ -243,6 +263,14 @@ def _write_pixels(image, buf):
     image.update()
 
 
+def _history_image(name, pointer):
+    """Never resolve a volatile XR-local history entry by name alone."""
+    image = bpy.data.images.get(name)
+    if image is None or image.as_pointer() != pointer:
+        raise ValueError('Native paint image was removed or replaced')
+    return image
+
+
 def _uv_hit(context, obj, origin, direction):
     result = context.scene.ray_cast(context.evaluated_depsgraph_get(),
                                     Vector(origin), Vector(direction).normalized())
@@ -288,8 +316,11 @@ def _uv_hit(context, obj, origin, direction):
 class PaintStroke:
     def __init__(self, session, context, kind):
         obj, mat, node, image = _selected(session, context)
+        self.session = session
         self.object_name = obj.name
         self.object_ptr = obj.as_pointer()
+        self.node_ptr = node.as_pointer()
+        self.uv_map = obj.data.uv_layers.active.name
         self.image_name = image.name
         self.image_ptr = image.as_pointer()
         self.image = image
@@ -303,10 +334,18 @@ class PaintStroke:
         self.before = {}
         self.after = {}
 
+    def validate_target(self, context):
+        obj, _mat, node, image = _selected(self.session, context)
+        if (obj.as_pointer() != self.object_ptr or
+                node.as_pointer() != self.node_ptr or
+                image.as_pointer() != self.image_ptr or
+                tuple(image.size) != (self.width, self.height) or
+                obj.data.uv_layers.active.name != self.uv_map):
+            raise ValueError('Paint target changed during the stroke')
+        return obj
+
     def dab(self, context, origin, direction):
-        obj = context.view_layer.objects.get(self.object_name)
-        if obj is None or obj.as_pointer() != self.object_ptr:
-            raise ValueError('Paint mesh changed during the stroke')
+        obj = self.validate_target(context)
         uv = _uv_hit(context, obj, origin, direction)
         if uv is None:
             return False
@@ -347,10 +386,16 @@ class PaintStroke:
         return False
 
     def cancel(self):
-        for index, color in self.before.items():
-            self.buf[index:index+4] = array('f', color)
         if self.before:
-            _write_pixels(self.image, self.buf)
+            image = _history_image(self.image_name, self.image_ptr)
+            if tuple(image.size) != (self.width, self.height):
+                raise ValueError('Paint image dimensions changed during stroke')
+            # Re-read live pixels: preserve edits to unrelated pixels and
+            # reject conflicts instead of overwriting another editor's work.
+            _apply_pixels(image, {
+                index: (old, self.after.get(index, old))
+                for index, old in self.before.items()
+            }, backwards=True)
 
     def finish(self):
         changes = {index: (old, self.after.get(index, old))
@@ -359,7 +404,7 @@ class PaintStroke:
         if not changes:
             return None
         return ('XR_PAINT_STROKE_085', self.image_name,
-                self.image_ptr, changes)
+                self.image_ptr, changes, (self.width, self.height))
 
 
 def _arm(session, context, action):
@@ -380,30 +425,46 @@ def _arm(session, context, action):
 
 def _cancel(session, rollback=True):
     stroke = getattr(session, '_xr_paint_pending', None)
-    if stroke is not None:
+    if stroke is None:
+        return True
+    clean = True
+    try:
         if rollback:
             stroke.cancel()
+    except (ValueError, RuntimeError, ReferenceError):
+        # External image changes are never overwritten to force a rollback.
+        session.status = 'PAINT ROLLBACK BLOCKED / IMAGE CHANGED'
+        clean = False
+    finally:
         session._xr_paint_pending = None
         session.menu.visible = bool(getattr(session, '_xr_paint_was_visible', True))
         session._xr_paint_release_required = True
+    return clean
 
 
 def _tick(session, context):
     try:
         pressed, cancel, origin, direction = native_curves_v080._input_sample(session, context)
     except (RuntimeError, TypeError, ValueError, IndexError, AttributeError) as exc:
-        _cancel(session, True)
+        clean = _cancel(session, True)
         session._xr_rearm_required = True
-        session.status = 'PAINT INPUT LOST / RELEASE TO REARM'
+        if clean:
+            session.status = 'PAINT INPUT LOST / RELEASE TO REARM'
         return
     if cancel:
-        _cancel(session, True)
-        session.status = 'PAINT STROKE CANCELLED'
+        if _cancel(session, True):
+            session.status = 'PAINT STROKE CANCELLED'
         return
     if not pressed:
         if getattr(session, '_xr_paint_started', False):
             stroke = session._xr_paint_pending
-            entry = stroke.finish()
+            try:
+                stroke.validate_target(context)
+                entry = stroke.finish()
+            except (ValueError, RuntimeError, ReferenceError) as exc:
+                if _cancel(session, True):
+                    session.status = 'PAINT CANCELLED / ' + str(exc).upper()[:38]
+                return
             if entry:
                 session.history.push(entry)
             _cancel(session, False)
@@ -422,8 +483,8 @@ def _tick(session, context):
             stroke.dab(context, origin, direction)
             session._xr_paint_started = True
         except (ValueError, RuntimeError, ReferenceError) as exc:
-            _cancel(session, True)
-            session.status = 'PAINT CANCELLED / ' + str(exc).upper()[:38]
+            if _cancel(session, True):
+                session.status = 'PAINT CANCELLED / ' + str(exc).upper()[:38]
 
 
 def _fill(session, context, empty=False):
@@ -465,6 +526,8 @@ def _save(session, context):
 def _apply_pixels(image, pairs, backwards):
     buf = _pixel_data(image)
     for idx, (before, after) in pairs.items():
+        if idx < 0 or idx + 4 > len(buf):
+            raise ValueError('Paint image dimensions changed outside XR history')
         expected = after if backwards else before
         for n in range(4):
             if abs(buf[idx+n] - expected[n]) > 2e-5:
@@ -494,10 +557,10 @@ def _history_patch():
         if bpy.context.mode != 'OBJECT':
             raise ValueError('Exit Edit Mode before texture Undo')
         if entry[0] in {'XR_PAINT_STROKE_085', 'XR_PAINT_IMAGE_085'}:
-            image = bpy.data.images.get(entry[1])
-            if image is None:
-                raise ValueError('Native paint image was removed')
+            image = _history_image(entry[1], entry[2])
             if entry[0] == 'XR_PAINT_STROKE_085':
+                if len(entry) > 4 and tuple(image.size) != tuple(entry[4]):
+                    raise ValueError('Paint image dimensions changed outside XR history')
                 _apply_pixels(image, entry[3], backwards)
             else:
                 before, after = entry[3:5]

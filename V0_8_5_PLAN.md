@@ -2,7 +2,41 @@
 
 **Approved by creator:** 10 November 2026
 
-**Status:** In development; not released. Keep add-on manifest/version at 0.8.0 until all accepted v0.8.5 capabilities have merged and the release gate passes.
+**Status:** Version 0.8.5 development package; not a published or headset-certified stable release. The runtime, manifest, installer and release notes now agree on 0.8.5. `RELEASE_CHANNEL` remains `development`, and publication is blocked until release acceptance is recorded.
+
+## Completion scope — 15 November 2026
+
+The creator requested a practical 0.8.5 completion plus one simple giant roadmap.
+[ROADMAP.md](ROADMAP.md) is now the release-order index. Earlier detailed plans remain
+historical requirements; their old status tables must not be treated as a current audit.
+
+Implementation in the completion branch:
+
+- [x] Integrate wrist hierarchy search from PR #53 without dropping assembly controls.
+- [x] Add selected-geometry Separate and Extract Copy, preserving retained originals.
+- [x] Preserve object vertex-group definitions/locks when redoing joined/separated output.
+- [x] Add native Curve modifier target and six deformation-axis controls.
+- [x] Add headset HEX entry, RGB adjustments and an HSV wheel to the existing colour studio.
+- [x] Add light-temperature presets as approximate native linear RGB colours.
+- [x] Add explicit editable native flicker keyframes with Undo/Redo and existing-animation guards.
+- [x] Add real Blender regression coverage for the new controls and preservation paths.
+- [x] Pass the 39-script Linux suite on Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2; build and verify the 0.8.5 ZIP.
+- [ ] Complete native Windows/macOS validation and local supported-version test matrix (GitHub Actions intentionally removed from main on 18 November 2026).
+- [ ] Record physical Quest 3/SteamVR acceptance, including wheel aiming and interrupted edits.
+- [ ] Resolve remaining input-router stability acceptance before a stable release claim.
+- [x] Synchronize development version/manifest/README/ZIP naming to 0.8.5.
+- [x] Add native Mirror/Array/Curve preview, Apply/Cancel, atomic undo and tracking-loss rollback.
+- [x] Run extension preview for manual validation too, with version-independent artifact paths.
+- [x] Align the draft branch with main's local-first test policy and remove legacy workflow conflicts.
+- [x] Add Windows local whole-suite runner and paint-history corruption protections.
+- [ ] Rerun the local Blender matrix on these newest commits; previous 39-script Linux results precede the latest changes.
+- [ ] Change release channel to stable only after all release gates pass.
+
+0.8.5 supports immediate undoable modifier edits and an explicit Preview session.
+In Preview, aim at the wrist buttons; Back opens Apply/Cancel/Resume. Offhand Trigger
+cancels after release. No navigation or other tools run during the preview.
+Freehand curve strokes, hierarchy rename, precision selection and IK remain later roadmap work. Native curve objects and
+the Curve deformation modifier are separate delivered features.
 
 ## Accepted v0.8.5 scope
 
@@ -25,8 +59,8 @@
 - Slice B: Reversible Join / Join as Copy / Unmerge, then safe Separate / Extract.
 - Slice C: Non-destructive Boolean operations and compatible Apply.
 - Slice D: Native image texture painting, protected image/textures/UVs, per-stroke undo/cancel, image saving.
-- Slice E: Integrated acceptance tests; only then set manifest/runtime/package version to 0.8.5, update documentation and release archive naming.
+- Slice E: Integrated acceptance tests, matching 0.8.5 development metadata and package. Stable publication still requires the documented platform and physical-headset gates.
 
-Each increment requires all eight CI jobs: Blender 4.2, 4.5, 5.0, 5.2; Windows; macOS Apple Silicon and Intel; extension ZIP preview. Automated Blender checks do not substitute for physical Quest 3 validation.
+Each increment requires equivalent **local** evidence: Blender 4.2, 4.5, 5.0, 5.2 regression runs; Windows and macOS Apple Silicon/Intel package checks; extension ZIP integrity and clean-profile install. The retired GitHub Actions workflows must not be restored merely to satisfy older CI wording. Run `dev-local.ps1 -Build -BlenderPath 'path/to/blender.exe'` on Windows for a complete local Blender regression pass. Automated checks do not substitute for physical Quest 3 validation.
 
 If incomplete or any check fails, keep draft PR open and clearly state v0.8.5 has NOT shipped.

@@ -1,5 +1,7 @@
 # Mesh XR v0.8 — Deep System Audit, 3D Hands, Finger Tracking and Radial UI
 
+> Current release order and implementation status: [ROADMAP.md](ROADMAP.md). This detailed document preserves earlier requirements; historical status tables may be stale.
+
 **Status:** Research and design proposal — **no feature implementation authorised by this document**.  
 **Audit date:** 25 October 2026.  
 **Code inspected:** `dev/v0.8.0` at the start of this audit; based on the released 0.7.6 code.  

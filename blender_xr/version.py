@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Single source of truth for Mesh XR's Python/UI version string."""
 
-VERSION = (0, 8, 0)
+VERSION = (0, 8, 5)
 VERSION_TEXT = '.'.join(str(part) for part in VERSION)
 DISPLAY_VERSION = 'V' + VERSION_TEXT
+
+# Packaging version is independent of stable-release approval.
+RELEASE_CHANNEL = "development"

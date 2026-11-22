@@ -1,5 +1,17 @@
 # Mesh XR changelog
 
+## 0.8.5 completion branch — unreleased
+
+- Wrist hierarchy search, native Curve modifier references and signed axes.
+- Separate selected geometry and Extract Copy with retained sources.
+- Fix vertex-group definitions/locks missing from reconstructed Join/Separate redo outputs.
+- Headset HEX keypad, RGB controls and HSV wheel in the existing colour studio.
+- Native light-temperature presets and explicit editable 24-frame flicker animation.
+- Consolidated roadmap with honest implementation/release status and preserved historical ideas.
+- Development runtime, manifest, installer and release notes now identify 0.8.5; stable publication remains blocked until acceptance.
+- Added Mirror/Array/Curve Preview, Apply/Cancel, atomic history, exclusive input capture and tracking-loss rollback.
+- Fixed manual validation skipping the extension-preview job and removed hard-coded 0.8.0 artifact paths.
+
 ## v0.8.0 — alpha 2 safety, precision and diagnostics test build
 
 - Added opt-in controller-hand position calibration (X/Y/Z offsets, hand size and reset) with persisted local settings; visual-only, never moves scene geometry or the editing ray.
