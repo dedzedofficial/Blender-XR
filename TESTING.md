@@ -1,5 +1,10 @@
 # Mesh XR testing
 
+## Current local-first verification (since 18 November 2026)
+
+GitHub Actions validation and release workflows have been removed from `main`.
+Use `./dev-local.ps1 -Build -BlenderPath 'C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe'` on Windows to run the pure Python checks, build and checksum the extension ZIP, and run all Blender-dependent test scripts in fresh background processes. Change `-BlenderPath` for each supported Blender version. Omitting `-BlenderPath` skips Blender integration; omitting `-Build` skips package validation. The physical headset/platform sign-off is still manual. Historical CI references below describe earlier releases, not a currently active workflow.
+
 ## v0.7.6 Weight Paint Mode and Ctrl+P parenting acceptance
 
 - Use the existing **Mode** menu and select **Weight Paint** while a rig or mesh is selected. Verify the Blender viewport actually enters Weight Paint mode and the VR hand menu changes to the Paint/Erase/Group/Strength/Size controls.
@@ -296,8 +301,8 @@ modifier edits. `test_release_readiness.py` checks package/document version cons
 and rejects non-stable publication. The complete local suite has 39 test scripts.
 All 39 passed with Blender 4.5.0 for Blender tests and Python for pure/package tests
 (the stale hand-test version assertion was updated and rerun successfully).
-The extension builds as `mesh-xr-v0.8.5.zip`. Manual CI validation now includes
-preview packaging instead of skipping it outside pull-request events.
+The extension builds as `mesh-xr-v0.8.5.zip`. The earlier CI validation included
+preview packaging; present validation is local because the workflows were removed.
 
 Headset testing must additionally exercise preview button aiming, offhand cancellation,
 release/rearm, active-object changes and returning to regular radial controls.
