@@ -2,6 +2,8 @@
 
 **Development roadmap:** [one-page release plan](ROADMAP.md) · [0.8.5 completion checklist](V0_8_5_PLAN.md). Version 0.8.5 is not yet released.
 
+**Local build and regression checks:** GitHub Actions workflows were removed to keep this a local-first desktop project. On Windows run `./dev-local.ps1 -Build -BlenderPath 'C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe'` to test Python, verify the ZIP and execute all Blender integration scripts. Repeat with the other supported Blender versions. See [local publishing and release gates](PUBLISHING.md). These checks do not replace physical headset validation.
+
 **Mac desktop support:** Mesh XR v0.8 adds macOS **Apple Silicon** and **Intel** compatibility to the existing Windows x64 / Linux x64 add-on. Intel Macs require Blender 4.5 LTS or earlier; Apple Silicon Macs can use current Blender. macOS VR remains experimental and needs a compatible OpenXR runtime. No iOS/iPadOS or standalone mobile app is planned. See [macOS compatibility](PLATFORM_COMPATIBILITY.md).
 
 
