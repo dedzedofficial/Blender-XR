@@ -670,7 +670,15 @@ class Runtime:
             target_hit = self.object_hit(context,origin,direction)
             if target_hit:
                 self.target, self.pointer = target_hit
-        if self.bridge:
+        # The outer input router validates one complete two-hand sample.
+        # Reuse it throughout the frame, including gesture/legacy handlers.
+        # Without this, a transient missing bridge packet between two reads
+        # could look like a released trigger and commit a partial transform.
+        validated_controls = getattr(self, '_xr_validated_controls', None)
+        if validated_controls is not None:
+            trigger_value, grab_value = validated_controls[self.dom]
+            off_value, other_grab_value = validated_controls[self.off]
+        elif self.bridge:
             inputs = self.bridge.read()
             if inputs is None:
                 self.cancel_work()
@@ -689,6 +697,7 @@ class Runtime:
             grab_value = actions.read(context, 'grab', self.dom)[0]
             off_value = actions.read(context, 'trigger', self.off)[0]
             other_grab_value = actions.read(context, 'grab', self.off)[0]
+        if not self.bridge:
             if self.finger_touch:
                 # Holding both touch sensors fires once, until the fingers lift.
                 touch_events = [self.touch_holds[i].update(actions.touch(context, i), now)
