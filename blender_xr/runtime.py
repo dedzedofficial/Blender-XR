@@ -889,8 +889,21 @@ class Runtime:
                 self.status = 'GRAB OBJECT'
                 return
         # Always the physical LEFT stick, independent of dominant-hand choice.
-        stick = (0, 0) if self.bridge else actions.read(context,'stick',0)
-        right = (0,0) if self.bridge else actions.read(context,'stick',1)
+        # A missing/non-finite thumbstick is not valid movement input. Trigger
+        # and grip have already been validated; abandon this locomotion frame
+        # rather than passing NaN coordinates into the OpenXR navigation pose.
+        if self.bridge:
+            stick, right = (0.0, 0.0), (0.0, 0.0)
+        else:
+            from . import input_safety_v086
+            try:
+                stick = input_safety_v086.stick_axes(
+                    actions.read(context, 'stick', 0))
+                right = input_safety_v086.stick_axes(
+                    actions.read(context, 'stick', 1))
+            except (ValueError, TypeError, RuntimeError, IndexError, AttributeError):
+                self.status = 'THUMBSTICK UNAVAILABLE / MOVEMENT PAUSED'
+                return
         boosted = self.settings.fast_flight or (not self.bridge and actions.boost(context))
         delta = flight_delta(Quaternion(state.viewer_pose_rotation),stick,right[1],dt,
                              self.settings.move_speed*(4 if boosted else 1),scale,
