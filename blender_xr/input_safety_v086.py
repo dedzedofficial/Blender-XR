@@ -48,6 +48,41 @@ def validate_pose(rotation, position):
         raise ValueError('Controller tracking pose is missing or invalid')
 
 
+def controller_poses(state, context, hands):
+    """Capture and validate all aim/grip poses before any gesture dispatch.
+
+    Do not validate one sample then query a potentially different sample
+    later in the same XR frame. Callers may use the returned immutable
+    quaternion/location pairs for their own menu placement and ray.
+    """
+    from mathutils import Quaternion, Vector
+
+    poses = {}
+    for hand in hands:
+        aim_rotation = Quaternion(state.controller_aim_rotation_get(context, hand))
+        aim_location = Vector(state.controller_aim_location_get(context, hand))
+        grip_rotation = Quaternion(state.controller_grip_rotation_get(context, hand))
+        grip_location = Vector(state.controller_grip_location_get(context, hand))
+        validate_pose(aim_rotation, aim_location)
+        validate_pose(grip_rotation, grip_location)
+        poses[hand] = ((aim_rotation, aim_location),
+                       (grip_rotation, grip_location))
+    return poses
+
+
+def viewer_frame(state):
+    """Validate viewer placement before writing headset menu transforms."""
+    from mathutils import Vector
+
+    viewer = Vector(state.viewer_pose_location)
+    if not valid_position(viewer):
+        raise ValueError('XR viewer location is invalid')
+    scale = float(getattr(state, 'viewer_scale', 1.0))
+    if not math.isfinite(scale) or scale <= 0.0:
+        raise ValueError('XR viewer scale is invalid')
+    return viewer, scale
+
+
 def control_value(value):
     """Normalize a trigger or grip with a small hardware rounding tolerance."""
     (number,) = _floats((value,), 1, 'trigger/grip')
