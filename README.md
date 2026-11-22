@@ -43,6 +43,27 @@ interface. A successful automated package build is not hardware VR
 certification.
 
 
+## v0.8.6 exact-step movement development preview
+
+In Mesh Edit Mode choose **More → Step → Axis Nudge**, or in Object
+Mode choose **Creator → Layout → Axis Nudge**. Move along **X, Y, or Z**
+with one deliberate fixed displacement per button press. Switch between
+**World** and **Local** coordinates. Quick distance buttons set the same
+native Blender tool step to **0.001, 0.01, 0.1 or 1 Blender unit**,
+nominally 1 mm, 1 cm, 10 cm or 1 m when one Blender unit is one metre.
+
+In Edit Mode, the nudge changes selected native vertices (including those
+selected via edges/faces) without moving the object origin, and records a
+native mesh XR Undo/Redo transaction. In Object Mode, it moves the active
+unparented, unconstrained, unanimated local mesh with an XR Undo/Redo entry.
+Both operations refuse unsafe linked/locked objects. Local mesh-vertex steps
+use local mesh units; global steps are true world-space distances even on
+scaled objects. The system never needs a live controller drag to move a
+fixed distance.
+
+Source implementation only; actual Blender, Windows and controller testing
+remains the creator's responsibility.
+
 ## v0.8.6 precision selection development preview
 
 In **Mesh Edit Mode**, open **More → Step → Precision** to enable an optional
