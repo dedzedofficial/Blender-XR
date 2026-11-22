@@ -120,7 +120,7 @@ def patch_runtime(Runtime):
                 return old_tick(self, context)
             off_held = self.hand_controls[self.off][0] > .55
             raw_stick = actions.read(context, 'stick', self.off)
-        except (RuntimeError, IndexError, TypeError, AttributeError):
+        except (RuntimeError, ValueError, IndexError, TypeError, AttributeError):
             if self.radial.active:
                 input_ownership_v080.cancel_tracking_loss(self)
                 self.status = 'RADIAL CANCELLED / INPUT LOST / RELEASE CONTROLS'
