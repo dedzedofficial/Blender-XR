@@ -57,6 +57,12 @@ def controller_poses(state, context, hands):
     """
     from mathutils import Quaternion, Vector
 
+    # Reject a misconfigured dominant/offhand pair before querying the XR
+    # runtime. Otherwise one hand silently overwrites the other in the map,
+    # and an editor may consume the same controller for both roles.
+    hands = tuple(hands)
+    if len(hands) != 2 or set(hands) != {0, 1}:
+        raise ValueError('Expected two distinct tracked XR hands')
     poses = {}
     for hand in hands:
         aim_rotation = Quaternion(state.controller_aim_rotation_get(context, hand))
@@ -65,6 +71,13 @@ def controller_poses(state, context, hands):
         grip_location = Vector(state.controller_grip_location_get(context, hand))
         validate_pose(aim_rotation, aim_location)
         validate_pose(grip_rotation, grip_location)
+        # OpenXR quaternions should be unit length, but valid tracking packets
+        # can contain rounding drift. Normalize the validated local copies so
+        # rays and gesture deltas never inherit that scale error. Do not
+        # normalize before validation: a zero or malformed pose is tracking
+        # loss, not an identity rotation.
+        aim_rotation.normalize()
+        grip_rotation.normalize()
         poses[hand] = ((aim_rotation, aim_location),
                        (grip_rotation, grip_location))
     return poses
