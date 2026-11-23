@@ -133,6 +133,29 @@ def _model(layout, context, settings):
             chain_row.operator('blender_xr.edge_chain_spacing',
                                text='Preview Edge Chain Spacing',
                                icon='TRANSFORM_MOVE')
+        if (context.tool_settings.mesh_select_mode[0] or
+                context.tool_settings.mesh_select_mode[1]):
+            _header(layout, 'Straighten Native Edge Chain (Preview)', 'MESH_DATA')
+            straighten_row = layout.row(align=True)
+            straighten_row.enabled = runtime.CURRENT is None
+            for method in ('PROJECT', 'EVEN'):
+                op = straighten_row.operator(
+                    'blender_xr.straighten_mesh_chain',
+                    text='Project' if method == 'PROJECT' else 'Even Path',
+                    icon='MESH_DATA')
+                op.method = method
+                op.space = 'LOCAL'
+                op.limit = 'XR_STRAIGHT_FINE'
+        if context.tool_settings.mesh_select_mode[2]:
+            _header(layout, 'Active Face Plane (Preview)', 'MESH_DATA')
+            face_plane_row = layout.row(align=True)
+            face_plane_row.enabled = runtime.CURRENT is None
+            for coords in ('LOCAL', 'WORLD'):
+                op = face_plane_row.operator(
+                    'blender_xr.active_face_plane',
+                    text=coords.title() + ' Face Plane', icon='MESH_DATA')
+                op.space = coords
+                op.limit = 'XR_FACE_PLANE_FINE'
         _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH':
