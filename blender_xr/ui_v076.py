@@ -172,6 +172,9 @@ def _model(layout, context, settings):
     _operator(row, 'blender_xr.create_basic_rig', 'New', 'ARMATURE_DATA')
     col.label(text='Use Select to pick meshes, rigs or bones in VR', icon='RESTRICT_SELECT_OFF')
     if obj and obj.type == 'ARMATURE':
+        pose_view_row = col.row(align=True)
+        pose_view_row.enabled = runtime.CURRENT is None
+        pose_view_row.prop(obj.data, 'pose_position', text='Display')
         if obj.mode == 'OBJECT':
             _operator(col, 'blender_xr.edit_bones', 'Edit Armature', 'EDITMODE_HLT')
         if obj.mode in {'OBJECT', 'EDIT'}:
