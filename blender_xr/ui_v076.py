@@ -176,6 +176,10 @@ def _model(layout, context, settings):
         bridge_row.enabled = runtime.CURRENT is None
         bridge_row.operator('blender_xr.bridge_quads',
                             text='Preview Quad Loop Bridge', icon='MESH_DATA')
+        inset_row = layout.row(align=True)
+        inset_row.enabled = runtime.CURRENT is None
+        inset_row.operator('blender_xr.quad_inset',
+                           text='Preview Single Quad Inset', icon='MESH_DATA')
         audit_row.operator('blender_xr.topology_select',
                            text='Select Non-Quads',
                            icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'
