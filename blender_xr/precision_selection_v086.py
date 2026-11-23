@@ -3,7 +3,7 @@
 
 The existing Select/Grip workflow stays unchanged unless Precision Pick is
 enabled from Edit > More > Step > Precision. On a selection click, pick the
-nearest eligible vertex or edge along the dominant-controller ray. A subsequent
+nearest eligible native vertex, edge or face along the dominant-controller ray. A subsequent
 Next/Previous command re-evaluates that *recorded* ray against the current edit
 mesh so deleted/replaced elements cannot be reached through stale pointers.
 
@@ -17,6 +17,7 @@ import struct
 
 import bmesh
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 from . import (armature_v076, input_ownership_v080, mesh, menus, selection,
                mesh_axis_snap_v090, mesh_selection_tools_v086,
@@ -49,6 +50,79 @@ def _ray(origin, direction):
     return origin, direction.normalized()
 
 
+def _face_candidates(obj, origin, direction, through):
+    """Hit visible native BMesh faces, including deeper faces on Through mode.
+
+    Blender BVH returns the first polygon on a ray. Advancing an independent
+    ray origin through each hit permits bounded front-to-back face cycling
+    without selecting hidden/evaluated modifier faces or writing topology.
+    """
+    bm = bmesh.from_edit_mesh(obj.data)
+    bm.verts.ensure_lookup_table()
+    bm.verts.index_update()
+    bm.faces.ensure_lookup_table()
+    bm.faces.index_update()
+    vertices = tuple(v for v in bm.verts if v.is_valid)
+    positions = {vertex: i for i, vertex in enumerate(vertices)}
+    if any(not all(math.isfinite(float(x)) for x in vertex.co)
+           for vertex in vertices):
+        raise ValueError('Native face selection requires finite edit coordinates')
+    faces = tuple(
+        face for face in bm.faces
+        if (face.is_valid and not face.hide and len(face.verts) >= 3 and
+            all(v.is_valid and not v.hide for v in face.verts) and
+            all(edge.is_valid and not edge.hide for edge in face.edges))
+    )
+    if not faces:
+        return []
+    tree = BVHTree.FromPolygons(
+        [vertex.co.copy() for vertex in vertices],
+        [[positions[v] for v in face.verts] for face in faces],
+    )
+    inverse = obj.matrix_world.inverted()
+    source = inverse @ origin
+    local_direction = inverse.to_3x3() @ direction
+    if (local_direction.length_squared <= 1e-24 or
+            not all(math.isfinite(float(x)) for x in local_direction)):
+        raise ValueError('Precision face ray has an invalid object transform')
+    local_direction.normalize()
+    progress = 0.0
+    seen = set()
+    candidates = []
+    # A ray can encounter the same polygon twice at grazing angles; cap
+    # attempts even with pathological overlapping surfaces. Next/Previous
+    # only needs the first 32 distinct native faces.
+    for _attempt in range(96 if through else 1):
+        local_hit, _normal, polygon_index, _distance = tree.ray_cast(
+            source + local_direction * progress, local_direction)
+        if local_hit is None or polygon_index is None:
+            break
+        if not 0 <= polygon_index < len(faces):
+            raise ValueError('Native face BVH returned an invalid polygon index')
+        face = faces[polygon_index]
+        local_depth = (local_hit - source).dot(local_direction)
+        world_hit = obj.matrix_world @ local_hit
+        depth = (world_hit - origin).dot(direction)
+        if not all(math.isfinite(float(x)) for x in (*world_hit, depth)):
+            raise ValueError('Native face ray produced non-finite geometry')
+        if depth > 0 and face.index not in seen:
+            candidates.append((float(depth), 0.0, int(face.index),
+                               world_hit.copy()))
+            seen.add(face.index)
+            if not through or len(candidates) >= _MAX_HITS:
+                break
+        # In local edit-mesh units, advance slightly beyond the last hit.
+        # Ensure strict progress even if the BVH returns a repeated polygon.
+        # Limit the step to local precision rather than controller distance;
+        # very small overlapping surfaces can remain independently selectable.
+        epsilon = max(1e-8, abs(local_depth) * 1e-8)
+        next_progress = max(progress + epsilon, local_depth + epsilon)
+        if not math.isfinite(next_progress):
+            raise ValueError('Native face ray exceeded safe traversal range')
+        progress = next_progress
+    return sorted(candidates, key=lambda hit: (hit[0], hit[2]))
+
+
 def _candidates(obj, origin, direction, kind, radius, through):
     """Return up to 32 current Blender BMesh hits, ordered front to back.
 
@@ -56,9 +130,11 @@ def _candidates(obj, origin, direction, kind, radius, through):
     The explicit Through toggle removes this depth gate. Loose vertices/edges
     remain selectable when the ray does not hit any visible polygon.
     """
-    if kind not in {'VERT', 'EDGE'}:
+    if kind not in {'VERT', 'EDGE', 'FACE'}:
         return []
     origin, direction = _ray(origin, direction)
+    if kind == 'FACE':
+        return _face_candidates(obj, origin, direction, through)
     bm = bmesh.from_edit_mesh(obj.data)
     if kind == 'VERT':
         bm.verts.ensure_lookup_table()
@@ -156,6 +232,12 @@ def _world_matrix_stamp(obj):
     return stamp
 
 
+def _selection_stamp(context, obj, kind):
+    """Native selected indices, with no data writes or evaluated modifiers."""
+    bm, items = mesh_selection_tools_v086._current(obj, kind)
+    return mesh_selection_tools_v086._selected(items)
+
+
 def _history_pick(session, context, kind, index, additive):
     """Select or toggle a native BMesh index through guarded XR Undo/Redo.
 
@@ -209,6 +291,9 @@ def _current_candidates(session, context):
     if state.get('stamp') != _native_stamp(context, obj):
         _clear(session)
         raise ValueError('Native geometry or object transform changed; aim and Select again')
+    if state.get('selected') != _selection_stamp(context, obj, state['kind']):
+        _clear(session)
+        raise ValueError('Selection changed outside Precision; aim and Select again')
     return state, obj, _candidates(
         obj, state['origin'], state['direction'], state['kind'],
         _radius(session), bool(getattr(session, '_xr_precision_through', False)))
@@ -229,10 +314,11 @@ def _cycle(session, context, step):
         raise ValueError('Geometry changed; aim and Select again')
     next_pos = (indices.index(state['index']) + step) % len(indices)
     chosen = candidates[next_pos]
-    # Cycling is an exclusive selection. Ordinary grip+trigger additive
-    # selection still works on the existing Select tool.
+    # Cycling is an exclusive selection for vertices, edges and native faces.
+    # Ordinary grip+trigger additive toggling still works with Select.
     changed = _history_pick(session, context, state['kind'], chosen[2], False)
     state['index'] = chosen[2]
+    state['selected'] = _selection_stamp(context, obj, state['kind'])
     # Selection history recall clears prior precision rays. This particular
     # cycle revalidated the geometry so it can retain its own saved ray.
     session._xr_precision_last_ray = state
@@ -252,9 +338,6 @@ def _select(session, context, origin, direction, additive, legacy_select):
         return legacy_select(session, context, origin, direction, additive=additive)
     obj = _target(context)
     kind = selection.mode(context)
-    if kind == 'FACE':
-        _clear(session)
-        return legacy_select(session, context, origin, direction, additive=additive)
     origin, ray = _ray(origin, direction)
     native_stamp = _native_stamp(context, obj)
     candidates = _candidates(
@@ -286,6 +369,7 @@ def _select(session, context, origin, direction, additive, legacy_select):
         'direction': ray.copy(),
         'index': picked[2],
         'stamp': native_stamp,
+        'selected': _selection_stamp(context, obj, kind),
     }
     session.status = 'PRECISION / {} / {} NEARBY HITS / {}'.format(
         kind, len(candidates), 'XR UNDO READY' if changed else 'UNCHANGED')
@@ -315,9 +399,9 @@ def install_pages():
     )
     menus.TITLES[_PAGE] = 'MESH PRECISION'
     v065.TOOLTIPS.update({
-        'XR_PICK_MENU': ('Precision Pick', 'Set ray tolerance and cycle vertices or edges in Mesh Edit Mode'),
+        'XR_PICK_MENU': ('Precision Pick', 'Pick native vertices, edges or faces and cycle exact controller-ray hits'),
         'XR_PICK_TOGGLE': ('Enable Precision Pick', 'Use precise vertex/edge picking with the Select trigger'),
-        'XR_PICK_THROUGH': ('Front / Through', 'Choose whether the picker can target mesh elements behind front surfaces'),
+        'XR_PICK_THROUGH': ('Front / Through', 'Allow deeper native faces and vertices/edges behind front surfaces'),
         'XR_PICK_NEXT': ('Next Ray Hit', 'Cycle forward through current geometry under the last Select ray'),
         'XR_PICK_PREV': ('Previous Ray Hit', 'Cycle backward through current geometry under the last Select ray'),
         'XR_PICK_CLEAR': ('Reset Recorded Ray', 'Discard the last selection ray without modifying the mesh'),
