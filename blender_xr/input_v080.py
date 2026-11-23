@@ -23,6 +23,7 @@ def patch_runtime(Runtime):
         self._xr_validated_poses = None
         self._xr_validated_sticks = None
         self._xr_validated_viewer = None
+        self._xr_motion_sample = None
         self.radial_supported = True
         self._xr_neutral_count = 0
         # A fresh runtime instance is the only safe reset for a failed
