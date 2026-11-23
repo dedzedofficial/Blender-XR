@@ -94,8 +94,23 @@ def ray_element(obj, origin, direction, mode, radius=0.075):
         # Depth first, then distance to ray and stable cage index.
         best = min(candidates, key=lambda item: (item[0], item[1], item[2]))
         return best[2], best[3]
-    # Face-local fallback must not bypass the front-surface visibility guard.
-    return mesh.element_hit(obj, origin, direction, mode)
+    # A fallback may only select geometry within the same controller radius.
+    # In particular, do not select a distant face corner just because the
+    # controller ray happened to intersect the middle of a large polygon.
+    fallback = mesh.element_hit(obj, origin, direction, mode)
+    if fallback is None:
+        return None
+    point = Vector(fallback[1])
+    if not all(math.isfinite(v) for v in point):
+        return None
+    depth = (point - origin).dot(direction)
+    if depth <= 0 or (surface_depth is not None and
+                      depth > surface_depth + max(radius, surface_depth * .013)):
+        return None
+    distance = (point - (origin + depth * direction)).length
+    if distance > max(radius, depth * .013):
+        return None
+    return fallback
 
 
 def select_mesh_element(context, origin, direction, additive=False):

@@ -78,14 +78,23 @@ def face_hit(obj, origin, direction):
     bm.verts.index_update()
     bm.faces.ensure_lookup_table()
     bm.faces.index_update()
-    faces = [f for f in bm.faces if f.is_valid and not f.hide]
+    # BVH polygon indices must refer to the same compact vertex array.
+    # BMesh indices are not guaranteed to be contiguous after edit operations.
+    vertices = [v for v in bm.verts if v.is_valid]
+    vertex_indices = {v: index for index, v in enumerate(vertices)}
+    faces = [f for f in bm.faces
+             if f.is_valid and not f.hide and
+             all(v.is_valid and not v.hide for v in f.verts)]
     if not faces:
         return None
-    tree = BVHTree.FromPolygons([v.co for v in bm.verts if v.is_valid],
-                                [[v.index for v in f.verts] for f in faces])
-    inv = obj.matrix_world.inverted()
-    hit, _, index, _ = tree.ray_cast(inv @ origin,
-                                     (inv.to_3x3() @ direction).normalized())
+    tree = BVHTree.FromPolygons(
+        [v.co.copy() for v in vertices],
+        [[vertex_indices[v] for v in face.verts] for face in faces])
+    inv = obj.matrix_world.inverted_safe()
+    local_direction = inv.to_3x3() @ direction
+    if local_direction.length_squared < 1e-12:
+        return None
+    hit, _, index, _ = tree.ray_cast(inv @ origin, local_direction.normalized())
     return (faces[index].index, obj.matrix_world @ hit) if hit is not None else None
 
 
