@@ -368,8 +368,10 @@ def _weight_target_context(context):
     obj = context.view_layer.objects.active
     if obj is None or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
         raise ValueError('Enter Weight Paint on the sampled mesh first')
-    if obj.hide_select or obj.hide_get() or not obj.visible_get():
-        raise ValueError('Unlock and show the mesh before painting')
+    if obj.hide_get() or not obj.visible_get():
+        raise ValueError('Show the mesh before probing its weights')
+    # Probing and choosing a target never write Blender data. Keep them
+    # available on read-only or locked groups; the actual brush enforces locks.
     group = active_group(obj)
     return obj, group, _weight_scope(obj, group)
 
@@ -869,7 +871,8 @@ def patch_runtime(Runtime):
         try:
             if not stroke.unchanged_target(self.context):
                 raise ValueError('Weight group or painted object changed during stroke')
-            target = get_weight_target(self, obj)
+            target = (None if self.settings.weight_erase
+                      else get_weight_target(self, obj))
             return paint_vertices(
                 obj, origin, direction, self.settings.weight_brush_radius,
                 self.settings.weight_brush_strength, self.settings.weight_erase,
@@ -959,6 +962,7 @@ def patch_runtime(Runtime):
         if action == 'MODE_OBJECT' and context.view_layer.objects.active:
             if context.view_layer.objects.active.mode == 'WEIGHT_PAINT':
                 ensure_object_mode(context)
+                clear_weight_target(self)
                 self.tool = 'SELECT'
                 self.menu.page = 'TOOLS'
                 self.status = 'OBJECT MODE'
@@ -966,6 +970,7 @@ def patch_runtime(Runtime):
         if action == 'MODE_EDIT' and context.view_layer.objects.active:
             if context.view_layer.objects.active.mode == 'WEIGHT_PAINT':
                 ensure_object_mode(context)
+                clear_weight_target(self)
         if action == 'RIG_CREATE':
             source = context.view_layer.objects.active
             result = original_command(self, context, action)
@@ -1079,7 +1084,7 @@ def patch_runtime(Runtime):
             obj, group, _scope = _weight_target_context(context)
             self.tool = 'WEIGHT_BRUSH'
             self.settings.weight_erase = (action == 'WEIGHT_ERASE')
-            value = get_weight_target(self, obj)
+            value = None if self.settings.weight_erase else get_weight_target(self, obj)
             if not self.settings.weight_erase and value is not None:
                 self.status = 'PAINT TARGET {:.4f} / '.format(value) + group.name.upper()
             else:
