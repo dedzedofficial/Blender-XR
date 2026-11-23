@@ -50,6 +50,7 @@ def expire_pending_approvals(session):
         '_xr_quad_pair_pending',
         '_xr_quad_hole_pending',
         '_xr_bridge_quads_pending',
+        '_xr_bridge_quads_twist',
         '_xr_quad_inset_pending',
         '_xr_quad_flat_pending',
         '_xr_numeric_move_state',

@@ -180,8 +180,11 @@ def _model(layout, context, settings):
                           text='Preview Four-Edge Quad Fill', icon='MESH_DATA')
         bridge_row = layout.row(align=True)
         bridge_row.enabled = runtime.CURRENT is None
-        bridge_row.operator('blender_xr.bridge_quads',
-                            text='Preview Quad Loop Bridge', icon='MESH_DATA')
+        for label, offset in (('Bridge -1', '-1'),
+                              ('Bridge 0', '0'),
+                              ('Bridge +1', '1')):
+            bridge_row.operator('blender_xr.bridge_quads',
+                                text=label, icon='MESH_DATA').twist = offset
         inset_row = layout.row(align=True)
         inset_row.enabled = runtime.CURRENT is None
         inset_row.operator('blender_xr.quad_inset',
