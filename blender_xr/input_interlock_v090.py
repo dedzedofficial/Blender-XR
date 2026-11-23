@@ -60,6 +60,8 @@ def expire_pending_approvals(session):
         '_xr_quad_relax_pending',
         '_xr_uv_match_pending',
         '_xr_numeric_move_state',
+        # Saved ray hits cannot be reused after tracking/session loss.
+        '_xr_precision_last_ray',
     )
     had_tokens = any(getattr(session, name, None) is not None for name in fields)
     source = getattr(session, '_xr_interp_source', None)
