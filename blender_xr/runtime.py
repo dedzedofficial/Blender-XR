@@ -750,10 +750,20 @@ class Runtime:
             grab_value = actions.read(context, 'grab', self.dom)[0]
             off_value = actions.read(context, 'trigger', self.off)[0]
             other_grab_value = actions.read(context, 'grab', self.off)[0]
+        aux = getattr(self, '_xr_validated_aux', None)
+        if validated_poses is not None and aux is None:
+            # Routed frames must not read optional actions from a later XR
+            # sample: a late menu touch could commit during tracking loss.
+            from . import input_ownership_v080
+            input_ownership_v080.cancel_tracking_loss(self)
+            return
         if not self.bridge:
             if self.finger_touch:
-                # Holding both touch sensors fires once, until the fingers lift.
-                touch_events = [self.touch_holds[i].update(actions.touch(context, i), now)
+                # Optional touch gestures use the same accepted XR sample as
+                # the controller trigger and grip edge detectors.
+                touches = (aux[0] if validated_poses is not None
+                           else tuple(actions.touch(context, i) for i in range(2)))
+                touch_events = [self.touch_holds[i].update(touches[i], now)
                                 for i in range(2)]
                 if touch_events[self.dom] and (self.transaction or self.grab or self.axis_move):
                     self.cancel_work()
@@ -946,7 +956,9 @@ class Runtime:
             except (ValueError, TypeError, RuntimeError, IndexError, AttributeError):
                 self.status = 'THUMBSTICK UNAVAILABLE / MOVEMENT PAUSED'
                 return
-        boosted = self.settings.fast_flight or (not self.bridge and actions.boost(context))
+        boosted = self.settings.fast_flight or (
+            not self.bridge and (aux[1] if validated_poses is not None
+                                 else actions.boost(context)))
         delta = flight_delta(viewer_rotation,stick,right[1],dt,
                              self.settings.move_speed*(4 if boosted else 1),scale,
                              self.settings.fly_mode)
