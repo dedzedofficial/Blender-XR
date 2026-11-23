@@ -73,7 +73,10 @@ def _features(face):
         incoming = points[i] - points[i-1]
         outgoing = points[(i+1) % 4] - points[i]
         value = float(incoming.cross(outgoing).dot(reference))
-        if abs(value) <= _EPS * max(mean * mean, 1.0):
+        # Scale the collinearity threshold to the quad's own edge length:
+        # otherwise very small, otherwise-valid avatar features are marked
+        # degenerate merely because the model uses centimetre units.
+        if abs(value) <= max(_EPS * mean * mean, 1e-18):
             return aspect, float('inf'), float('inf')
         bend.append(value > 0)
     # A concave or crossed four-sided face needs manual re-topology, not
