@@ -133,6 +133,16 @@ def _model(layout, context, settings):
             chain_row.operator('blender_xr.edge_chain_spacing',
                                text='Preview Edge Chain Spacing',
                                icon='TRANSFORM_MOVE')
+        if context.tool_settings.mesh_select_mode[2]:
+            _header(layout, 'Active Face Plane (Preview)', 'MESH_DATA')
+            face_plane_row = layout.row(align=True)
+            face_plane_row.enabled = runtime.CURRENT is None
+            for coords in ('LOCAL', 'WORLD'):
+                op = face_plane_row.operator(
+                    'blender_xr.active_face_plane',
+                    text=coords.title() + ' Face Plane', icon='MESH_DATA')
+                op.space = coords
+                op.limit = 'XR_FACE_PLANE_FINE'
         _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH':
