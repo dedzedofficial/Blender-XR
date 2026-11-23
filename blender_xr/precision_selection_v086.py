@@ -342,6 +342,16 @@ def _current_candidates(session, context):
     if state.get('selected') != _selection_stamp(context, obj, state['kind']):
         _clear(session)
         raise ValueError('Selection changed outside Precision; aim and Select again')
+    # Native scene/topology/geometry/transform and selected indices matched
+    # the exact saved ray. Reuse the bounded world-space hit result rather
+    # than rebuilding an edit-mesh BVH or rescanning all mesh edges for every
+    # Next/Previous press. Store tuples, not BMesh pointers, across XR frames.
+    cached = state.get('hits')
+    if cached is not None:
+        return state, obj, [
+            (depth, distance, index, Vector(world_point))
+            for depth, distance, index, world_point in cached
+        ]
     return state, obj, _candidates(
         obj, state['origin'], state['direction'], state['kind'],
         _radius(session), bool(getattr(session, '_xr_precision_through', False)),
@@ -423,6 +433,12 @@ def _select(session, context, origin, direction, additive, legacy_select):
         'index': picked[2],
         'stamp': native_stamp,
         'selected': _selection_stamp(context, obj, kind),
+        # Up to 32 read-only numeric hits. Never persist BMesh handles, UV
+        # data, Blender object pointers or cache across tracking loss.
+        'hits': tuple(
+            (depth, distance, index, tuple(float(v) for v in world_point))
+            for depth, distance, index, world_point in candidates
+        ),
     }
     session.status = 'PRECISION / {} / {} NEARBY HITS / {}'.format(
         kind, len(candidates), 'XR UNDO READY' if changed else 'UNCHANGED')
@@ -456,7 +472,7 @@ def install_pages():
     menus.TITLES[_PAGE] = 'MESH PRECISION'
     v065.TOOLTIPS.update({
         'XR_PICK_MENU': ('Precision Pick', 'Pick native vertices, edges or faces and cycle exact controller-ray hits'),
-        'XR_PICK_TOGGLE': ('Enable Precision Pick', 'Use precise vertex/edge picking with the Select trigger'),
+        'XR_PICK_TOGGLE': ('Enable Precision Pick', 'Use precise vertex, edge or face picking with the Select trigger'),
         'XR_PICK_THROUGH': ('Front / Through', 'Allow deeper native faces and vertices/edges behind front surfaces'),
         'XR_PICK_PRIORITY': ('Depth / Nearest Ray', 'Rank vertices and edges by depth or perpendicular ray distance'),
         'XR_PICK_NEXT': ('Next Ray Hit', 'Cycle forward through current geometry under the last Select ray'),
