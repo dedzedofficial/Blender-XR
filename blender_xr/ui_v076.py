@@ -180,6 +180,12 @@ def _model(layout, context, settings):
                             icon='MOD_MIRROR').direction = 'NEG_POS'
         mirror_row.operator('blender_xr.weight_mirror_x', text='+X to -X',
                             icon='MOD_MIRROR').direction = 'POS_NEG'
+        weight_row = col.row(align=True)
+        weight_row.enabled = mirror_row.enabled
+        weight_row.operator('blender_xr.weight_balance', text='Normalize',
+                            icon='GROUP_VERTEX').operation = 'NORMALIZE'
+        weight_row.operator('blender_xr.weight_balance', text='Limit 4',
+                            icon='GROUP_VERTEX').operation = 'LIMIT_FOUR'
         # Mirror only the active VR session's sample/target state. This is
         # diagnostic UI, not a second editor or a saved Blender datablock.
         session = runtime.CURRENT
