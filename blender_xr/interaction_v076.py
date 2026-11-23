@@ -511,7 +511,22 @@ def _apply_history_entry(entry, backwards):
     kind, obj_name, data_name, before, after = entry[:5]
     guard = entry[5] if len(entry) > 5 else None
     obj = bpy.data.objects.get(obj_name)
-    if obj is None or obj.data.name != data_name:
+    if obj is None:
+        raise ValueError('Transformed object no longer exists')
+    if kind == 'OBJECT':
+        if obj.mode != 'OBJECT':
+            raise ValueError('Enter Object Mode before restoring an XR object transform')
+        if guard is not None:
+            _assert_object_guard(obj, guard)
+        expected = after if backwards else before
+        data = before if backwards else after
+        _finite_object_matrix(expected)
+        _finite_object_matrix(data)
+        _assert_object_state(obj, expected)
+        obj.matrix_world = data.copy()
+        bpy.context.view_layer.update()
+        return
+    if obj.data is None or obj.data.name != data_name:
         raise ValueError('Transformed object or its data has changed')
     data = before if backwards else after
     if kind == 'XR_VERTS':
