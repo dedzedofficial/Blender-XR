@@ -123,7 +123,29 @@ def _face_candidates(obj, origin, direction, through):
     return sorted(candidates, key=lambda hit: (hit[0], hit[2]))
 
 
-def _candidates(obj, origin, direction, kind, radius, through):
+def _rank_key(hit, near_first=False):
+    """Stable selection priority for a native controller-ray candidate."""
+    return ((hit[1], hit[0], hit[2]) if near_first
+            else (hit[0], hit[1], hit[2]))
+
+
+def _bounded_hit(heap, hit, near_first=False):
+    """Keep only the 32 best hits, not every mesh element near the ray."""
+    key = tuple(-value for value in _rank_key(hit, near_first))
+    entry = (key, hit)
+    if len(heap) < _MAX_HITS:
+        heapq.heappush(heap, entry)
+    elif key > heap[0][0]:
+        heapq.heapreplace(heap, entry)
+
+
+def _ranked_hits(heap, near_first=False):
+    return sorted((entry[1] for entry in heap),
+                  key=lambda hit: _rank_key(hit, near_first))
+
+
+def _candidates(obj, origin, direction, kind, radius, through,
+                near_first=False):
     """Return up to 32 current Blender BMesh hits, ordered front to back.
 
     A surface depth gate prevents selecting obscured geometry by default.
@@ -153,6 +175,11 @@ def _candidates(obj, origin, direction, kind, radius, through):
             cutoff = (front[1] - origin).dot(direction) + max(0.02, radius)
 
     hits = []
+    # Edge candidates share vertices heavily. Reuse transformed endpoints
+    # within this single edit-cage pick, without caching stale Blender data
+    # across frames or Undo operations. Vertex mode needs no dictionary.
+    world_positions = {} if kind == 'EDGE' else None
+    world_matrix = obj.matrix_world
     for element in elements:
         if not element.is_valid or element.hide:
             continue
@@ -162,17 +189,33 @@ def _candidates(obj, origin, direction, kind, radius, through):
                 not vertex.is_valid or vertex.hide for vertex in element.verts):
             continue
         if kind == 'VERT':
-            point = obj.matrix_world @ element.co
+            point = world_matrix @ element.co
             depth = (point - origin).dot(direction)
             if depth <= 0:
                 continue
             distance = (point - (origin + direction * depth)).length
         else:
             start, end = element.verts
+            a = world_positions.get(start)
+            if a is None:
+                a = world_matrix @ start.co
+                world_positions[start] = a
+            b = world_positions.get(end)
+            if b is None:
+                b = world_matrix @ end.co
+                world_positions[end] = b
+            # An edge completely behind the controller or behind the front
+            # surface cannot be a valid nearest segment target. Pre-filter
+            # from its endpoints before invoking the more costly segment
+            # closest-point calculation.
+            da = (a - origin).dot(direction)
+            db = (b - origin).dot(direction)
+            if max(da, db) <= 0:
+                continue
+            if cutoff is not None and min(da, db) > cutoff:
+                continue
             hit = armature_v076._closest_segment(
-                origin, direction,
-                obj.matrix_world @ start.co,
-                obj.matrix_world @ end.co)
+                origin, direction, a, b)
             if hit is None:
                 continue
             distance, depth, point, _fraction = hit
@@ -184,11 +227,12 @@ def _candidates(obj, origin, direction, kind, radius, through):
         # far-away objects impossibly small controller targets.
         limit = max(float(radius), min(0.09, depth * 0.007))
         if distance <= limit:
-            hits.append((float(depth), float(distance), int(element.index),
-                         Vector(point).copy()))
-    # Deterministic ordering and bounded output. Depth is primary for cycling;
-    # the closest controller-ray distance disambiguates same-depth elements.
-    return heapq.nsmallest(_MAX_HITS, hits, key=lambda h: (h[0], h[1], h[2]))
+            _bounded_hit(hits, (float(depth), float(distance),
+                               int(element.index), Vector(point).copy()),
+                         near_first)
+    # A fixed-size heap preserves the same front-to-back order as the old
+    # all-hits list while avoiding unbounded allocation on dense edit cages.
+    return _ranked_hits(hits, near_first)
 
 
 def _geometry_stamp(bm):
@@ -268,6 +312,10 @@ def _pick_enabled(session):
     return bool(getattr(session, '_xr_precision_enabled', False))
 
 
+def _near_first(session):
+    return bool(getattr(session, '_xr_precision_near_first', False))
+
+
 def _radius(session):
     index = max(0, min(len(_RADII) - 1,
                        int(getattr(session, '_xr_precision_radius_index', 1))))
@@ -296,7 +344,8 @@ def _current_candidates(session, context):
         raise ValueError('Selection changed outside Precision; aim and Select again')
     return state, obj, _candidates(
         obj, state['origin'], state['direction'], state['kind'],
-        _radius(session), bool(getattr(session, '_xr_precision_through', False)))
+        _radius(session), bool(getattr(session, '_xr_precision_through', False)),
+        near_first=_near_first(session))
 
 
 def _cycle(session, context, step):
@@ -342,14 +391,18 @@ def _select(session, context, origin, direction, additive, legacy_select):
     native_stamp = _native_stamp(context, obj)
     candidates = _candidates(
         obj, origin, ray, kind, _radius(session),
-        bool(getattr(session, '_xr_precision_through', False)))
+        bool(getattr(session, '_xr_precision_through', False)),
+        near_first=_near_first(session))
 
     # Preserve the original ability to point at another edit mesh.
     # A closer object takes priority over a vertex/edge of the active mesh.
     scene_hit = session.object_hit(context, origin, ray)
     if scene_hit and scene_hit[0] != obj:
         depth = (scene_hit[1] - origin).dot(ray)
-        if not candidates or depth < candidates[0][0] - 0.002:
+        # Even with distance-first ordering, another mesh must genuinely be
+        # in front of all available native hits before changing active meshes.
+        nearest_depth = min(item[0] for item in candidates) if candidates else None
+        if nearest_depth is None or depth < nearest_depth - 0.002:
             _clear(session)
             return legacy_select(session, context, origin, direction,
                                  additive=additive)
@@ -392,16 +445,20 @@ def install_pages():
         ('WIDE', 'XR_PICK_WIDE'),
         ('EXTRA WIDE', 'XR_PICK_EXTRA_WIDE'),
         ('FRONT / THROUGH', 'XR_PICK_THROUGH'),
+        ('DEPTH / NEAR', 'XR_PICK_PRIORITY'),
         ('NEXT HIT', 'XR_PICK_NEXT'),
         ('PREVIOUS HIT', 'XR_PICK_PREV'),
         ('RESET RAY', 'XR_PICK_CLEAR'),
         ('BACK', 'BACK'),
     )
+    if len(menus.PAGES[_PAGE]) > 12:
+        raise ValueError('Native precision wrist page exceeds menu capacity')
     menus.TITLES[_PAGE] = 'MESH PRECISION'
     v065.TOOLTIPS.update({
         'XR_PICK_MENU': ('Precision Pick', 'Pick native vertices, edges or faces and cycle exact controller-ray hits'),
         'XR_PICK_TOGGLE': ('Enable Precision Pick', 'Use precise vertex/edge picking with the Select trigger'),
         'XR_PICK_THROUGH': ('Front / Through', 'Allow deeper native faces and vertices/edges behind front surfaces'),
+        'XR_PICK_PRIORITY': ('Depth / Nearest Ray', 'Rank vertices and edges by depth or perpendicular ray distance'),
         'XR_PICK_NEXT': ('Next Ray Hit', 'Cycle forward through current geometry under the last Select ray'),
         'XR_PICK_PREV': ('Previous Ray Hit', 'Cycle backward through current geometry under the last Select ray'),
         'XR_PICK_CLEAR': ('Reset Recorded Ray', 'Discard the last selection ray without modifying the mesh'),
@@ -441,6 +498,12 @@ def patch_runtime(Runtime):
                 self._xr_precision_radius_index = radii[action]
                 _clear(self)
                 self.status = 'PICK RADIUS / {:.0f} MM'.format(_radius(self) * 1000)
+                return
+            if action == 'XR_PICK_PRIORITY':
+                self._xr_precision_near_first = not _near_first(self)
+                _clear(self)
+                self.status = ('PRECISION HIT ORDER / NEAREST RAY' if _near_first(self)
+                               else 'PRECISION HIT ORDER / FRONT FIRST')
                 return
             if action == 'XR_PICK_THROUGH':
                 self._xr_precision_through = not bool(
