@@ -167,6 +167,14 @@ def _model(layout, context, settings):
                            icon='ADD').action = 'XR_SHAPE_VALUE_UP'
         shape_row.operator('blender_xr.shape_key_value', text='Mute',
                            icon='HIDE_ON').action = 'XR_SHAPE_MUTE'
+        deform_row = layout.row(align=True)
+        deform_row.enabled = shape_row.enabled
+        deform_row.operator('blender_xr.shape_deform', text='Reset',
+                            icon='LOOP_BACK').action = 'XR_SHAPE_RESET'
+        deform_row.operator('blender_xr.shape_deform', text='-X to +X',
+                            icon='MOD_MIRROR').action = 'XR_SHAPE_MIRROR_NEG_POS'
+        deform_row.operator('blender_xr.shape_deform', text='+X to -X',
+                            icon='MOD_MIRROR').action = 'XR_SHAPE_MIRROR_POS_NEG'
     else:
         layout.label(text='No editable non-Basis key on active mesh', icon='INFO')
 
