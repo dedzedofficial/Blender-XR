@@ -133,6 +133,12 @@ def _model(layout, context, settings):
                           icon='BACK').action = 'XR_TIME_PREV'
     timeline_row.operator('blender_xr.timeline_step', text='+1',
                           icon='FORWARD').action = 'XR_TIME_NEXT'
+    range_row = layout.row(align=True)
+    range_row.enabled = runtime.CURRENT is None
+    range_row.operator('blender_xr.timeline_range', text='Start Here',
+                       icon='BACK').action = 'XR_TIME_SET_START'
+    range_row.operator('blender_xr.timeline_range', text='End Here',
+                       icon='FORWARD').action = 'XR_TIME_SET_END'
     play_row = layout.row(align=True)
     play_row.enabled = runtime.CURRENT is None
     play_row.operator('blender_xr.timeline_playback', text='Play / Pause',
