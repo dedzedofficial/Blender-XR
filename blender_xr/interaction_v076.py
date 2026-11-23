@@ -636,9 +636,12 @@ def patch_runtime(Runtime):
         gesture = getattr(self, '_xr_gesture', None)
         if gesture:
             from . import actions, runtime, input_ownership_v080, input_safety_v086
-            if state is None or not bpy.types.XrSessionState.is_running(context):
-                restore_transform(context, gesture)
-                self._xr_gesture = None
+            try:
+                running = state is not None and bpy.types.XrSessionState.is_running(context)
+            except (RuntimeError, TypeError, ValueError, AttributeError, ReferenceError):
+                running = False
+            if not running:
+                input_ownership_v080.cancel_session_loss(self)
                 return
             source = gesture['source']
             try:
