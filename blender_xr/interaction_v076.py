@@ -168,6 +168,24 @@ def _bone_entries(arm, kind):
     return {b.name: b.matrix.copy() for b in selected}
 
 
+def _mesh_guard(obj):
+    """Identify the exact editable mesh connectivity without mesh snapshots."""
+    from . import mesh_selection_tools_v086
+    bm = bmesh.from_edit_mesh(obj.data)
+    bm.verts.ensure_lookup_table()
+    bm.edges.ensure_lookup_table()
+    bm.faces.ensure_lookup_table()
+    for group in (bm.verts, bm.edges, bm.faces):
+        group.index_update()
+    return (obj.as_pointer(), obj.data.as_pointer(),
+            mesh_selection_tools_v086._topology(bm))
+
+
+def _assert_mesh_guard(obj, guard):
+    if obj.type != 'MESH' or obj.mode != 'EDIT' or _mesh_guard(obj) != guard:
+        raise ValueError('Mesh identity, topology or visibility changed during XR transform')
+
+
 def begin_transform(context, tool, pos, rotation, source='grip', target=None, part=None):
     obj = target or context.view_layer.objects.active
     if obj is None:
@@ -189,6 +207,7 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         if not selected:
             raise ValueError('Select vertices, edges or faces before transforming')
         before = {v.index: v.co.copy() for v in selected}
+        topology_guard = _mesh_guard(obj)
         pivot = obj.matrix_world @ (sum(before.values(), Vector()) / len(before))
     else:
         before = _bone_entries(obj, kind)
@@ -212,6 +231,9 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         'rotation': Quaternion(rotation).copy(), 'pivot': pivot,
         'before': before, 'part': part,
         'mode': obj.mode, 'fine_factor': fine,
+        'mesh_guard': topology_guard if kind == 'MESH' else None,
+        'last_mesh_coords': {i: co.copy() for i, co in before.items()}
+                            if kind == 'MESH' else None,
     }
 
 
@@ -247,12 +269,28 @@ def update_transform(context, drag, position, rotation):
     if kind == 'OBJECT':
         obj.matrix_world = delta @ drag['before']
     elif kind == 'MESH':
+        _assert_mesh_guard(obj, drag['mesh_guard'])
         inv = obj.matrix_world.inverted_safe()
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
+        # Check the entire held selection before writing any vertex. If a
+        # different Blender tool edited it mid-gesture, cancel rather than
+        # silently overwriting unrelated work.
+        previous = drag['last_mesh_coords']
+        if any(index >= len(bm.verts) or not bm.verts[index].is_valid or
+               bm.verts[index].hide or
+               (bm.verts[index].co - previous[index]).length > 1e-6
+               for index in drag['before']):
+            raise ValueError('Selected vertices changed outside XR controller drag')
+        updated = {}
         for index, co in drag['before'].items():
-            if index < len(bm.verts) and bm.verts[index].is_valid:
-                bm.verts[index].co = inv @ delta @ (obj.matrix_world @ co)
+            target = inv @ delta @ (obj.matrix_world @ co)
+            if not all(math.isfinite(float(value)) for value in target):
+                raise ValueError('Controller transform produced invalid coordinates')
+            updated[index] = target
+        for index, target in updated.items():
+            bm.verts[index].co = target
+        drag['last_mesh_coords'] = {i: co.copy() for i, co in updated.items()}
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     elif kind == 'BONE':
         inv = obj.matrix_world.inverted_safe()
@@ -285,11 +323,18 @@ def restore_transform(context, drag):
     if drag['kind'] == 'OBJECT':
         obj.matrix_world = drag['before']
     elif drag['kind'] == 'MESH':
+        # Never write old indices into unrelated replacement geometry.
+        _assert_mesh_guard(obj, drag['mesh_guard'])
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
+        previous = drag['last_mesh_coords']
+        if any(i >= len(bm.verts) or not bm.verts[i].is_valid or
+               bm.verts[i].hide or
+               (bm.verts[i].co - previous[i]).length > 1e-6
+               for i in drag['before']):
+            raise ValueError('Mesh changed externally; cannot safely restore XR drag')
         for i, co in drag['before'].items():
-            if i < len(bm.verts) and bm.verts[i].is_valid:
-                bm.verts[i].co = co
+            bm.verts[i].co = co
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     elif drag['kind'] == 'BONE':
         for name, (head, tail, roll) in drag['before'].items():
@@ -309,6 +354,7 @@ def _current_coords(obj, drag):
     if kind == 'OBJECT':
         return obj.matrix_world.copy()
     if kind == 'MESH':
+        _assert_mesh_guard(obj, drag['mesh_guard'])
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
         return {i: bm.verts[i].co.copy() for i in drag['before']
@@ -344,12 +390,18 @@ def _push_transform_history(session, context, drag):
     if obj is None or obj.mode != drag['mode']:
         return
     after = _current_coords(obj, drag)
+    if drag['kind'] == 'MESH' and (
+            set(after) != set(drag['last_mesh_coords']) or
+            any((after[i] - co).length > 1e-6
+                for i, co in drag['last_mesh_coords'].items())):
+        raise ValueError('Mesh changed outside XR before transform commit')
     if not _changed(drag['before'], after, drag['kind']):
         return
     kind = {'OBJECT': 'OBJECT', 'MESH': 'XR_VERTS', 'BONE': 'XR_BONES',
             'POSE': 'XR_POSE'}[drag['kind']]
     entry = (kind, obj.name, obj.data.name if kind != 'OBJECT' else None,
-             drag['before'], after)
+             drag['before'], after,
+             drag['mesh_guard'] if kind == 'XR_VERTS' else None)
     if hasattr(session, 'history') and session.history is not None:
         session.history.push(entry)
     elif getattr(context, 'area', None) and context.area.type == 'VIEW_3D':
@@ -360,7 +412,8 @@ def _push_transform_history(session, context, drag):
 
 
 def _apply_history_entry(entry, backwards):
-    kind, obj_name, data_name, before, after = entry
+    kind, obj_name, data_name, before, after = entry[:5]
+    guard = entry[5] if len(entry) > 5 else None
     obj = bpy.data.objects.get(obj_name)
     if obj is None or obj.data.name != data_name:
         raise ValueError('Transformed object or its data has changed')
@@ -368,10 +421,20 @@ def _apply_history_entry(entry, backwards):
     if kind == 'XR_VERTS':
         if obj.type != 'MESH' or obj.mode != 'EDIT':
             raise ValueError('Enter Mesh Edit Mode before undoing vertex changes')
+        if guard is not None:
+            _assert_mesh_guard(obj, guard)
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
-        if any(i >= len(bm.verts) for i in data):
+        if any(i < 0 or i >= len(bm.verts) or not bm.verts[i].is_valid
+               or bm.verts[i].hide for i in data):
             raise ValueError('Mesh topology changed; cannot restore these vertex indices')
+        # Reject unrelated edits before changing any vertex. The expected
+        # state is the opposite side of this history operation.
+        expected = after if backwards else before
+        if set(expected) != set(data) or any(
+                (bm.verts[i].co - co).length > 1e-6
+                for i, co in expected.items()):
+            raise ValueError('Mesh coordinates changed outside XR transform history')
         for i, co in data.items():
             bm.verts[i].co = co
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
@@ -624,12 +687,23 @@ def patch_runtime(Runtime):
 
     def cancel_work(self):
         gesture = getattr(self, '_xr_gesture', None)
+        failure = None
         if gesture:
             try:
                 restore_transform(self.context, gesture)
+            except (RuntimeError, TypeError, ValueError, IndexError,
+                    AttributeError, ReferenceError, OverflowError) as exc:
+                failure = exc
             finally:
                 self._xr_gesture = None
-        return old_cancel(self)
+        # Even if a mesh was replaced mid-gesture and cannot safely be
+        # restored, the other active edit owners still need cancellation.
+        try:
+            return old_cancel(self)
+        finally:
+            if failure is not None:
+                self.status = 'TRANSFORM CANCEL / MESH CHANGED / REVIEW GEOMETRY'
+
 
     def tick(self, context):
         state = context.window_manager.xr_session_state
