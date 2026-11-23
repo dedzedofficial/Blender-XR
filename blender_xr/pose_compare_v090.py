@@ -44,8 +44,17 @@ def _write(context, entry, backwards):
     expected = after if backwards else before
     if obj.data.pose_position != expected:
         raise ValueError('Rest/Pose display was changed outside XR history')
-    obj.data.pose_position = before if backwards else after
-    context.view_layer.update()
+    replacement = before if backwards else after
+    obj.data.pose_position = replacement
+    try:
+        context.view_layer.update()
+    except Exception:
+        # A failed dependency-graph update must not consume the XR history
+        # entry or leave a partially applied Rest/Pose display switch.
+        if obj.data.pose_position == replacement:
+            obj.data.pose_position = expected
+            context.view_layer.update()
+        raise
 
 
 def _apply(context, action, history=None):
@@ -84,8 +93,16 @@ def _history():
         src, dst = (self.undo, self.redo) if backwards else (self.redo, self.undo)
         if not src or src[-1][0] != _TAG:
             return previous_step(self, backwards)
-        _write(bpy.context, src[-1], backwards)
-        dst.append(src.pop())
+        # Reserve the destination before mutating Blender data: an allocation
+        # failure must not apply the view switch without a matching history.
+        entry = src[-1]
+        dst.append(entry)
+        try:
+            _write(bpy.context, entry, backwards)
+        except Exception:
+            dst.pop()
+            raise
+        src.pop()
         return True
 
     mesh.History.step = step
