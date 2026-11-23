@@ -8,8 +8,11 @@ XR_MESH_SELECTION_086 history via selection_quicksets_v090.restore_indices.
 """
 import math
 
+import bpy
+from bpy.props import BoolProperty, EnumProperty, FloatProperty
+
 from . import (input_ownership_v080, menus, mesh_selection_tools_v086,
-               selection, selection_quicksets_v090, v065)
+               runtime, selection, selection_quicksets_v090, v065)
 
 _PAGE = 'XR_SELECT_SIMILAR_090'
 _DIAGNOSTICS = 'XR_SELECT_DIAGNOSTICS_090'
@@ -122,6 +125,55 @@ def _apply(session, context, action):
         'ADD' if additive else 'REPLACE',
         'XR UNDO READY' if changed else 'UNCHANGED')
     return changed
+
+
+class BXR_OT_select_similar(bpy.types.Operator):
+    bl_idname = 'blender_xr.select_similar'
+    bl_label = 'Select Similar Native Edit-Mesh Geometry'
+    bl_description = 'Match selected Blender vertices, edges or faces without modifying geometry'
+    bl_options = {'REGISTER', 'UNDO'}
+
+    operation: EnumProperty(
+        items=[(action, action.replace('XR_SIM_', '').replace('_', ' ').title(),
+                'Match native geometry against the selected reference elements')
+               for action in _MATCH], default='XR_SIM_EDGE_LENGTH')
+    tolerance: FloatProperty(
+        name='Similarity Tolerance', default=0.05, min=0.01, max=0.15,
+        precision=3, description='Length/area ratio, or 100x degrees for face normals')
+    additive: BoolProperty(
+        name='Add to Selection', default=False,
+        description='Keep existing selection while adding matched elements')
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.view_layer.objects.active
+        return bool(obj and obj.type == 'MESH' and obj.mode == 'EDIT'
+                    and context.mode == 'EDIT_MESH')
+
+    def execute(self, context):
+        if runtime.CURRENT is not None:
+            self.report({'WARNING'}, 'Use the Select Similar wrist menu during XR')
+            return {'CANCELLED'}
+        try:
+            required, kind = _MATCH[self.operation]
+            if selection.mode(context) != required:
+                raise ValueError('Switch to {} Select mode for {}'.format(
+                    required, kind))
+            mode, targets = _targets(context, kind, float(self.tolerance))
+            obj = mesh_selection_tools_v086._editable(context)
+            _bm, items = mesh_selection_tools_v086._current(obj, mode)
+            before = mesh_selection_tools_v086._selected(items)
+            result = tuple(sorted(set(before).union(targets))) if self.additive else targets
+            if result == before:
+                self.report({'INFO'}, 'Similar selection already matches')
+                return {'CANCELLED'}
+            mesh_selection_tools_v086._set_selection(obj, mode, result)
+            self.report({'INFO'}, '{} similar {} elements selected'.format(
+                len(result), mode))
+            return {'FINISHED'}
+        except (ValueError, RuntimeError, ReferenceError) as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
 
 
 def install_pages():
@@ -249,3 +301,6 @@ def patch_runtime(Runtime):
 
     Runtime.command = command
     Runtime._xr_select_similar_090_patched = True
+
+
+CLASSES = (BXR_OT_select_similar,)
