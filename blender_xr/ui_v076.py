@@ -189,6 +189,10 @@ def _model(layout, context, settings):
         inset_row.enabled = runtime.CURRENT is None
         inset_row.operator('blender_xr.quad_inset',
                            text='Preview Single Quad Inset', icon='MESH_DATA')
+        grid_row = layout.row(align=True)
+        grid_row.enabled = runtime.CURRENT is None
+        grid_row.operator('blender_xr.quad_grid',
+                          text='Preview 2x2 Quad Grid', icon='MESH_DATA')
         flatten_quad_row = layout.row(align=True)
         flatten_quad_row.enabled = runtime.CURRENT is None
         flatten_quad_row.operator('blender_xr.quad_planarize',
