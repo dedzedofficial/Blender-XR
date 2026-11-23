@@ -935,6 +935,7 @@ def patch_runtime(Runtime):
             return
         if action in {'MODE_WEIGHT_PAINT', 'RIG_WEIGHT'}:
             target = enter_weight_mode(context)
+            clear_weight_target(self)
             self.tool = 'WEIGHT_BRUSH'
             self.menu.page = 'WEIGHT_PAINT'
             self.status = 'PAINT MODE / ' + active_group(target).name.upper()
@@ -987,25 +988,87 @@ def patch_runtime(Runtime):
             return result
         if action == 'RIG_EXIT_PAINT':
             ensure_object_mode(context)
+            clear_weight_target(self)
             self.tool = 'SELECT'
             self.menu.page = 'TOOLS'
             self.status = 'OBJECT MODE / WEIGHT PAINT FINISHED'
             return
+        if action == 'WEIGHT_PRECISION_MENU':
+            obj, group, _scope = _weight_target_context(context)
+            self.menu.page = 'WEIGHT_PRECISION'
+            self.status = 'WEIGHT PRECISION / ' + group.name.upper()
+            return
         if action == 'WEIGHT_SAMPLE':
-            obj = context.view_layer.objects.active
-            if not obj or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
-                raise ValueError('Enter Weight Paint before probing a vertex')
-            active_group(obj)
+            _weight_target_context(context)
             self.tool = 'WEIGHT_SAMPLE'
             self.status = 'WEIGHT PROBE / AIM AT MESH AND PRESS TRIGGER'
             return
+        if action == 'WEIGHT_USE_SAMPLE':
+            obj, group, scope = _weight_target_context(context)
+            sampled = getattr(self, '_xr_weight_probe', None)
+            if sampled is None:
+                raise ValueError('Probe a vertex first, then choose Use Sample')
+            old_scope, index, position, original_weight, shape = sampled
+            if (old_scope != scope or
+                    shape != (len(obj.data.vertices), len(obj.data.edges),
+                              len(obj.data.polygons)) or
+                    index < 0 or index >= len(obj.data.vertices) or
+                    tuple(obj.data.vertices[index].co) != position or
+                    not _same_weight(_vertex_weight(group, index), original_weight)):
+                self._xr_weight_probe = None
+                raise ValueError('Weight sample changed; probe the vertex again')
+            value = use_weight_target(self, context, 0.0 if original_weight is None
+                                      else original_weight)
+            self.tool = 'WEIGHT_BRUSH'
+            self.status = 'SAMPLED BRUSH / {:.4f} / PAINT TO TARGET'.format(value)
+            return
+        target_presets = {
+            'WEIGHT_TARGET_ZERO': 0.0,
+            'WEIGHT_TARGET_HALF': 0.5,
+            'WEIGHT_TARGET_FULL': 1.0,
+        }
+        if action in target_presets or action in {'WEIGHT_TARGET_DOWN',
+                                                   'WEIGHT_TARGET_UP'}:
+            obj, group, scope = _weight_target_context(context)
+            if action in target_presets:
+                value = target_presets[action]
+            else:
+                current = (getattr(self, '_xr_weight_target', None)
+                           if getattr(self, '_xr_weight_target_scope', None) == scope
+                           else 1.0)
+                value = min(1.0, max(0.0, round(
+                    current + (-0.05 if action.endswith('DOWN') else 0.05), 4)))
+            use_weight_target(self, context, value)
+            self.tool = 'WEIGHT_BRUSH'
+            self.status = 'WEIGHT TARGET {:.4f} / PAINT TO TARGET'.format(value)
+            return
+        if action == 'WEIGHT_TARGET_CLEAR':
+            _weight_target_context(context)
+            clear_weight_target(self, clear_sample=False)
+            self.settings.weight_erase = False
+            self.tool = 'WEIGHT_BRUSH'
+            self.status = 'WEIGHT TARGET CLEARED / NORMAL PAINT'
+            return
+        if action == 'WEIGHT_EXACT':
+            obj, group, scope = _weight_target_context(context)
+            value = get_weight_target(self, obj)
+            if value is None:
+                raise ValueError('Probe and Use Sample, or choose a target first')
+            if group.lock_weight:
+                raise ValueError('Unlock the vertex group to paint')
+            self.settings.weight_erase = False
+            self.tool = 'WEIGHT_EXACT'
+            self.status = 'PAINT EXACT {:.4f} / AIM AT A VERTEX'.format(value)
+            return
         if action in {'WEIGHT_BRUSH', 'WEIGHT_ERASE'}:
-            obj = context.view_layer.objects.active
-            if not obj or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
-                raise ValueError('Enter Weight Paint first')
+            obj, group, _scope = _weight_target_context(context)
             self.tool = 'WEIGHT_BRUSH'
             self.settings.weight_erase = (action == 'WEIGHT_ERASE')
-            self.status = ('ERASE' if self.settings.weight_erase else 'PAINT') + ' ' + active_group(obj).name.upper()
+            value = get_weight_target(self, obj)
+            if not self.settings.weight_erase and value is not None:
+                self.status = 'PAINT TARGET {:.4f} / '.format(value) + group.name.upper()
+            else:
+                self.status = ('ERASE ' if self.settings.weight_erase else 'PAINT ') + group.name.upper()
             return
         if action in {'WEIGHT_GROUP_PREV', 'WEIGHT_GROUP_NEXT'}:
             obj = context.view_layer.objects.active
@@ -1015,7 +1078,10 @@ def patch_runtime(Runtime):
             count = len(obj.vertex_groups)
             delta = -1 if action.endswith('PREV') else 1
             obj.vertex_groups.active_index = (obj.vertex_groups.active_index + delta) % count
-            self.status = 'GROUP ' + active_group(obj).name.upper()
+            clear_weight_target(self)
+            if self.tool == 'WEIGHT_EXACT':
+                self.tool = 'WEIGHT_BRUSH'
+            self.status = 'GROUP ' + active_group(obj).name.upper() + ' / TARGET RESET'
             return
         if action in {'WEIGHT_STRENGTH_UP', 'WEIGHT_STRENGTH_DOWN'}:
             factor = 1.25 if action.endswith('UP') else 0.8
@@ -1059,6 +1125,10 @@ def patch_runtime(Runtime):
             if current and current.mode == 'POSE':
                 ensure_object_mode(context)
             return original_command(self, context, action)
+        if action == 'BACK' and self.menu.page == 'WEIGHT_PRECISION':
+            self.menu.page = 'WEIGHT_PAINT'
+            self.status = 'WEIGHT PAINT / PRECISION CLOSED'
+            return
         if action == 'BACK' and self.menu.page == 'WEIGHT_PAINT':
             return command(self, context, 'RIG_EXIT_PAINT')
         return original_command(self, context, action)
@@ -1070,17 +1140,29 @@ def patch_runtime(Runtime):
                 result = sample_vertex_weight(
                     obj, origin, rotation @ Vector((0, 0, -1)))
                 if result is None:
+                    self._xr_weight_probe = None
                     self.status = 'WEIGHT PROBE / NO MESH SURFACE HIT'
                 else:
                     index, weight, name = result
-                    self.status = '{} / V{} = {:.4f}'.format(name.upper(), index, weight)
+                    group = active_group(obj)
+                    self._xr_weight_probe = (
+                        _weight_scope(obj, group), index,
+                        tuple(obj.data.vertices[index].co),
+                        _vertex_weight(group, index),
+                        (len(obj.data.vertices), len(obj.data.edges),
+                         len(obj.data.polygons)))
+                    self.status = '{} / V{} = {:.4f} / USE SAMPLE'.format(
+                        name.upper(), index, weight)
                 return
-            if self.tool != 'WEIGHT_BRUSH':
+            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}:
                 raise ValueError('Use Paint, Erase or Probe from the weight menu')
             changes = stroke_sample(self, obj, origin,
                                     rotation @ Vector((0, 0, -1)))
             self._weight_last_sample = time.monotonic()
-            self.status = ('ERASED ' if self.settings.weight_erase else 'PAINTED ') + str(changes) + ' VERTS / ' + active_group(obj).name.upper()
+            label = ('EXACT' if self.tool == 'WEIGHT_EXACT' else
+                     'ERASED' if self.settings.weight_erase else 'PAINTED')
+            self.status = '{} {} VERTS / {}'.format(
+                label, changes, active_group(obj).name.upper())
             return
         return original_begin(self, context, origin, rotation)
 
@@ -1094,30 +1176,49 @@ def patch_runtime(Runtime):
         # Always synchronize the VR controller brush with the actual mode.
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         if obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT':
-            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE'}:
+            if (getattr(self, '_xr_weight_target', None) is not None or
+                    getattr(self, '_xr_weight_probe', None) is not None):
+                try:
+                    scope = _weight_scope(obj)
+                    if (getattr(self, '_xr_weight_target', None) is not None and
+                            getattr(self, '_xr_weight_target_scope', None) != scope or
+                            getattr(self, '_xr_weight_probe', None) is not None and
+                            self._xr_weight_probe[0] != scope):
+                        clear_weight_target(self)
+                        if self.tool == 'WEIGHT_EXACT':
+                            self.tool = 'WEIGHT_BRUSH'
+                        self.status = 'WEIGHT TARGET RESET / OBJECT OR GROUP CHANGED'
+                except (ValueError, ReferenceError):
+                    clear_weight_target(self)
+            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE', 'WEIGHT_EXACT'}:
                 self.tool = 'WEIGHT_BRUSH'
-            if self.menu.page not in {'WEIGHT_PAINT', 'MODE_SELECT'}:
+            if self.menu.page not in {'WEIGHT_PAINT', 'WEIGHT_PRECISION', 'MODE_SELECT'}:
                 self.menu.page = 'WEIGHT_PAINT'
+        elif (getattr(self, '_xr_weight_target', None) is not None or
+              getattr(self, '_xr_weight_probe', None) is not None):
+            clear_weight_target(self)
         result = original_tick(self, context)
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         stroke = getattr(self, '_weight_stroke', None)
-        if stroke is not None and (not self.trigger.down or self.tool != 'WEIGHT_BRUSH'):
-            if self.tool == 'WEIGHT_BRUSH':
+        if stroke is not None and (not self.trigger.down or
+                                   self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}):
+            if self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}:
                 commit_stroke(self)
             else:
                 cancel_stroke(self)
         if (obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT'
-                and self.tool == 'WEIGHT_BRUSH'
+                and self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}
                 and self.trigger.down and not self.hover and self.ray):
             now = time.monotonic()
             if now - getattr(self, '_weight_last_sample', 0.0) >= 0.045:
                 origin, direction = self.ray
                 count = stroke_sample(self, obj, origin, direction)
                 self._weight_last_sample = now
-                self.status = (('ERASE ' if self.settings.weight_erase else 'PAINT ') +
-                               active_group(obj).name.upper() + ' / ' +
+                label = ('EXACT ' if self.tool == 'WEIGHT_EXACT' else
+                         'ERASE ' if self.settings.weight_erase else 'PAINT ')
+                self.status = (label + active_group(obj).name.upper() + ' / ' +
                                (str(count) + ' VERTICES' if count else
-                                'NO SURFACE HIT - AIM AT MESH'))
+                                'NO TARGET VERTEX - AIM AT MESH'))
         return result
 
     Runtime.command = command
