@@ -173,6 +173,9 @@ def _mutate(context, proposal):
             len(bm.verts) != proposal['verts'] or
             len(bm.edges) != proposal['edges'] + count):
         raise ValueError('Blender bridge did not make the expected quad strip')
+    faces_set = set(faces)
+    if len(faces_set) != count:
+        raise ValueError('Native Blender bridge produced duplicate face references')
     for face in faces:
         vertices = set(face.verts)
         if (len(vertices) != 4 or len(vertices & a) != 2 or
@@ -180,6 +183,22 @@ def _mutate(context, proposal):
                 not math.isfinite(float(face.calc_area())) or
                 face.calc_area() <= 1e-12):
             raise ValueError('Blender produced a non-quad or degenerate bridge face')
+        # A bridge must oppose the existing boundary face's directed edge.
+        # Reversed winding would make adjacent normals inconsistent.
+        for edge in face.edges:
+            if edge not in picked:
+                continue
+            old_faces = [neighbor for neighbor in edge.link_faces
+                         if neighbor not in faces_set]
+            if len(old_faces) != 1:
+                raise ValueError('Bridge lost a source boundary face')
+            current_loop = next((loop for loop in face.loops if loop.edge is edge), None)
+            original_loop = next((loop for loop in old_faces[0].loops
+                                  if loop.edge is edge), None)
+            if (current_loop is None or original_loop is None or
+                    current_loop.vert is not original_loop.link_loop_next.vert or
+                    current_loop.link_loop_next.vert is not original_loop.vert):
+                raise ValueError('Bridge created reversed boundary winding')
         face.material_index = proposal['material']
         face.smooth = proposal['smooth']
     return obj
