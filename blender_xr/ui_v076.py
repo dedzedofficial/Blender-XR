@@ -225,6 +225,14 @@ def _model(layout, context, settings):
         match_row.enabled = runtime.CURRENT is None
         match_row.operator('blender_xr.uv_match_density',
                            text='Preview Island Density Match', icon='UV')
+        boundary_row = layout.row(align=True)
+        boundary_row.enabled = runtime.CURRENT is None
+        boundary_row.operator('blender_xr.uv_boundary_report',
+                              text='UV Seam/Split Report', icon='UV')
+        if context.tool_settings.mesh_select_mode[1]:
+            boundary_row.operator('blender_xr.uv_boundary_select',
+                                  text='Select UV Edge Warnings',
+                                  icon='RESTRICT_SELECT_OFF')
 
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
