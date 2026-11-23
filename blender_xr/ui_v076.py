@@ -180,6 +180,10 @@ def _model(layout, context, settings):
         inset_row.enabled = runtime.CURRENT is None
         inset_row.operator('blender_xr.quad_inset',
                            text='Preview Single Quad Inset', icon='MESH_DATA')
+        flatten_quad_row = layout.row(align=True)
+        flatten_quad_row.enabled = runtime.CURRENT is None
+        flatten_quad_row.operator('blender_xr.quad_planarize',
+                                  text='Preview Warped Quad Repair', icon='MESH_DATA')
         audit_row.operator('blender_xr.topology_select',
                            text='Select Non-Quads',
                            icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'

@@ -25,6 +25,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_QUAD_HOLE_CONFIRM_090': 'XR_QUAD_HOLE_090',
     'XR_BRIDGE_QUADS_CONFIRM_090': 'XR_BRIDGE_QUADS_090',
     'XR_QUAD_INSET_CONFIRM_090': 'XR_QUAD_INSET_090',
+    'XR_QUAD_PLANARIZE_CONFIRM_090': 'XR_QUAD_PLANARIZE_090',
     'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
     'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
@@ -50,6 +51,7 @@ def expire_pending_approvals(session):
         '_xr_quad_hole_pending',
         '_xr_bridge_quads_pending',
         '_xr_quad_inset_pending',
+        '_xr_quad_flat_pending',
         '_xr_numeric_move_state',
     )
     had_tokens = any(getattr(session, name, None) is not None for name in fields)
