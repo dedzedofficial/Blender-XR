@@ -1019,7 +1019,12 @@ def patch_runtime(Runtime):
             self.status = 'WEIGHT PRECISION / ' + group.name.upper()
             return
         if action == 'WEIGHT_SAMPLE':
-            _weight_target_context(context)
+            obj, group, scope = _weight_target_context(context)
+            # A stale brush target from another group cannot later erase
+            # the new read-only sample when the next XR frame is processed.
+            if (getattr(self, '_xr_weight_target', None) is not None and
+                    getattr(self, '_xr_weight_target_scope', None) != scope):
+                clear_weight_target(self)
             self.tool = 'WEIGHT_SAMPLE'
             self.status = 'WEIGHT PROBE / AIM AT MESH AND PRESS TRIGGER'
             return
