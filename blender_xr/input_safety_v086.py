@@ -216,6 +216,29 @@ def _head_relative_pose(poses, viewer):
     return relative
 
 
+def _head_relative_rotations(poses, viewer):
+    """Return HMD-relative aim/grip quaternion components for both hands."""
+    inverse = viewer[2].inverted()
+    result = {}
+    for hand, (aim, grip) in poses.items():
+        orientations = []
+        for rotation, _point in (aim, grip):
+            relative = inverse @ rotation
+            relative.normalize()
+            components = tuple(float(value) for value in relative)
+            if len(components) != 4 or not all(math.isfinite(v) for v in components):
+                raise ValueError('Invalid HMD-relative controller rotation')
+            orientations.append(components)
+        result[hand] = tuple(orientations)
+    return result
+
+
+def _angular_difference_degrees(first, second):
+    """Quaternion sign is irrelevant: q and -q describe the same rotation."""
+    dot = abs(sum(a * b for a, b in zip(first, second)))
+    return math.degrees(2.0 * math.acos(max(0.0, min(1.0, dot))))
+
+
 def enforce_edit_pose_continuity(session, poses, viewer):
     """Reject tracking jumps/gaps during live XR gestures before dispatch.
 
@@ -227,11 +250,13 @@ def enforce_edit_pose_continuity(session, poses, viewer):
 
     now = time.monotonic()
     relative = _head_relative_pose(poses, viewer)
+    rotations = _head_relative_rotations(poses, viewer)
     previous = getattr(session, '_xr_motion_sample', None)
     live_owner = input_ownership_v080._gesture_owner(
         session, honor_rearm=False)
     if previous is not None and live_owner not in {'IDLE'}:
-        old_time, old_positions = previous
+        old_time, old_positions = previous[:2]
+        old_rotations = previous[2] if len(previous) > 2 else None
         dt = now - old_time
         if not math.isfinite(dt) or dt < 0 or dt > MAX_EDIT_SAMPLE_GAP:
             raise ValueError('XR input gap during live gesture')
@@ -244,7 +269,16 @@ def enforce_edit_pose_continuity(session, poses, viewer):
                 delta_sq = sum((x - y) ** 2 for x, y in zip(a, b))
                 if not math.isfinite(delta_sq) or delta_sq > max_distance ** 2:
                     raise ValueError('XR controller pose jumped during gesture')
-    session._xr_motion_sample = (now, relative)
+        if old_rotations is not None:
+            max_angle = min(180.0, max(150.0, 1100.0 * dt))
+            for hand, pair in rotations.items():
+                earlier = old_rotations.get(hand)
+                if earlier is None or len(earlier) != len(pair):
+                    raise ValueError('XR controller rotation tracking changed')
+                for rotation, last_rotation in zip(pair, earlier):
+                    if _angular_difference_degrees(rotation, last_rotation) > max_angle:
+                        raise ValueError('XR controller orientation jumped during gesture')
+    session._xr_motion_sample = (now, relative, rotations)
 
 
 
@@ -298,9 +332,12 @@ def stable_rearm_pose(session):
     if poses is None or viewer is None:
         raise ValueError('Incomplete controller/headset rearm frame')
     current = _head_relative_pose(poses, viewer)
+    orientations = _head_relative_rotations(poses, viewer)
     previous = getattr(session, '_xr_rearm_pose', None)
+    previous_rotations = getattr(session, '_xr_rearm_rotations', None)
     session._xr_rearm_pose = current
-    if previous is None:
+    session._xr_rearm_rotations = orientations
+    if previous is None or previous_rotations is None:
         return True
     if set(previous) != set(current):
         return False
@@ -311,6 +348,13 @@ def stable_rearm_pose(session):
         for xyz, old_xyz in zip(positions, old_positions):
             if sum((a - b) ** 2 for a, b in zip(xyz, old_xyz)) > REARM_HAND_STABILITY ** 2:
                 return False
+        prior = previous_rotations.get(hand)
+        current_pair = orientations[hand]
+        if prior is None or len(prior) != len(current_pair):
+            return False
+        if any(_angular_difference_degrees(new, old) > 110.0
+               for new, old in zip(current_pair, prior)):
+            return False
     return True
 
 
@@ -342,6 +386,7 @@ def advance_rearm(session, context, samples):
     if not is_neutral:
         session._xr_neutral_count = 0
         session._xr_rearm_pose = None
+        session._xr_rearm_rotations = None
         session.status = 'RELEASE TRIGGERS, GRIPS, STICKS AND TOUCHES'
         return True
     try:
@@ -365,6 +410,7 @@ def advance_rearm(session, context, samples):
     session._xr_neutral_count = 0
     session._xr_rearm_required = False
     session._xr_rearm_pose = None
+    session._xr_rearm_rotations = None
     # Discard any touch hold begun before tracking was lost. After rearm, a
     # finger-touch toggle must complete a full new hold, not inherit elapsed
     # time from an interrupted OpenXR session.
