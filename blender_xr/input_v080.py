@@ -24,6 +24,9 @@ def patch_runtime(Runtime):
         self._xr_validated_sticks = None
         self.radial_supported = True
         self._xr_neutral_count = 0
+        # A fresh runtime instance is the only safe reset for a failed
+        # native-data rollback. Reconnecting controllers alone is not.
+        self._xr_rollback_blocked = False
 
     def configure(self):
         old_configure(self)
@@ -38,6 +41,10 @@ def patch_runtime(Runtime):
         self._xr_validated_controls = None
         self._xr_validated_poses = None
         self._xr_validated_sticks = None
+        if getattr(self, '_xr_rollback_blocked', False):
+            self._xr_rearm_required = True
+            self.status = 'XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+            return
         state = context.window_manager.xr_session_state
         import bpy
         if not isinstance(context, bpy.types.Context):
