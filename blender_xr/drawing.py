@@ -253,6 +253,7 @@ _ICON_BY_ACTION = {
     'XR_SNAP_AXIS_CURSOR': 'properties',
     'XR_SNAP_AXIS_OBJECT': 'properties',
     'XR_SNAP_AXIS_WORLD': 'properties',
+    'XR_SNAP_AXIS_ACTIVE': 'mesh_data',
     'XR_SNAP_AXIS_LOCAL': 'properties',
     'XR_SNAP_AXIS_GLOBAL': 'properties',
     'XR_SURFACE_MENU': 'transform_move',

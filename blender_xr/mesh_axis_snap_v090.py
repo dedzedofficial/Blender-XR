@@ -7,9 +7,11 @@ Other axes, relative distances, topology and vertex attributes are preserved.
 """
 import math
 
+import bmesh
 from mathutils import Vector
 
-from . import input_ownership_v080, menus, mesh, mesh_snap_v086, selection, v065
+from . import (input_ownership_v080, menus, mesh, mesh_selection_tools_v086,
+               mesh_snap_v086, selection, v065)
 
 _PAGE = 'XR_SNAP_AXIS_090'
 _AXES = {'XR_SNAP_AXIS_X': 0, 'XR_SNAP_AXIS_Y': 1, 'XR_SNAP_AXIS_Z': 2}
@@ -17,6 +19,7 @@ _TARGETS = {
     'XR_SNAP_AXIS_CURSOR': 'CURSOR',
     'XR_SNAP_AXIS_OBJECT': 'OBJECT',
     'XR_SNAP_AXIS_WORLD': 'WORLD',
+    'XR_SNAP_AXIS_ACTIVE': 'ACTIVE',
 }
 _SPACES = {'XR_SNAP_AXIS_LOCAL': 'LOCAL', 'XR_SNAP_AXIS_GLOBAL': 'WORLD'}
 
@@ -25,15 +28,66 @@ def _finite(vector):
     return all(math.isfinite(float(value)) for value in vector)
 
 
+def _matrix_stamp(matrix):
+    return tuple(tuple(float(value) for value in row) for row in matrix)
+
+
+def _reference(context, obj, target):
+    """Return world-space reference and stable native source identity."""
+    matrix = obj.matrix_world
+    if target == 'CURSOR':
+        world = Vector(context.scene.cursor.location)
+        identity = ('CURSOR', tuple(float(value) for value in world))
+    elif target == 'OBJECT':
+        world = matrix.translation.copy()
+        identity = ('OBJECT',)
+    elif target == 'WORLD':
+        world = Vector((0.0, 0.0, 0.0))
+        identity = ('WORLD',)
+    elif target == 'ACTIVE':
+        bm = bmesh.from_edit_mesh(obj.data)
+        for group in (bm.verts, bm.edges, bm.faces):
+            group.ensure_lookup_table()
+            group.index_update()
+        item = bm.select_history.active
+        if (item is None or not item.is_valid or
+                item.hide or not item.select):
+            raise ValueError('Select a visible active vertex, edge or face for Axis Snap')
+        if isinstance(item, bmesh.types.BMVert):
+            kind, local = 'VERT', item.co.copy()
+        elif isinstance(item, bmesh.types.BMEdge):
+            kind = 'EDGE'
+            local = (item.verts[0].co + item.verts[1].co) * 0.5
+        elif isinstance(item, bmesh.types.BMFace):
+            kind, local = 'FACE', item.calc_center_median()
+        else:
+            raise ValueError('Active mesh element is not a native vertex, edge or face')
+        if not _finite(local):
+            raise ValueError('Active mesh anchor has invalid coordinates')
+        identity = ('ACTIVE', kind, int(item.index),
+                    tuple(float(v) for v in local))
+        world = matrix @ Vector(local)
+    else:
+        raise ValueError('Unknown axis-snap target')
+    if not _finite(world):
+        raise ValueError('Axis snap reference has invalid coordinates')
+    return world, identity
+
+
 def _plan(context, obj, axis, target, space):
     if axis not in (0, 1, 2) or target not in _TARGETS.values():
         raise ValueError('Unknown axis snap target or axis')
     if space not in _SPACES.values():
         raise ValueError('Choose local or world axis space')
+    selected_mode = selection.mode(context)
+    bm, _items = mesh_selection_tools_v086._current(obj, selected_mode)
+    topology = mesh_selection_tools_v086._topology(bm)
+    # Refresh native BMesh lookup tables before storing index-addressed
+    # coordinates. Geometry edits may otherwise leave stale element.index.
     vertices = tuple(sorted(mesh.selected_transform_vertices(
-        obj, selection.mode(context)), key=lambda v: v.index))
-    if not vertices:
-        raise ValueError('Select visible vertices, edges or faces first')
+        obj, selected_mode), key=lambda v: v.index))
+    if not vertices or len(vertices) > 120000:
+        raise ValueError('Select between 1 and 120,000 visible vertices')
     if any(not vert.is_valid or vert.hide for vert in vertices):
         raise ValueError('Selection contains hidden or deleted vertices')
     original = tuple((vert.index, vert.co.copy()) for vert in vertices)
@@ -44,14 +98,7 @@ def _plan(context, obj, axis, target, space):
             abs(matrix.determinant()) <= 1e-10):
         raise ValueError('Object transform is singular or invalid')
     inverse = matrix.inverted()
-    if target == 'CURSOR':
-        world_target = Vector(context.scene.cursor.location)
-    elif target == 'OBJECT':
-        world_target = matrix.translation.copy()
-    else:
-        world_target = Vector((0.0, 0.0, 0.0))
-    if not _finite(world_target):
-        raise ValueError('Axis snap reference has invalid coordinates')
+    world_target, reference = _reference(context, obj, target)
     if space == 'LOCAL':
         # Cursor and world origin are Blender world-space coordinates;
         # convert only the target to the object's local coordinates.
@@ -74,7 +121,8 @@ def _plan(context, obj, axis, target, space):
         return None
     # Retain original coordinates to reject a stale plan if another
     # operation modified the mesh before the XR history transaction.
-    return original, original_indices, planned
+    return (original, original_indices, planned, _matrix_stamp(matrix),
+            reference, topology, selected_mode)
 
 
 def _apply(session, context, axis):
@@ -89,13 +137,22 @@ def _apply(session, context, axis):
     if plan is None:
         session.status = 'AXIS SNAP / ALREADY ALIGNED / NO CHANGE'
         return False
-    original, original_indices, planned = plan
+    (original, original_indices, planned, matrix_stamp, reference,
+     topology, selected_mode) = plan
 
     def mutate():
-        bm = mesh.editable(obj)
+        if (selection.mode(context) != selected_mode or
+                _matrix_stamp(obj.matrix_world) != matrix_stamp):
+            raise ValueError('Object transform or selection mode changed before snap')
+        bm, _items = mesh_selection_tools_v086._current(obj, selected_mode)
+        if mesh_selection_tools_v086._topology(bm) != topology:
+            raise ValueError('Mesh topology or visibility changed before axis snap')
+        _world, live_reference = _reference(context, obj, target)
+        if reference != live_reference:
+            raise ValueError('Axis snap reference changed before committing')
         bm.verts.ensure_lookup_table()
         selected_now = tuple(sorted(v.index for v in mesh.selected_transform_vertices(
-            obj, selection.mode(context)) if v.is_valid and not v.hide))
+            obj, selected_mode) if v.is_valid and not v.hide))
         if selected_now != original_indices:
             raise ValueError('Mesh selection changed before axis snap')
         # Validate every target before writing the first vertex.
@@ -131,6 +188,7 @@ def install_pages():
         ('3D CURSOR', 'XR_SNAP_AXIS_CURSOR'),
         ('OBJECT ORIGIN', 'XR_SNAP_AXIS_OBJECT'),
         ('WORLD ORIGIN', 'XR_SNAP_AXIS_WORLD'),
+        ('ACTIVE ELEMENT', 'XR_SNAP_AXIS_ACTIVE'),
         ('LOCAL AXES', 'XR_SNAP_AXIS_LOCAL'),
         ('WORLD AXES', 'XR_SNAP_AXIS_GLOBAL'),
         ('BACK', 'BACK'),
@@ -148,6 +206,8 @@ def install_pages():
             'Use the active mesh origin as axis snap reference'),
         'XR_SNAP_AXIS_WORLD': ('Target World Origin',
             'Use global zero as axis snap reference'),
+        'XR_SNAP_AXIS_ACTIVE': ('Target Active Element',
+            'Snap the selected group centre to the active vertex, edge midpoint or face centre'),
         'XR_SNAP_AXIS_LOCAL': ('Local Axis Snap',
             'Constrain movement to the mesh object local axis'),
         'XR_SNAP_AXIS_GLOBAL': ('World Axis Snap',
