@@ -6,9 +6,12 @@ edges/faces) onto one world or local X/Y/Z plane. Plane positions may use
 the selected minimum, arithmetic centre, maximum or Blender's 3D cursor.
 All changes are stored in the existing mesh snapshot XR Undo/Redo history.
 """
+import math
+
 from mathutils import Vector
 
-from . import input_ownership_v080, menus, mesh, selection, v065
+from . import (input_ownership_v080, menus, mesh, mesh_snap_v086,
+               selection, v065)
 
 _PAGE = 'XR_FLAT_PLANES_086'
 _SPACES = {'XR_FLAT_LOCAL': 'LOCAL', 'XR_FLAT_WORLD': 'WORLD'}
@@ -99,20 +102,36 @@ def _apply(session, context, axis):
         raise ValueError('XR mesh history is unavailable')
     obj = _editable(context)
     space, anchor = _settings(session)
+    stamp_operation = 'CENTER_CURSOR' if anchor == 'CURSOR' else 'LOCAL_CENTER'
+    before = mesh_snap_v086._native_selection_stamp(context, obj, stamp_operation)
     targets = _plan(context, obj, axis, space, anchor)
     if targets is None:
         session.status = 'FLATTEN / SELECTED GEOMETRY ALREADY ON THAT PLANE'
         return False
 
-    # Use the existing guarded mesh snapshot transaction so Cancel, Undo and
-    # Redo all preserve topology, UVs, weights, materials and object transforms.
+    # Never flatten a different set of vertices because selection, object
+    # matrix, connectivity or the reference 3D cursor changed after planning.
+    expected = tuple(index for index, _point in before[7])
+    if (tuple(sorted(targets)) != expected or
+            not all(math.isfinite(float(v))
+                    for target in targets.values() for v in target)):
+        raise ValueError('Native plane alignment has invalid mesh targets')
+
+    # Existing guarded history owns rollback and Undo/Redo; verify every
+    # native target before the FIRST coordinate write inside the transaction.
     def operation():
+        if (_editable(context) != obj or
+                mesh_snap_v086._native_selection_stamp(
+                    context, obj, stamp_operation) != before):
+            raise ValueError('Plane target, mesh or selection changed; preview again')
         bm = mesh.editable(obj)
         bm.verts.ensure_lookup_table()
-        for index, target in targets.items():
-            if index >= len(bm.verts) or not bm.verts[index].is_valid or bm.verts[index].hide:
-                raise ValueError('Selection changed before flattening; try again')
-            bm.verts[index].co = target
+        for index in expected:
+            if (index < 0 or index >= len(bm.verts) or
+                    not bm.verts[index].is_valid or bm.verts[index].hide):
+                raise ValueError('A native plane vertex became invalid')
+        for index in expected:
+            bm.verts[index].co = targets[index]
 
     mesh.snapshot_and_push(obj, operation, session.history)
     # Selection is unchanged, but a recorded ray point can now be stale.
