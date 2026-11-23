@@ -232,6 +232,8 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         'before': before, 'part': part,
         'mode': obj.mode, 'fine_factor': fine,
         'mesh_guard': topology_guard if kind == 'MESH' else None,
+        'last_mesh_coords': {i: co.copy() for i, co in before.items()}
+                            if kind == 'MESH' else None,
     }
 
 
@@ -271,9 +273,24 @@ def update_transform(context, drag, position, rotation):
         inv = obj.matrix_world.inverted_safe()
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
+        # Check the entire held selection before writing any vertex. If a
+        # different Blender tool edited it mid-gesture, cancel rather than
+        # silently overwriting unrelated work.
+        previous = drag['last_mesh_coords']
+        if any(index >= len(bm.verts) or not bm.verts[index].is_valid or
+               bm.verts[index].hide or
+               (bm.verts[index].co - previous[index]).length > 1e-6
+               for index in drag['before']):
+            raise ValueError('Selected vertices changed outside XR controller drag')
+        updated = {}
         for index, co in drag['before'].items():
-            if index < len(bm.verts) and bm.verts[index].is_valid:
-                bm.verts[index].co = inv @ delta @ (obj.matrix_world @ co)
+            target = inv @ delta @ (obj.matrix_world @ co)
+            if not all(math.isfinite(float(value)) for value in target):
+                raise ValueError('Controller transform produced invalid coordinates')
+            updated[index] = target
+        for index, target in updated.items():
+            bm.verts[index].co = target
+        drag['last_mesh_coords'] = {i: co.copy() for i, co in updated.items()}
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     elif kind == 'BONE':
         inv = obj.matrix_world.inverted_safe()
@@ -660,12 +677,23 @@ def patch_runtime(Runtime):
 
     def cancel_work(self):
         gesture = getattr(self, '_xr_gesture', None)
+        failure = None
         if gesture:
             try:
                 restore_transform(self.context, gesture)
+            except (RuntimeError, TypeError, ValueError, IndexError,
+                    AttributeError, ReferenceError, OverflowError) as exc:
+                failure = exc
             finally:
                 self._xr_gesture = None
-        return old_cancel(self)
+        # Even if a mesh was replaced mid-gesture and cannot safely be
+        # restored, the other active edit owners still need cancellation.
+        try:
+            return old_cancel(self)
+        finally:
+            if failure is not None:
+                self.status = 'TRANSFORM CANCEL / MESH CHANGED / REVIEW GEOMETRY'
+
 
     def tick(self, context):
         state = context.window_manager.xr_session_state
