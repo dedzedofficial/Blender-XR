@@ -125,7 +125,8 @@ def _apply(context, state, style, history):
     current = _capture(context, state['source'], state['channel'])
     if any(current[key] != state[key] for key in (
             'source', 'channel', 'scene', 'scene_ptr', 'layer',
-            'identity', 'action', 'curve', 'path', 'axis', 'frame')):
+            'identity', 'action', 'curve', 'path', 'axis', 'frame',
+            'before', 'point_guard', 'other')):
         raise ValueError('Selected keyframe changed; choose a channel again')
     before = current['before']
     if before == style:
