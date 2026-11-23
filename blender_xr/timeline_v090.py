@@ -36,6 +36,34 @@ def _frame_limits(scene):
     return start, end
 
 
+def jump_frame(context, target, history=None):
+    """Move the native timeline to an exact frame using existing XR history.
+
+    Other native creator panels (such as Timeline Markers) can reuse the same
+    guarded Undo/Redo entry instead of maintaining a parallel timeline.
+    """
+    scene = _scene(context)
+    start, end = _frame_limits(scene)
+    value = int(target)
+    if value < start or value > end:
+        raise ValueError('Target frame is outside the Blender playback range')
+    before = _time_state(scene)
+    after = (value, 0.0)
+    if before == after:
+        return before, False
+    entry = ('XR_SCENE_FRAME_090', scene.name, scene.as_pointer(),
+             before, after, start, end)
+    scene.frame_set(value, subframe=0.0)
+    try:
+        if history is not None:
+            history.push(entry)
+    except Exception:
+        if _time_state(scene) == after:
+            scene.frame_set(before[0], subframe=before[1])
+        raise
+    return after, True
+
+
 def _apply(context, action, history=None):
     scene = _scene(context)
     start, end = _frame_limits(scene)
@@ -53,23 +81,7 @@ def _apply(context, action, history=None):
         target = max(start, min(end, 24))
     else:
         raise ValueError('Unsupported XR timeline control')
-    after = (target, 0.0)
-    if before == after:
-        return before, False
-    # The ranges and the exact previous evaluation state are included in the
-    # history record. A redraw or controller frame cannot create an implicit
-    # playback/keyframe state; only this explicit command calls frame_set.
-    entry = ('XR_SCENE_FRAME_090', scene.name, scene.as_pointer(),
-             before, after, start, end)
-    scene.frame_set(target, subframe=0.0)
-    try:
-        if history is not None:
-            history.push(entry)
-    except Exception:
-        if _time_state(scene) == after:
-            scene.frame_set(before[0], subframe=before[1])
-        raise
-    return after, True
+    return jump_frame(context, target, history=history)
 
 
 def _history():
