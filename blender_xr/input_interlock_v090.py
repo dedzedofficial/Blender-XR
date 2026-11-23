@@ -21,6 +21,8 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_KEY_DELETE_CONFIRM_090': 'XR_INTERP_PICK_090',
     'XR_INTERP_STYLE_090': 'XR_INTERP_PICK_090',
     'XR_WELD_CONFIRM_090': 'XR_WELD_PREVIEW_090',
+    'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
+    'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
 
 
@@ -40,6 +42,7 @@ def expire_pending_approvals(session):
         '_xr_interp_target',
         '_xr_interp_source',
         '_xr_weld_pending',
+        '_xr_numeric_move_state',
     )
     had_tokens = any(getattr(session, name, None) is not None for name in fields)
     source = getattr(session, '_xr_interp_source', None)
