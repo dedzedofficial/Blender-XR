@@ -147,6 +147,13 @@ def _model(layout, context, settings):
         weld_row.operator('blender_xr.preview_weld',
                           text='Preview Duplicate-Vertex Weld',
                           icon='AUTOMERGE_ON')
+        audit_row = layout.row(align=True)
+        audit_row.enabled = runtime.CURRENT is None
+        audit_row.operator('blender_xr.topology_audit',
+                           text='Quad Topology Report', icon='MESH_DATA')
+        audit_row.operator('blender_xr.topology_select',
+                           text='Select Non-Quads',
+                           icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'
 
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
