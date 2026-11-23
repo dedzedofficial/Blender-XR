@@ -196,10 +196,25 @@ class BXR_OT_preview_weld(bpy.types.Operator):
             self.report({'WARNING'}, 'Use the XR wrist Weld confirmation instead')
             return {'CANCELLED'}
         try:
-            plan = self._preview or _plan(context, self.distance)
+            plan = self._preview
+            if plan is None:
+                raise ValueError('Open the Weld Preview dialog before committing')
+            if abs(self.distance - plan['distance']) > 1e-12:
+                raise ValueError('Weld distance changed; open a fresh preview')
             obj, _bm, _pairs = _verify(context, plan)
-            _mutate(context, plan)
-            mesh.update(obj)
+            # Desktop Blender's REGISTER/UNDO owns this edit. Retain an
+            # explicit native pre-edit snapshot until the mesh update succeeds
+            # to restore the original selection/topology on a failed update.
+            before = mesh.snapshot(obj)
+            try:
+                _mutate(context, plan)
+                mesh.update(obj)
+            except Exception:
+                mesh.restore(obj, before)
+                raise
+            finally:
+                if before.name in bpy.data.meshes:
+                    bpy.data.meshes.remove(before)
         except (ValueError, RuntimeError, ReferenceError) as exc:
             self.report({'ERROR'}, str(exc))
             return {'CANCELLED'}
