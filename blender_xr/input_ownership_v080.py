@@ -62,13 +62,27 @@ def cancel_conflict(session):
     """
     if _gesture_owner(session, honor_rearm=False) != 'CONFLICT':
         return False
-    session.cancel_work()
-    radial = getattr(session, 'radial', None)
-    if radial is not None:
-        radial.reset(require_release=True)
-    session._xr_rearm_required = True
-    session._xr_neutral_count = 0
-    session.status = 'INPUT CONFLICT / RELEASE BOTH HANDS TO REARM'
+    failed = False
+    try:
+        session.cancel_work()
+    except (RuntimeError, ValueError, TypeError, AttributeError, ReferenceError):
+        # A refused restore means another Blender edit changed the target.
+        # Preserve that external edit and latch rearm even when the rollback
+        # cannot safely complete. Never leak a live input sample after this.
+        failed = True
+    finally:
+        radial = getattr(session, 'radial', None)
+        if radial is not None:
+            radial.reset(require_release=True)
+        session._xr_validated_controls = None
+        session._xr_validated_poses = None
+        session._xr_validated_sticks = None
+        session._xr_rearm_required = True
+        session._xr_neutral_count = 0
+        session._xr_rollback_blocked = failed
+        session.status = ('INPUT CONFLICT / ROLLBACK BLOCKED / REVIEW SCENE'
+                          if failed else
+                          'INPUT CONFLICT / RELEASE BOTH HANDS TO REARM')
     return True
 
 
@@ -164,16 +178,23 @@ def cancel_session_loss(session):
     session._xr_validated_sticks = None
     # Even an idle stopped session invalidates the controller edge state.
     # Otherwise a held trigger on reconnect can start an unintended edit.
-    if has_mutation or radial_active:
-        session.cancel_work()
-    radial = getattr(session, 'radial', None)
-    if radial is not None:
-        radial.reset(require_release=True)
-    session._xr_rearm_required = True
-    session._xr_neutral_count = 0
-    session.status = ('XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
-                      if has_mutation or radial_active else
-                      'XR SESSION STOPPED / RELEASE CONTROLS TO REARM')
+    failed = False
+    try:
+        if has_mutation or radial_active:
+            session.cancel_work()
+    except (RuntimeError, ValueError, TypeError, AttributeError, ReferenceError):
+        failed = True
+    finally:
+        if radial is not None:
+            radial.reset(require_release=True)
+        session._xr_rearm_required = True
+        session._xr_neutral_count = 0
+        session._xr_rollback_blocked = failed
+        session.status = ('XR ROLLBACK BLOCKED / REVIEW BLENDER SCENE'
+                          if failed else
+                          'XR SESSION LOST / EDIT CANCELLED / RELEASE CONTROLS'
+                          if has_mutation or radial_active else
+                          'XR SESSION STOPPED / RELEASE CONTROLS TO REARM')
     return has_mutation or radial_active
 
 
@@ -187,5 +208,6 @@ def cancel_tracking_loss(session):
     # Resetting twice can clear or disturb the release edge in a live menu.
     cancelled = cancel_session_loss(session)
     session._xr_rearm_required = True
-    session.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
+    if not getattr(session, '_xr_rollback_blocked', False):
+        session.status = 'TRACKING LOST / RELEASE ALL CONTROLS'
     return cancelled

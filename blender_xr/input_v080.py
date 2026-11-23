@@ -70,48 +70,11 @@ def patch_runtime(Runtime):
             self.status = 'XR CONTROLLERS READY / RELEASE TRIGGERS AND GRIPS'
             return
 
-        # Validate both hands before allowing *any* legacy handler to process
-        # a movement, trigger release, radial selection or transform finish.
-        # A NaN rotation (or position) is NOT a valid tracked pose.
-        try:
-            self._xr_validated_poses = input_safety_v086.controller_poses(
-                state, context, (self.dom, self.off))
-        except (RuntimeError, TypeError, ValueError, AttributeError, OverflowError):
-            input_ownership_v080.cancel_tracking_loss(self)
+        # The shared router preflight now owns pose, button, stick, conflict
+        # and rearm validation for every controller frame. Specialized XR
+        # editing wrappers call the same function before intercepting tick.
+        if not input_safety_v086.preflight_controller_frame(self, context):
             return
-        # The pure owner diagnostic is also a runtime safety invariant:
-        # overlapping legacy handlers must be rolled back before either
-        # receives another sample, never merely reported as CONFLICT.
-        if input_ownership_v080.cancel_conflict(self):
-            return
-        # Invalid or missing inputs are never silently mapped to (0, 0).
-        # Zero would masquerade as a trigger release and could commit a
-        # partially completed mesh edit or direct object transform.
-        try:
-            self.hand_controls = input_safety_v086.controller_sample(
-                context, getattr(self, 'bridge', None))
-            self._xr_validated_controls = self.hand_controls
-        except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
-            input_ownership_v080.cancel_tracking_loss(self)
-            self.status = 'CONTROLLER SAMPLE LOST / RELEASE BOTH HANDS'
-            return
-        if input_safety_v086.advance_rearm(self, context, self.hand_controls):
-            # The second neutral frame clears the latch but is never routed
-            # into legacy handlers. Fresh press edges begin next frame.
-            return
-
-        # Sample both native sticks once before routing the frame. A second
-        # OpenXR read later in legacy locomotion could disagree with radial
-        # capture or lose tracking after the validated button snapshot.
-        if self.bridge is None:
-            try:
-                self._xr_validated_sticks = tuple(
-                    input_safety_v086.stick_axes(actions.read(context, 'stick', hand))
-                    for hand in (0, 1))
-            except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
-                input_ownership_v080.cancel_tracking_loss(self)
-                self.status = 'THUMBSTICK TRACKING LOST / RELEASE CONTROLS'
-                return
 
         if (getattr(self.settings, 'menu_style', 'CLASSIC') != 'RADIAL'
                 or self.bridge is not None):

@@ -158,7 +158,13 @@ def neutral_rearm_frame(session, context, samples):
     if (getattr(session, 'bridge', None) is not None or
             getattr(getattr(session, 'settings', None), 'menu_style', 'CLASSIC') != 'RADIAL'):
         return True
-    stick = stick_axes(actions.read(context, 'stick', session.off))
+    snapshot = getattr(session, '_xr_validated_sticks', None)
+    if snapshot is None or session.off >= len(snapshot):
+        # This path is retained for older callers of advance_rearm only.
+        # The shared frame preflight always captures sticks *before* rearm.
+        stick = stick_axes(actions.read(context, 'stick', session.off))
+    else:
+        stick = stick_axes(snapshot[session.off])
     return max(abs(stick[0]), abs(stick[1])) < STICK_REARM_THRESHOLD
 
 
@@ -201,14 +207,14 @@ def advance_rearm(session, context, samples):
     session.status = 'CONTROLS REARMED'
     return True
 
-def guard_specialized_frame(session, context):
-    """Preflight editing wrappers that intercept tick before the radial router.
+def preflight_controller_frame(session, context):
+    """Shared fail-closed input router front end for legacy and XR authoring.
 
-    Live modifier preview, Curve point placement, Light aiming and texture
-    painting take exclusive ownership and never enter input_v080.tick until
-    they are finished. Apply the same pose/control/rearm guarantees here,
-    rather than letting their own held-button readers interpret bad data as
-    a release. Returns False when the caller must not process this frame.
+    Both the outer controller tick and the specialized Curve/Paint/Light/
+    modifier handlers consume exactly one validated pose, control and native
+    stick snapshot. No edit handler sees a partial frame or a synthesized
+    button-release when OpenXR data is unavailable. The legacy dispatcher
+    only runs after this ownership and neutral-rearm barrier accepts a frame.
     """
     import bpy
     from . import input_ownership_v080
@@ -216,33 +222,37 @@ def guard_specialized_frame(session, context):
     session._xr_validated_controls = None
     session._xr_validated_poses = None
     session._xr_validated_sticks = None
-    state = context.window_manager.xr_session_state
     try:
+        state = context.window_manager.xr_session_state
         if state is None or not bpy.types.XrSessionState.is_running(context):
             input_ownership_v080.cancel_session_loss(session)
             return False
-        session._xr_validated_poses = controller_poses(
-            state, context, (session.dom, session.off))
+        poses = controller_poses(state, context, (session.dom, session.off))
         if input_ownership_v080.cancel_conflict(session):
             return False
         samples = controller_sample(context, getattr(session, 'bridge', None))
-    except (RuntimeError, TypeError, ValueError, IndexError, AttributeError,
-            OverflowError, ReferenceError):
-        input_ownership_v080.cancel_tracking_loss(session)
-        session.status = 'XR INPUT LOST / EDIT CANCELLED / RELEASE HANDS'
-        return False
-    session._xr_validated_controls = samples
-    if advance_rearm(session, context, samples):
-        return False
-    # Specialized editors must see the same validated sticks as the outer
-    # router; missing stick input is tracking loss, never a neutral release.
-    if getattr(session, 'bridge', None) is None:
-        try:
-            session._xr_validated_sticks = tuple(
-                stick_axes(actions.read(context, 'stick', hand))
-                for hand in (0, 1))
-        except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
-            input_ownership_v080.cancel_tracking_loss(session)
-            session.status = 'XR STICK INPUT LOST / EDIT CANCELLED'
+        sticks = None
+        if getattr(session, 'bridge', None) is None:
+            # Capture native sticks before neutral rearm. Re-reading a stick
+            # after release could accept a frame inconsistent with the radial
+            # menu or locomotion dispatch in this same controller tick.
+            sticks = tuple(stick_axes(actions.read(context, 'stick', hand))
+                           for hand in (0, 1))
+        session._xr_validated_poses = poses
+        session._xr_validated_controls = samples
+        session._xr_validated_sticks = sticks
+        session.hand_controls = samples
+        if advance_rearm(session, context, samples):
             return False
-    return True
+        return True
+    except (RuntimeError, TypeError, ValueError, IndexError, AttributeError,
+            OverflowError, ReferenceError) as exc:
+        input_ownership_v080.cancel_tracking_loss(session)
+        session.status = ('XR FRAME INVALID / EDIT CANCELLED / ' +
+                          str(exc).upper()[:30] + ' / RELEASE CONTROLS')
+        return False
+
+
+def guard_specialized_frame(session, context):
+    """Apply the same complete snapshot barrier to intercepting XR editors."""
+    return preflight_controller_frame(session, context)
