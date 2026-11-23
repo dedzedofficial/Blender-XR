@@ -18,6 +18,8 @@ def pose_chain(obj, count):
     """Return proximal-to-distal unlocked pose bones ending at active bone."""
     if obj is None or obj.type != 'ARMATURE' or obj.mode != 'POSE':
         raise ValueError('Enter Armature Pose Mode to use direct IK')
+    if obj.data.pose_position != 'POSE':
+        raise ValueError('Exit Rest View before direct IK posing')
     if (obj.library or obj.override_library or obj.data.library or
             obj.data.override_library or obj.hide_select):
         raise ValueError('Use a local unlocked armature for IK posing')
