@@ -192,6 +192,8 @@ _ICON_BY_ACTION = {
     'BONE_IK_2': 'pose_hlt', 'BONE_IK_3': 'pose_hlt',
     'BONE_POSE_RESET_SELECTED': 'undo',
     'BONE_POSE_RESET_ALL': 'undo',
+    'XR_POSE_SHOW_REST': 'armature_data',
+    'XR_POSE_SHOW_POSE': 'pose_hlt',
     'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
     'WEIGHT_SAMPLE': 'brush_data', 'WEIGHT_PICK_BONE': 'armature_data',
     'WEIGHT_SMOOTH': 'brush_data',
