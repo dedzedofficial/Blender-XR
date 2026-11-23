@@ -35,6 +35,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_EVEN_SPACING_CONFIRM_090': 'XR_EVEN_SPACING_090',
     'XR_CHAIN_SPACING_CONFIRM_090': 'XR_CHAIN_SPACING_090',
     'XR_ACTIVE_FACE_PLANE_CONFIRM_090': 'XR_ACTIVE_FACE_PLANE_090',
+    'XR_STRAIGHT_CHAIN_CONFIRM_090': 'XR_STRAIGHT_CHAIN_090',
     'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
     'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
@@ -68,6 +69,7 @@ def expire_pending_approvals(session):
         '_xr_edge_chain_spacing_pending',
         '_xr_edge_chain_spacing_preset',
         '_xr_face_plane_pending',
+        '_xr_straight_chain_pending',
         '_xr_face_plane_space',
         '_xr_face_plane_limit',
         '_xr_uv_match_pending',
