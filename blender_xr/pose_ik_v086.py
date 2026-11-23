@@ -57,11 +57,20 @@ def solve_pose_chain(context, obj, drag, world_target):
     always produces the same pose, even after interrupted motion.
     """
     names = drag['ik_chain']
+    if (obj.mode != 'POSE' or abs(obj.matrix_world.determinant()) < 1e-10):
+        raise ValueError('IK requires Pose Mode with a nonzero armature transform')
+    bones = obj.pose.bones
+    for name in names:
+        pose_bone = bones.get(name)
+        if (pose_bone is None or pose_bone.bone.hide or
+                pose_bone.bone.hide_select or pose_bone.constraints or
+                any(pose_bone.lock_rotation) or
+                getattr(pose_bone, 'lock_rotation_w', False)):
+            raise ValueError('IK bone changed, hidden, constrained or locked')
     target = obj.matrix_world.inverted_safe() @ Vector(world_target)
     if not _finite_vector(target):
         raise ValueError('Controller IK target has invalid coordinates')
 
-    bones = obj.pose.bones
     for name in names:
         bones[name].matrix = drag['before'][name].copy()
     context.view_layer.update()
