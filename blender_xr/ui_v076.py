@@ -164,6 +164,12 @@ def _model(layout, context, settings):
         quality_row.operator('blender_xr.quad_quality_select',
                              text='Select Poor Quads',
                              icon='RESTRICT_SELECT_OFF').category = 'XR_QUAD_QUALITY_ALL'
+        if context.tool_settings.mesh_select_mode[2]:
+            strip_row = layout.row(align=True)
+            strip_row.enabled = runtime.CURRENT is None
+            strip_row.operator('blender_xr.quad_face_strip',
+                               text='Select Quad Face Strip',
+                               icon='RESTRICT_SELECT_OFF')
         pair_row = layout.row(align=True)
         pair_row.enabled = runtime.CURRENT is None
         pair_row.operator('blender_xr.quad_pair',
