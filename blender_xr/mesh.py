@@ -583,6 +583,7 @@ class History:
         # point at an already removed native snapshot. Retry stale removals
         # on later pushes and on clear(), outside both live history stacks.
         self._cleanup_pending = []
+        self._xr_mesh_rollback_blocked = False
 
     @staticmethod
     def release(entry):
