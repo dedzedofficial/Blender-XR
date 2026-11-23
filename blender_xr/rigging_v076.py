@@ -997,7 +997,8 @@ def patch_runtime(Runtime):
         try:
             if not stroke.unchanged_target(self.context):
                 raise ValueError('Weight group or painted object changed during stroke')
-            target = (None if self.settings.weight_erase
+            target = (None if self.settings.weight_erase or
+                      self.tool == 'WEIGHT_SMOOTH'
                       else get_weight_target(self, obj))
             return paint_vertices(
                 obj, origin, direction, self.settings.weight_brush_radius,
@@ -1206,6 +1207,14 @@ def patch_runtime(Runtime):
             self.tool = 'WEIGHT_BRUSH'
             self.status = 'WEIGHT TARGET CLEARED / NORMAL PAINT'
             return
+        if action == 'WEIGHT_SMOOTH':
+            obj, group, _scope = _weight_target_context(context)
+            if group.lock_weight:
+                raise ValueError('Unlock the vertex group before smoothing')
+            self.tool = 'WEIGHT_SMOOTH'
+            self.settings.weight_erase = False
+            self.status = 'SMOOTH WEIGHTS / HOLD TRIGGER / ' + group.name.upper()
+            return
         if action == 'WEIGHT_EXACT':
             obj, group, scope = _weight_target_context(context)
             value = get_weight_target(self, obj)
@@ -1320,12 +1329,13 @@ def patch_runtime(Runtime):
                     self.status = '{} / V{} = {:.4f} / USE SAMPLE'.format(
                         name.upper(), index, weight)
                 return
-            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}:
-                raise ValueError('Use Paint, Erase or Probe from the weight menu')
+            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT', 'WEIGHT_SMOOTH'}:
+                raise ValueError('Use Paint, Erase, Smooth or Probe from the weight menu')
             changes = stroke_sample(self, obj, origin,
                                     rotation @ Vector((0, 0, -1)))
             self._weight_last_sample = time.monotonic()
-            label = ('EXACT' if self.tool == 'WEIGHT_EXACT' else
+            label = ('SMOOTHED' if self.tool == 'WEIGHT_SMOOTH' else
+                     'EXACT' if self.tool == 'WEIGHT_EXACT' else
                      'ERASED' if self.settings.weight_erase else 'PAINTED')
             self.status = '{} {} VERTS / {}'.format(
                 label, changes, active_group(obj).name.upper())
@@ -1357,7 +1367,7 @@ def patch_runtime(Runtime):
                 except (ValueError, ReferenceError):
                     clear_weight_target(self)
             if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE', 'WEIGHT_EXACT',
-                                  'WEIGHT_PICK_BONE'}:
+                                  'WEIGHT_PICK_BONE', 'WEIGHT_SMOOTH'}:
                 self.tool = 'WEIGHT_BRUSH'
             if self.menu.page not in {'WEIGHT_PAINT', 'WEIGHT_PRECISION', 'MODE_SELECT'}:
                 self.menu.page = 'WEIGHT_PAINT'
@@ -1368,20 +1378,22 @@ def patch_runtime(Runtime):
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         stroke = getattr(self, '_weight_stroke', None)
         if stroke is not None and (not self.trigger.down or
-                                   self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}):
-            if self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}:
+                                   self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT',
+                                                     'WEIGHT_SMOOTH'}):
+            if self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT', 'WEIGHT_SMOOTH'}:
                 commit_stroke(self)
             else:
                 cancel_stroke(self)
         if (obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT'
-                and self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}
+                and self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT', 'WEIGHT_SMOOTH'}
                 and self.trigger.down and not self.hover and self.ray):
             now = time.monotonic()
             if now - getattr(self, '_weight_last_sample', 0.0) >= 0.045:
                 origin, direction = self.ray
                 count = stroke_sample(self, obj, origin, direction)
                 self._weight_last_sample = now
-                label = ('EXACT ' if self.tool == 'WEIGHT_EXACT' else
+                label = ('SMOOTH ' if self.tool == 'WEIGHT_SMOOTH' else
+                         'EXACT ' if self.tool == 'WEIGHT_EXACT' else
                          'ERASE ' if self.settings.weight_erase else 'PAINT ')
                 self.status = (label + active_group(obj).name.upper() + ' / ' +
                                (str(count) + ' VERTICES' if count else
