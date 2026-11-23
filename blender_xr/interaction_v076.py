@@ -555,7 +555,14 @@ def patch_runtime(Runtime):
         if tool in TRANSFORMS and obj and obj.mode in {'OBJECT','EDIT','POSE'}:
             # Validate tracking before changing object/mesh/bone selection.
             # A missing frame must not leave a changed selection with no drag.
-            tracked_origin, quat = _tracked_pose(self, context, 'trigger')
+            try:
+                tracked_origin, quat = _tracked_pose(self, context, 'trigger')
+            except (RuntimeError, TypeError, ValueError, IndexError,
+                    AttributeError, ReferenceError, OverflowError):
+                from . import input_ownership_v080
+                input_ownership_v080.cancel_tracking_loss(self)
+                self.status = 'DIRECT TRANSFORM / TRACKING LOST / RELEASE CONTROLS'
+                return
             if obj.type == 'MESH' and obj.mode == 'EDIT' and tool in {'MOVE','SCALE','ROTATE'}:
                 hit_other = self.object_hit(context, origin, direction)
                 if hit_other and hit_other[0] != obj:
