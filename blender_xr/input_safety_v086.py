@@ -166,6 +166,21 @@ def controller_sample(context, bridge=None):
     return tuple(tuple(control_value(value) for value in pair) for pair in sample)
 
 
+def optional_controller_sample(session, context):
+    """Capture optional touch/menu and boost actions in the controller frame.
+
+    Unavailable optional bindings intentionally remain inactive, as they did
+    with the original action helpers. Never turn a missing optional action
+    into a trigger/grip release or query a second time after dispatch starts.
+    """
+    if getattr(session, 'bridge', None) is not None:
+        return ((False, False), False)
+    touches = ((bool(actions.touch(context, 0)),
+                bool(actions.touch(context, 1)))
+               if getattr(session, 'finger_touch', False) else (False, False))
+    return touches, bool(actions.boost(context))
+
+
 def neutral(sample):
     return all(value < REARM_THRESHOLD for hand in sample for value in hand)
 
@@ -321,6 +336,7 @@ def preflight_controller_frame(session, context):
     session._xr_validated_poses = None
     session._xr_validated_sticks = None
     session._xr_validated_viewer = None
+    session._xr_validated_aux = None
     # Failed Undo/cancel must not be converted into a harmless neutral
     # rearm on the next controller tick. Require a fresh XR runtime session.
     if (getattr(session, '_xr_rollback_blocked', False) or
@@ -351,6 +367,7 @@ def preflight_controller_frame(session, context):
             # menu or locomotion dispatch in this same controller tick.
             sticks = tuple(stick_axes(actions.read(context, 'stick', hand))
                            for hand in (0, 1))
+        aux = optional_controller_sample(session, context)
         # A discontinuous tracked pose must cancel held mesh/object/paint
         # gestures before another transform step or trigger release is seen.
         enforce_edit_pose_continuity(session, poses, viewer)
@@ -358,6 +375,7 @@ def preflight_controller_frame(session, context):
         session._xr_validated_controls = samples
         session._xr_validated_sticks = sticks
         session._xr_validated_viewer = viewer
+        session._xr_validated_aux = aux
         session.hand_controls = samples
         if advance_rearm(session, context, samples):
             return False
