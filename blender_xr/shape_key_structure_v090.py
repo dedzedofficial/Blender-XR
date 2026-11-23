@@ -141,7 +141,8 @@ def _same_plan(old, now):
     return all(old[key] == now[key] for key in (
         'action', 'name', 'obj_name', 'obj_ptr', 'mesh_name', 'mesh_ptr',
         'scene', 'layer', 'vertex_count', 'mesh_digest', 'before_layout',
-        'keys_before_ptr', 'active_before'))
+        'keys_before_ptr', 'active_before', 'source_coords',
+        'source_metadata'))
 
 
 def _check_owner(context, saved):
@@ -177,6 +178,10 @@ def _after(context, saved):
     if (_block_digest(block) != saved['created_digest'] or
             bool(block.mute) != saved['mute'] or
             abs(float(block.value) - saved['value']) > 1e-6 or
+            abs(float(block.slider_min) - saved['slider_min']) > 1e-6 or
+            abs(float(block.slider_max) - saved['slider_max']) > 1e-6 or
+            block.interpolation != saved['interpolation'] or
+            block.vertex_group != saved['vertex_group'] or
             (block.relative_key.name if block.relative_key else None)
             != saved['relative_name']):
         raise ValueError('Created shape key was edited outside XR history')
@@ -262,7 +267,12 @@ def _recreate(context, state):
             relative = obj.data.shape_keys.key_blocks.get(state['relative_name'])
             if relative is None:
                 raise ValueError('Native relative shape key was removed')
-            new.relative_key = relative
+            # Blender creates the Basis with a self reference. Preserve that
+            # native relationship without assigning the KeyBlock to itself.
+            if relative != new:
+                new.relative_key = relative
+        if _block_digest(new) != state['created_digest']:
+            raise ValueError('Shape key restoration produced different vertex positions')
         state['keys_after_ptr'] = obj.data.shape_keys.as_pointer()
         state['created_ptr'] = new.as_pointer()
         obj.active_shape_key_index = len(obj.data.shape_keys.key_blocks) - 1
