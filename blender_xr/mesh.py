@@ -365,6 +365,25 @@ def apply_tool(obj, tool, amount, segments=2, axis=None, mode=None):
     update(obj)
 
 
+class MeshRollbackFailure(RuntimeError):
+    """A failed native mesh restore requires reviewing the scene and restarting XR."""
+
+
+def _dispose_temporary_meshes(*data_blocks):
+    """Only dispose our owned Blender Mesh datablocks, even after a failed edit."""
+    for data in data_blocks:
+        if data is None:
+            continue
+        try:
+            if bpy.data.meshes.get(data.name) == data:
+                bpy.data.meshes.remove(data)
+        except Exception:
+            # Cleanup errors cannot overwrite a more important edit/restore
+            # exception, but remain visible in Blender's Python console.
+            import traceback
+            traceback.print_exc()
+
+
 def _snapshot_operation(obj, callback):
     """Run one native edit-mesh transaction with owned snapshot cleanup.
 
@@ -383,17 +402,17 @@ def _snapshot_operation(obj, callback):
         after = snapshot(obj)
         return ('MESH', obj.name, obj.data.name, before, after)
     except BaseException:
+        restore_error = None
         try:
             restore(obj, before)
-        except Exception:
-            # Keep the original mutation error; a failed restore is still
-            # observable in Blender's traceback and requires session reset.
-            import traceback
-            traceback.print_exc()
+        except Exception as exc:
+            restore_error = exc
         finally:
-            for temporary in (after, before):
-                if temporary is not None and temporary.name in bpy.data.meshes:
-                    bpy.data.meshes.remove(temporary)
+            _dispose_temporary_meshes(after, before)
+        if restore_error is not None:
+            raise MeshRollbackFailure(
+                'Native mesh restore FAILED; review the Blender scene and restart XR'
+            ) from restore_error
         raise
 
 
@@ -404,19 +423,29 @@ def snapshot_and_push(obj, callback, history):
     If so, restore the original edit mesh and release both snapshots rather
     than leaving an untracked edit or leaking Blender mesh datablocks.
     """
-    entry = _snapshot_operation(obj, callback)
+    if getattr(history, '_xr_mesh_rollback_blocked', False):
+        raise MeshRollbackFailure(
+            'Previous mesh restore failed; review Blender and restart XR')
+    try:
+        entry = _snapshot_operation(obj, callback)
+    except MeshRollbackFailure:
+        history._xr_mesh_rollback_blocked = True
+        raise
     try:
         history.push(entry)
     except BaseException:
+        restore_error = None
         try:
             restore(obj, entry[3])
-        except Exception:
-            import traceback
-            traceback.print_exc()
+        except Exception as exc:
+            restore_error = exc
         finally:
-            for temporary in entry[3:5]:
-                if temporary is not None and temporary.name in bpy.data.meshes:
-                    bpy.data.meshes.remove(temporary)
+            _dispose_temporary_meshes(*entry[3:5])
+        if restore_error is not None:
+            history._xr_mesh_rollback_blocked = True
+            raise MeshRollbackFailure(
+                'Failed to restore mesh after history error; restart XR'
+            ) from restore_error
         raise
     return entry
 
