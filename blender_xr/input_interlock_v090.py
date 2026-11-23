@@ -71,6 +71,12 @@ def expire_pending_approvals(session):
     return had_tokens or (next_page is not None)
 
 
+def rollback_blocked(session):
+    history = getattr(session, 'history', None)
+    return bool(getattr(session, '_xr_rollback_blocked', False) or
+                getattr(history, '_xr_mesh_rollback_blocked', False))
+
+
 def block_unsafe_commands(session, action):
     """Block any mutation while an earlier native-data restore was refused.
 
@@ -78,8 +84,12 @@ def block_unsafe_commands(session, action):
     The two existing input diagnostics remain read-only; SAVE, Undo/Redo,
     mode switching and destructive confirmation are never allowed here.
     """
-    if not getattr(session, '_xr_rollback_blocked', False):
+    if not rollback_blocked(session):
         return
+    session._xr_rollback_blocked = True
+    session._xr_rearm_required = True
+    session.status = 'XR MESH ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+    expire_pending_approvals(session)
     if action in {'STOP', 'FOCUS_STATS', 'FOCUS_INPUT'}:
         return
     raise ValueError(
