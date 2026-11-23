@@ -342,6 +342,23 @@ def _same_weight(a, b):
     return abs(a - b) <= 1e-5
 
 
+def _weight_scope(obj, group=None):
+    """Session-only, pointer-checked identity for a sampled paint target."""
+    group = group if group is not None else active_group(obj)
+    return (obj.name, obj.as_pointer(), obj.data.name, obj.data.as_pointer(),
+            group.name, group.as_pointer())
+
+
+def _weight_target_context(context):
+    obj = context.view_layer.objects.active
+    if obj is None or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
+        raise ValueError('Enter Weight Paint on the sampled mesh first')
+    if obj.hide_select or obj.hide_get() or not obj.visible_get():
+        raise ValueError('Unlock and show the mesh before painting')
+    group = active_group(obj)
+    return obj, group, _weight_scope(obj, group)
+
+
 class WeightStroke:
     """Keep a guarded, rollback-capable native vertex-group transaction."""
 
@@ -788,6 +805,33 @@ def patch_runtime(Runtime):
         if entry:
             self.status = 'WEIGHT STROKE / ' + str(len(entry[4])) + ' VERTICES / UNDO READY'
 
+    def clear_weight_target(self, clear_sample=True):
+        self._xr_weight_target = None
+        self._xr_weight_target_scope = None
+        if clear_sample:
+            self._xr_weight_probe = None
+
+    def use_weight_target(self, context, value):
+        obj, group, scope = _weight_target_context(context)
+        if group.lock_weight or obj.library or obj.data.library or obj.data.users != 1:
+            raise ValueError('Weight target needs an editable local mesh and group')
+        value = float(value)
+        if not math.isfinite(value) or not 0.0 <= value <= 1.0:
+            raise ValueError('Weight target must be from 0.0 to 1.0')
+        self._xr_weight_target = value
+        self._xr_weight_target_scope = scope
+        self.settings.weight_erase = False
+        return value
+
+    def get_weight_target(self, obj):
+        target = getattr(self, '_xr_weight_target', None)
+        if target is None:
+            return None
+        if getattr(self, '_xr_weight_target_scope', None) != _weight_scope(obj):
+            clear_weight_target(self)
+            raise ValueError('Paint target changed; sample or choose a weight again')
+        return target
+
     def cancel_work(self):
         rollback_blocked = False
         try:
@@ -810,10 +854,12 @@ def patch_runtime(Runtime):
         try:
             if not stroke.unchanged_target(self.context):
                 raise ValueError('Weight group or painted object changed during stroke')
+            target = get_weight_target(self, obj)
             return paint_vertices(
                 obj, origin, direction, self.settings.weight_brush_radius,
                 self.settings.weight_brush_strength, self.settings.weight_erase,
-                recorder=stroke)
+                recorder=stroke, target_weight=target,
+                exact=(self.tool == 'WEIGHT_EXACT'))
         except Exception:
             # A brush dab can fail after modifying an earlier vertex; keep
             # its before-values until cancellation has attempted rollback.
