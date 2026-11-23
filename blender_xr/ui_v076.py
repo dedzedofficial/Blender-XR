@@ -127,6 +127,19 @@ def _model(layout, context, settings):
                                           icon='TRANSFORM_MOVE')
                 op.axis = axis
                 op.space = space
+        if (context.tool_settings.mesh_select_mode[0] or
+                context.tool_settings.mesh_select_mode[1]):
+            _header(layout, 'Straighten Native Edge Chain (Preview)', 'MESH_DATA')
+            straighten_row = layout.row(align=True)
+            straighten_row.enabled = runtime.CURRENT is None
+            for method in ('PROJECT', 'EVEN'):
+                op = straighten_row.operator(
+                    'blender_xr.straighten_mesh_chain',
+                    text='Project' if method == 'PROJECT' else 'Even Path',
+                    icon='MESH_DATA')
+                op.method = method
+                op.space = 'LOCAL'
+                op.limit = 'XR_STRAIGHT_FINE'
         if context.tool_settings.mesh_select_mode[2]:
             _header(layout, 'Active Face Plane (Preview)', 'MESH_DATA')
             face_plane_row = layout.row(align=True)
