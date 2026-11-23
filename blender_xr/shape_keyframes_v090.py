@@ -36,11 +36,16 @@ def _target(context):
         raise ValueError('Shape-key vertices no longer match the mesh')
     if not math.isfinite(float(block.value)):
         raise ValueError('Shape-key evaluated value is invalid')
+    window = getattr(context, 'window', None)
+    if window is not None and window.screen.is_animation_playing:
+        raise ValueError('Pause native Blender playback before creating keyframes')
     frame = float(context.scene.frame_current) + float(context.scene.frame_subframe)
     if abs(frame - round(frame)) > _EPS:
         raise ValueError('Select a whole Blender frame before adding a key')
     action_data = keys.animation_data
     if action_data:
+        if any(len(track.strips) for track in action_data.nla_tracks):
+            raise ValueError('Shape-key NLA tracks require native Blender animation editing')
         if any(driver.data_path == block.path_from_id('value')
                for driver in action_data.drivers):
             raise ValueError('This shape key is driven; edit its driver in Blender')
@@ -57,6 +62,9 @@ def _curves(keys):
     if action is None:
         return None, ()
     if getattr(action, 'is_action_layered', False):
+        if len(action.layers) > 1 or any(
+                len(layer.strips) > 1 for layer in action.layers):
+            raise ValueError('Multi-layer Actions require Blender animation editing')
         slot = getattr(ad, 'action_slot', None)
         if slot is None:
             raise ValueError('Shape-key Action has no assigned Blender slot')
@@ -253,9 +261,9 @@ def _insert(context, action_name, history=None):
             raise ValueError('Blender keyframe value differs from the requested value')
         state = _state(context, obj, keys, block, frame,
                        desired, old_value, action, fc)
+        context.view_layer.update()
         if history is not None:
             history.push((_TAG, state))
-        context.view_layer.update()
         return block.name, frame, desired
     except Exception:
         # Remove only an insertion that still matches our intended value.
