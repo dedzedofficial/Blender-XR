@@ -534,6 +534,21 @@ def patch_runtime(Runtime):
             return
         return old_command(self, context, action)
 
+    def _tracked_pose(self, context, source):
+        """Read the current validated frame, never a second OpenXR pose.
+
+        Input router preflights both hands before dispatch. If a legacy
+        selection path is called outside that router, fail closed rather than
+        silently accepting a potentially stale controller position.
+        """
+        from . import input_safety_v086
+        poses = getattr(self, '_xr_validated_poses', None)
+        if poses is None or self.dom not in poses:
+            raise ValueError('No validated XR controller frame for transform')
+        rotation, position = poses[self.dom][0 if source == 'trigger' else 1]
+        input_safety_v086.validate_pose(rotation, position)
+        return position.copy(), rotation.copy()
+
     def select(self, context, origin, direction, additive=False):
         obj = context.view_layer.objects.active
         tool = self.tool
@@ -573,11 +588,9 @@ def patch_runtime(Runtime):
             else:
                 if obj.type == 'ARMATURE':
                     select_context(self, context, origin, direction)
-            xr = context.window_manager.xr_session_state
-            quat = (Quaternion(xr.controller_aim_rotation_get(context, self.dom))
-                    if xr is not None else Quaternion())
+            tracked_origin, quat = _tracked_pose(self, context, 'trigger')
             self._xr_gesture = begin_transform(
-                context, tool, origin, quat, source='trigger')
+                context, tool, tracked_origin, quat, source='trigger')
             self.status = tool + ' / HOLD TRIGGER AND MOVE CONTROLLER'
             return
         if tool == 'SELECT':
@@ -619,13 +632,8 @@ def patch_runtime(Runtime):
                 self._xr_gesture = None
                 return
             source = gesture['source']
-            pos = Vector(state.controller_aim_location_get(context, self.dom)
-                         if source == 'trigger' else
-                         state.controller_grip_location_get(context, self.dom))
-            rot = Quaternion(state.controller_aim_rotation_get(context, self.dom)
-                             if source == 'trigger' else
-                             state.controller_grip_rotation_get(context, self.dom))
             try:
+                pos, rot = _tracked_pose(self, context, source)
                 sample = getattr(self, '_xr_validated_controls', None)
                 if sample is not None:
                     pressed = sample[self.dom][0 if source == 'trigger' else 1]
@@ -644,12 +652,26 @@ def patch_runtime(Runtime):
                 return
             held = pressed >= .45
             if held:
-                update_transform(context, gesture, pos, rot)
+                try:
+                    update_transform(context, gesture, pos, rot)
+                except (RuntimeError, TypeError, ValueError, IndexError,
+                        AttributeError, ReferenceError, OverflowError):
+                    input_ownership_v080.cancel_tracking_loss(self)
+                    self.status = 'TRANSFORM INVALID / RESTORED / RELEASE CONTROLS'
+                    return
                 self.status = gesture['tool'] + ' / RELEASE TO APPLY'
             else:
+                # Keep the gesture live until the undo entry is safely stored.
+                # A history failure must roll back, not leave un-undoable data.
+                try:
+                    _push_transform_history(self, context, gesture)
+                except (RuntimeError, TypeError, ValueError, IndexError,
+                        AttributeError, ReferenceError, OverflowError):
+                    input_ownership_v080.cancel_tracking_loss(self)
+                    self.status = 'TRANSFORM HISTORY FAILED / RESTORED'
+                    return
                 self._xr_gesture = None
                 (self.trigger if source == 'trigger' else self.grip).update(0.0)
-                _push_transform_history(self, context, gesture)
                 runtime.haptic_pulse(context, self.settings, self.dom)
                 self.status = 'TRANSFORM APPLIED'
             return
@@ -678,8 +700,12 @@ def patch_runtime(Runtime):
             grip_held = grip_value >= .45
             if grip_held and not self.grip.down:
                 obj = context.view_layer.objects.active
-                origin = Vector(state.controller_aim_location_get(context, self.dom))
-                rotation = Quaternion(state.controller_aim_rotation_get(context, self.dom))
+                try:
+                    origin, rotation = _tracked_pose(self, context, 'trigger')
+                except (RuntimeError, TypeError, ValueError, IndexError,
+                        AttributeError, ReferenceError, OverflowError):
+                    input_ownership_v080.cancel_tracking_loss(self)
+                    return
                 direction = rotation @ Vector((0, 0, -1))
                 if not self.menu.hit(origin, direction)[0]:
                     hit = False
@@ -723,8 +749,12 @@ def patch_runtime(Runtime):
                                     .get(mode, 'BONE_MOVE'))
                         else:
                             mode = {'SCALE_FACE':'SCALE', 'ROTATE_EDIT':'ROTATE'}.get(mode,mode)
-                        grip_pos = Vector(state.controller_grip_location_get(context, self.dom))
-                        grip_rot = Quaternion(state.controller_grip_rotation_get(context, self.dom))
+                        try:
+                            grip_pos, grip_rot = _tracked_pose(self, context, 'grip')
+                        except (RuntimeError, TypeError, ValueError, IndexError,
+                                AttributeError, ReferenceError, OverflowError):
+                            input_ownership_v080.cancel_tracking_loss(self)
+                            return
                         self._xr_gesture = begin_transform(
                             context, mode, grip_pos, grip_rot, source='grip')
                         self.status = 'GRABBED ' + active.name.upper()
