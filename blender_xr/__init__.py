@@ -10,7 +10,7 @@ bl_info = {
 import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, PointerProperty
 from bpy.app.handlers import persistent
-from . import armature_v076, interaction_v076, rigging_v076, weight_mirror_v086, weight_balance_v086, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, hierarchy_rename_v086, precision_selection_v086, axis_nudge_v086, mesh_selection_tools_v086, mesh_plane_align_v086, mesh_snap_v086, mesh_reflect_v086, surface_magnet_v086, measure_apply_v086, color_studio_v080, native_modifiers_v080, native_curves_v080, native_lighting_v080, world_atmosphere_v080, assembly_v085, booleans_v085, join_split_v085, texture_paint_v085, v05, v052, v056, v060, v071, v075_features
+from . import armature_v076, interaction_v076, rigging_v076, weight_mirror_v086, weight_balance_v086, material_uv, materials, mesh, preferences, project, runtime, statistics, status, platform_support, ui_v076, input_v080, input_ownership_v080, recovery_v080, quality_v080, focus_v080, creator_hub_v080, scene_hierarchy_v080, hierarchy_rename_v086, precision_selection_v086, axis_nudge_v086, mesh_selection_tools_v086, mesh_plane_align_v086, mesh_snap_v086, mesh_reflect_v086, surface_magnet_v086, measure_apply_v086, shape_key_v090, color_studio_v080, native_modifiers_v080, native_curves_v080, native_lighting_v080, world_atmosphere_v080, assembly_v085, booleans_v085, join_split_v085, texture_paint_v085, v05, v052, v056, v060, v071, v075_features
 v05.patch(runtime.Runtime)
 v056.patch(runtime.Runtime)
 v060.patch(runtime.Runtime)
@@ -36,6 +36,7 @@ mesh_snap_v086.patch_runtime(runtime.Runtime)
 mesh_reflect_v086.patch_runtime(runtime.Runtime)
 surface_magnet_v086.patch_runtime(runtime.Runtime)
 measure_apply_v086.patch_runtime(runtime.Runtime)
+shape_key_v090.patch_runtime(runtime.Runtime)
 color_studio_v080.patch_runtime(runtime.Runtime)
 native_modifiers_v080.patch_runtime(runtime.Runtime)
 native_curves_v080.patch_runtime(runtime.Runtime)
@@ -403,7 +404,7 @@ def load_pre(*_args):
 
 
 CLASSES=(preferences.BXR_Preferences,BXR_Settings,BXR_OT_session,BXR_OT_stop,BXR_OT_save,BXR_OT_tool,
-         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + weight_mirror_v086.CLASSES + weight_balance_v086.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES + color_studio_v080.CLASSES + (v071.BXR_OT_quick_layout,)
+         BXR_OT_apply_color,BXR_OT_shade,BXR_OT_bridge_command,BXR_PT_panel) + material_uv.CLASSES + v075_features.CLASSES + armature_v076.CLASSES + rigging_v076.CLASSES + weight_mirror_v086.CLASSES + weight_balance_v086.CLASSES + shape_key_v090.CLASSES + quality_v080.CLASSES + recovery_v080.CLASSES + color_studio_v080.CLASSES + (v071.BXR_OT_quick_layout,)
 
 def register():
     for cls in CLASSES:
