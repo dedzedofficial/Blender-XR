@@ -895,7 +895,10 @@ class Runtime:
                 continue
             hit = self.object_hit(context, aim_origin, aim_direction)
             if hit is None and self.settings.grab_air:
-                self.air_grab = (index, Vector(state.controller_grip_location_get(context, index)))
+                air_start = (validated_poses[index][1][1].copy()
+                             if validated_poses is not None else
+                             Vector(state.controller_grip_location_get(context, index)))
+                self.air_grab = (index, air_start)
                 self.status = 'GRAB AIR TO MOVE'
                 return
             if index == self.dom and self.tool == 'MOVE' and hit:
@@ -920,10 +923,14 @@ class Runtime:
         else:
             from . import input_safety_v086
             try:
-                stick = input_safety_v086.stick_axes(
-                    actions.read(context, 'stick', 0))
-                right = input_safety_v086.stick_axes(
-                    actions.read(context, 'stick', 1))
+                stick_snapshot = getattr(self, '_xr_validated_sticks', None)
+                if stick_snapshot is not None:
+                    stick, right = stick_snapshot
+                else:
+                    stick = input_safety_v086.stick_axes(
+                        actions.read(context, 'stick', 0))
+                    right = input_safety_v086.stick_axes(
+                        actions.read(context, 'stick', 1))
             except (ValueError, TypeError, RuntimeError, IndexError, AttributeError):
                 self.status = 'THUMBSTICK UNAVAILABLE / MOVEMENT PAUSED'
                 return

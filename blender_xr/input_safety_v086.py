@@ -215,6 +215,7 @@ def guard_specialized_frame(session, context):
 
     session._xr_validated_controls = None
     session._xr_validated_poses = None
+    session._xr_validated_sticks = None
     state = context.window_manager.xr_session_state
     try:
         if state is None or not bpy.types.XrSessionState.is_running(context):
@@ -233,4 +234,15 @@ def guard_specialized_frame(session, context):
     session._xr_validated_controls = samples
     if advance_rearm(session, context, samples):
         return False
+    # Specialized editors must see the same validated sticks as the outer
+    # router; missing stick input is tracking loss, never a neutral release.
+    if getattr(session, 'bridge', None) is None:
+        try:
+            session._xr_validated_sticks = tuple(
+                stick_axes(actions.read(context, 'stick', hand))
+                for hand in (0, 1))
+        except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
+            input_ownership_v080.cancel_tracking_loss(session)
+            session.status = 'XR STICK INPUT LOST / EDIT CANCELLED'
+            return False
     return True
