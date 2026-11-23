@@ -7,6 +7,7 @@ They survive .blend reload and native edit operations. No duplicate mesh
 or proprietary serialized selection object is created.
 """
 import bmesh
+import bpy
 
 from . import (input_ownership_v080, menus, mesh, mesh_selection_tools_v086,
                selection_quicksets_v090, v065)
@@ -187,7 +188,7 @@ def _history():
         entry = source[-1]
         dest.append(entry)
         try:
-            _apply_entry(__import__('bpy').context, entry, backwards=backwards)
+            _apply_entry(bpy.context, entry, backwards=backwards)
         except Exception:
             dest.pop()
             raise
