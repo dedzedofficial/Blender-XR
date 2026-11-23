@@ -139,6 +139,18 @@ def _model(layout, context, settings):
     shape_obj = context.view_layer.objects.active
     shape_data = (shape_obj.data.shape_keys if shape_obj and
                   shape_obj.type == 'MESH' else None)
+    if shape_obj and shape_obj.type == 'MESH':
+        structure_row = layout.row(align=True)
+        structure_row.enabled = (context.mode == 'OBJECT' and runtime.CURRENT is None)
+        if shape_data is None:
+            structure_row.operator('blender_xr.shape_key_create', text='New Basis',
+                                   icon='ADD').action = 'XR_SHAPE_CREATE_BASIS'
+        else:
+            structure_row.operator('blender_xr.shape_key_create', text='Add Key',
+                                   icon='ADD').action = 'XR_SHAPE_CREATE_KEY'
+            if len(shape_data.key_blocks) > 1:
+                structure_row.operator('blender_xr.shape_key_create', text='Duplicate',
+                                       icon='DUPLICATE').action = 'XR_SHAPE_DUPLICATE'
     if shape_data and len(shape_data.key_blocks) > 1:
         layout.prop(shape_obj, 'active_shape_key_index', text='Active key')
         shape_row = layout.row(align=True)
