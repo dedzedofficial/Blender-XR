@@ -55,6 +55,16 @@ def owner(session):
     return _gesture_owner(session)
 
 
+def reset_touch_holds(session):
+    """Clear interrupted touch-hold timers without changing Blender data."""
+    for hold in (getattr(session, 'touch_holds', None) or ()):
+        try:
+            hold.update(False, 0.0)
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            # Optional touch sensors must not prevent scene rollback.
+            pass
+
+
 def cancel_conflict(session):
     """Roll back incompatible concurrent gestures before another XR tick.
 
@@ -81,12 +91,15 @@ def cancel_conflict(session):
         if radial is not None:
             radial.reset(require_release=True)
         input_interlock_v090.expire_pending_approvals(session)
+        reset_touch_holds(session)
         session._xr_validated_controls = None
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
         session._xr_validated_viewer = None
         session._xr_validated_aux = None
         session._xr_motion_sample = None
+        session._xr_rearm_pose = None
+        session._xr_rearm_rotations = None
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
         session._xr_rollback_blocked = failed
@@ -185,12 +198,15 @@ def cancel_session_loss(session):
     # tracking-loss callbacks must never clear that failure or rearm input.
     if getattr(session, '_xr_rollback_blocked', False):
         input_interlock_v090.expire_pending_approvals(session)
+        reset_touch_holds(session)
         session._xr_validated_controls = None
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
         session._xr_validated_viewer = None
         session._xr_validated_aux = None
         session._xr_motion_sample = None
+        session._xr_rearm_pose = None
+        session._xr_rearm_rotations = None
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
         session.status = 'XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
@@ -211,6 +227,8 @@ def cancel_session_loss(session):
     session._xr_validated_viewer = None
     session._xr_validated_aux = None
     session._xr_motion_sample = None
+    session._xr_rearm_pose = None
+    session._xr_rearm_rotations = None
     # Even an idle stopped session invalidates the controller edge state.
     # Otherwise a held trigger on reconnect can start an unintended edit.
     failed = False
@@ -223,6 +241,7 @@ def cancel_session_loss(session):
         if radial is not None:
             radial.reset(require_release=True)
         input_interlock_v090.expire_pending_approvals(session)
+        reset_touch_holds(session)
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
         session._xr_rollback_blocked = failed
