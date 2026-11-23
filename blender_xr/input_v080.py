@@ -106,13 +106,17 @@ def patch_runtime(Runtime):
             # fall through to legacy interaction with partially read inputs.
             input_ownership_v080.cancel_tracking_loss(self)
             self.radial_supported = False
-            self.status = 'OFFHAND INPUT LOST / RELEASE CONTROLS'
+            self.status = ('XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+                           if getattr(self, '_xr_rollback_blocked', False) else
+                           'OFFHAND INPUT LOST / RELEASE CONTROLS')
             return
         try:
             off_stick = input_safety_v086.stick_axes(raw_stick)
         except ValueError:
             input_ownership_v080.cancel_tracking_loss(self)
-            self.status = 'INVALID THUMBSTICK / RELEASE CONTROLS'
+            self.status = ('XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+                           if getattr(self, '_xr_rollback_blocked', False) else
+                           'INVALID THUMBSTICK / RELEASE CONTROLS')
             return
         self.radial_supported = True
 
@@ -127,7 +131,9 @@ def patch_runtime(Runtime):
             viewer, scale = input_safety_v086.viewer_frame(state)
         except (RuntimeError, TypeError, ValueError, OverflowError, AttributeError):
             input_ownership_v080.cancel_tracking_loss(self)
-            self.status = 'VIEWER TRACKING LOST / RELEASE CONTROLS'
+            self.status = ('XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+                           if getattr(self, '_xr_rollback_blocked', False) else
+                           'VIEWER TRACKING LOST / RELEASE CONTROLS')
             return
         self.menu.position(off_position, viewer, scale)
         self.menu.visible = True
