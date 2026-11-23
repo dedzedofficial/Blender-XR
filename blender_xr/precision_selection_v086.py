@@ -10,15 +10,17 @@ mesh so deleted/replaced elements cannot be reached through stale pointers.
 No scene objects, hidden geometry, mesh data, or persistent custom properties
 are written. Precision Pick is an XR-session option, not a global Blender mode.
 """
+import hashlib
 import heapq
 import math
+import struct
 
 import bmesh
 from mathutils import Vector
 
 from . import (armature_v076, input_ownership_v080, mesh, menus, selection,
                mesh_axis_snap_v090, mesh_selection_tools_v086,
-               mesh_weld_preview_v090, selection_quicksets_v090, v065)
+               selection_quicksets_v090, v065)
 
 _PAGE = 'XR_PRECISION_PICK_086'
 _RADII = (0.012, 0.03, 0.07, 0.12)
@@ -113,6 +115,22 @@ def _candidates(obj, origin, direction, kind, radius, through):
     return heapq.nsmallest(_MAX_HITS, hits, key=lambda h: (h[0], h[1], h[2]))
 
 
+def _geometry_stamp(bm):
+    """Hash native vertex coordinates without a mesh-size or copy limit.
+
+    Precision selection previously worked on large meshes. Use a streaming
+    fingerprint rather than the bounded weld-preview snapshot, whose 150k
+    vertex cap would otherwise introduce a new precision-picking regression.
+    """
+    digest = hashlib.blake2b(digest_size=16)
+    for vert in bm.verts:
+        coordinates = tuple(float(value) for value in vert.co)
+        if not all(math.isfinite(value) for value in coordinates):
+            raise ValueError('Native precision mesh has invalid coordinates')
+        digest.update(struct.pack('<ddd', *coordinates))
+    return digest.digest()
+
+
 def _native_stamp(context, obj):
     """Fingerprint the exact edit cage and object transform under a saved ray.
 
@@ -126,9 +144,16 @@ def _native_stamp(context, obj):
     return (
         context.scene.as_pointer(), context.view_layer.name,
         mesh_selection_tools_v086._topology(bm),
-        mesh_weld_preview_v090._geometry_stamp(bm),
-        mesh_axis_snap_v090._matrix_stamp(obj.matrix_world),
+        _geometry_stamp(bm),
+        _world_matrix_stamp(obj),
     )
+
+
+def _world_matrix_stamp(obj):
+    stamp = mesh_axis_snap_v090._matrix_stamp(obj.matrix_world)
+    if not all(math.isfinite(value) for row in stamp for value in row):
+        raise ValueError('Native precision object has an invalid world transform')
+    return stamp
 
 
 def _history_pick(session, context, kind, index, additive):
