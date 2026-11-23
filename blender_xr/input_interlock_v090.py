@@ -58,6 +58,9 @@ def expire_pending_approvals(session):
         '_xr_quad_flat_pending',
         '_xr_quad_relax_pending',
         '_xr_numeric_move_state',
+        # A recorded precision ray is valid only inside uninterrupted input.
+        # Reconnecting controllers must require a fresh deliberate pick.
+        '_xr_precision_last_ray',
     )
     had_tokens = any(getattr(session, name, None) is not None for name in fields)
     source = getattr(session, '_xr_interp_source', None)
