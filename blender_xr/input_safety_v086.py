@@ -8,6 +8,7 @@ and waits for two complete neutral samples before accepting new gestures.
 This module performs validation only, with no Blender data side effects.
 """
 import math
+import time
 
 from . import actions
 
@@ -171,6 +172,67 @@ def neutral(sample):
 
 STICK_REARM_THRESHOLD = 0.25
 
+# A Blender stall or an OpenXR re-localisation must not be mistaken for a
+# normal continuous controller motion while a geometry edit is in progress.
+# The thresholds are deliberately permissive of fast real hand movements.
+MAX_EDIT_SAMPLE_GAP = 0.5
+MIN_TRACKING_JUMP = 1.25
+MAX_TRACKED_HAND_SPEED = 7.0
+
+
+def _head_relative_pose(poses, viewer):
+    """Use HMD-local metres to ignore world navigation and snap turns.
+
+    Comparing scene-space coordinates alone would incorrectly reject ordinary
+    room locomotion or a VR snap turn. Both aim and grip positions are checked
+    so an aim-ray tracking teleport cannot be hidden behind a steady grip.
+    """
+    position, scale, rotation = viewer
+    inverse = rotation.inverted()
+    relative = {}
+    for hand, (aim, grip) in poses.items():
+        local = []
+        for _orientation, location in (aim, grip):
+            point = inverse @ (location - position) / scale
+            if not all(math.isfinite(float(v)) for v in point):
+                raise ValueError('Invalid HMD-relative controller pose')
+            local.append(tuple(float(v) for v in point))
+        relative[hand] = tuple(local)
+    return relative
+
+
+def enforce_edit_pose_continuity(session, poses, viewer):
+    """Reject tracking jumps/gaps during live XR gestures before dispatch.
+
+    The saved sample is per runtime, never a Blender datablock. Normal frames
+    advance the baseline, while tracking/session cancellation destroys it.
+    Idle artists may reposition their tracking origin without an edit failing.
+    """
+    from . import input_ownership_v080
+
+    now = time.monotonic()
+    relative = _head_relative_pose(poses, viewer)
+    previous = getattr(session, '_xr_motion_sample', None)
+    live_owner = input_ownership_v080._gesture_owner(
+        session, honor_rearm=False)
+    if previous is not None and live_owner not in {'IDLE'}:
+        old_time, old_positions = previous
+        dt = now - old_time
+        if not math.isfinite(dt) or dt < 0 or dt > MAX_EDIT_SAMPLE_GAP:
+            raise ValueError('XR input gap during live gesture')
+        max_distance = max(MIN_TRACKING_JUMP, MAX_TRACKED_HAND_SPEED * dt)
+        for hand, positions in relative.items():
+            earlier = old_positions.get(hand)
+            if earlier is None or len(earlier) != len(positions):
+                raise ValueError('XR tracked hand assignments changed')
+            for a, b in zip(earlier, positions):
+                delta_sq = sum((x - y) ** 2 for x, y in zip(a, b))
+                if not math.isfinite(delta_sq) or delta_sq > max_distance ** 2:
+                    raise ValueError('XR controller pose jumped during gesture')
+    session._xr_motion_sample = (now, relative)
+
+
+
 
 def neutral_rearm_frame(session, context, samples):
     """Require released buttons AND a centered radial stick before rearming.
@@ -289,6 +351,9 @@ def preflight_controller_frame(session, context):
             # menu or locomotion dispatch in this same controller tick.
             sticks = tuple(stick_axes(actions.read(context, 'stick', hand))
                            for hand in (0, 1))
+        # A discontinuous tracked pose must cancel held mesh/object/paint
+        # gestures before another transform step or trigger release is seen.
+        enforce_edit_pose_continuity(session, poses, viewer)
         session._xr_validated_poses = poses
         session._xr_validated_controls = samples
         session._xr_validated_sticks = sticks
