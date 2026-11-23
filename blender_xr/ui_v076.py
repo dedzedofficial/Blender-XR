@@ -145,6 +145,28 @@ def _model(layout, context, settings):
                         icon='ADD').action = 'XR_MARKER_ADD'
     marker_row.operator('blender_xr.timeline_marker', text='Remove XR',
                         icon='REMOVE').action = 'XR_MARKER_REMOVE'
+    animated_obj = context.view_layer.objects.active
+    if animated_obj and (animated_obj.mode == 'OBJECT' or
+                         (animated_obj.type == 'ARMATURE' and animated_obj.mode == 'POSE')):
+        _header(layout, 'Transform Animation', 'ACTION')
+        anim_row = layout.row(align=True)
+        anim_row.enabled = runtime.CURRENT is None
+        for axis in 'XYZ':
+            anim_row.operator('blender_xr.transform_keyframe',
+                              text='Loc ' + axis, icon='KEY_HLT').channel = (
+                                  'XR_ANIM_KEY_LOC_' + axis)
+        rot_row = layout.row(align=True)
+        rot_row.enabled = runtime.CURRENT is None
+        for axis in 'XYZ':
+            rot_row.operator('blender_xr.transform_keyframe',
+                             text='Rot ' + axis, icon='KEY_HLT').channel = (
+                                 'XR_ANIM_KEY_ROT_' + axis)
+        scale_row = layout.row(align=True)
+        scale_row.enabled = runtime.CURRENT is None
+        for axis in 'XYZ':
+            scale_row.operator('blender_xr.transform_keyframe',
+                               text='Scale ' + axis, icon='KEY_HLT').channel = (
+                                   'XR_ANIM_KEY_SCALE_' + axis)
 
     layout.separator()
     _header(layout, 'Shape Keys', 'SHAPEKEY_DATA')
