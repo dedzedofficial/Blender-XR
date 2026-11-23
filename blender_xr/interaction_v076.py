@@ -186,6 +186,47 @@ def _assert_mesh_guard(obj, guard):
         raise ValueError('Mesh identity, topology or visibility changed during XR transform')
 
 
+def _armature_guard(obj, kind, names):
+    """Identify the live armature and its selected bone names for this gesture."""
+    if obj.type != 'ARMATURE' or obj.mode != ('EDIT' if kind == 'BONE' else 'POSE'):
+        raise ValueError('Armature mode changed during XR transform')
+    if obj.data is None:
+        raise ValueError('Armature datablock was removed')
+    collection = obj.data.edit_bones if kind == 'BONE' else obj.pose.bones
+    if any(collection.get(name) is None for name in names):
+        raise ValueError('A held XR bone was removed or renamed')
+    return (obj.as_pointer(), obj.data.as_pointer(), tuple(sorted(names)))
+
+
+def _assert_armature_guard(obj, kind, guard):
+    if _armature_guard(obj, kind, guard[2]) != guard:
+        raise ValueError('Armature identity or bone names changed during XR transform')
+
+
+def _bone_state(obj, kind, names):
+    collection = obj.data.edit_bones if kind == 'BONE' else obj.pose.bones
+    if kind == 'BONE':
+        return {name: (collection[name].head.copy(), collection[name].tail.copy(),
+                       float(collection[name].roll)) for name in names}
+    return {name: collection[name].matrix.copy() for name in names}
+
+
+def _assert_bone_state(obj, kind, expected):
+    current = _bone_state(obj, kind, expected)
+    if _changed(expected, current, kind):
+        raise ValueError('Bones changed outside XR controller transform')
+
+
+def _finite_bone_state(kind, state):
+    for value in state.values():
+        if kind == 'BONE':
+            values = tuple(value[0]) + tuple(value[1]) + (value[2],)
+        else:
+            values = tuple(component for row in value for component in row)
+        if not all(math.isfinite(float(component)) for component in values):
+            raise ValueError('Bone transform produced non-finite coordinates')
+
+
 def begin_transform(context, tool, pos, rotation, source='grip', target=None, part=None):
     obj = target or context.view_layer.objects.active
     if obj is None:
@@ -234,6 +275,10 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         'mesh_guard': topology_guard if kind == 'MESH' else None,
         'last_mesh_coords': {i: co.copy() for i, co in before.items()}
                             if kind == 'MESH' else None,
+        'armature_guard': _armature_guard(obj, kind, before)
+                          if kind in {'BONE', 'POSE'} else None,
+        'last_bone_state': _bone_state(obj, kind, before)
+                           if kind in {'BONE', 'POSE'} else None,
     }
 
 
@@ -292,27 +337,33 @@ def update_transform(context, drag, position, rotation):
             bm.verts[index].co = target
         drag['last_mesh_coords'] = {i: co.copy() for i, co in updated.items()}
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
-    elif kind == 'BONE':
+    elif kind in {'BONE', 'POSE'}:
+        _assert_armature_guard(obj, kind, drag['armature_guard'])
+        _assert_bone_state(obj, kind, drag['last_bone_state'])
         inv = obj.matrix_world.inverted_safe()
-        for name, (head, tail, roll) in drag['before'].items():
-            bone = obj.data.edit_bones.get(name)
-            if bone is None:
-                continue
-            part = drag['part']
-            if part != 'TAIL':
-                bone.head = inv @ delta @ (obj.matrix_world @ head)
-            if part != 'HEAD':
-                bone.tail = inv @ delta @ (obj.matrix_world @ tail)
-            if (bone.tail - bone.head).length < .0001:
-                bone.tail = bone.head + Vector((0, 0, .001))
-            if drag['tool'] not in ROTATE:
-                bone.roll = roll
-    else:
-        inv = obj.matrix_world.inverted_safe()
-        for name, prior in drag['before'].items():
-            bone = obj.pose.bones.get(name)
-            if bone is not None:
-                bone.matrix = inv @ delta @ obj.matrix_world @ prior
+        planned = {}
+        if kind == 'BONE':
+            for name, (head, tail, roll) in drag['before'].items():
+                part = drag['part']
+                new_head = head if part == 'TAIL' else inv @ delta @ (obj.matrix_world @ head)
+                new_tail = tail if part == 'HEAD' else inv @ delta @ (obj.matrix_world @ tail)
+                if (new_tail - new_head).length < .0001:
+                    new_tail = new_head + Vector((0, 0, .001))
+                planned[name] = (new_head, new_tail,
+                                 roll if drag['tool'] not in ROTATE else
+                                 obj.data.edit_bones[name].roll)
+            _finite_bone_state(kind, planned)
+            for name, (head, tail, roll) in planned.items():
+                bone = obj.data.edit_bones[name]
+                bone.head, bone.tail, bone.roll = head, tail, roll
+        else:
+            planned = {name: inv @ delta @ obj.matrix_world @ prior
+                       for name, prior in drag['before'].items()}
+            _finite_bone_state(kind, planned)
+            for name, matrix in planned.items():
+                obj.pose.bones[name].matrix = matrix
+    if kind in {'BONE', 'POSE'}:
+        drag['last_bone_state'] = _bone_state(obj, kind, drag['before'])
     context.view_layer.update()
 
 
@@ -337,11 +388,15 @@ def restore_transform(context, drag):
             bm.verts[i].co = co
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     elif drag['kind'] == 'BONE':
+        _assert_armature_guard(obj, 'BONE', drag['armature_guard'])
+        _assert_bone_state(obj, 'BONE', drag['last_bone_state'])
         for name, (head, tail, roll) in drag['before'].items():
             bone = obj.data.edit_bones.get(name)
             if bone:
                 bone.head, bone.tail, bone.roll = head, tail, roll
     else:
+        _assert_armature_guard(obj, 'POSE', drag['armature_guard'])
+        _assert_bone_state(obj, 'POSE', drag['last_bone_state'])
         for name, matrix in drag['before'].items():
             bone = obj.pose.bones.get(name)
             if bone:
@@ -359,6 +414,8 @@ def _current_coords(obj, drag):
         bm.verts.ensure_lookup_table()
         return {i: bm.verts[i].co.copy() for i in drag['before']
                 if i < len(bm.verts) and bm.verts[i].is_valid}
+    if kind in {'BONE', 'POSE'} and drag.get('armature_guard') is not None:
+        _assert_armature_guard(obj, kind, drag['armature_guard'])
     if kind == 'BONE':
         return {name: (obj.data.edit_bones[name].head.copy(),
                        obj.data.edit_bones[name].tail.copy(),
@@ -395,13 +452,17 @@ def _push_transform_history(session, context, drag):
             any((after[i] - co).length > 1e-6
                 for i, co in drag['last_mesh_coords'].items())):
         raise ValueError('Mesh changed outside XR before transform commit')
+    if drag['kind'] in {'BONE', 'POSE'} and drag.get('last_bone_state') is not None:
+        if _changed(drag['last_bone_state'], after, drag['kind']):
+            raise ValueError('Bones changed outside XR before transform commit')
     if not _changed(drag['before'], after, drag['kind']):
         return
     kind = {'OBJECT': 'OBJECT', 'MESH': 'XR_VERTS', 'BONE': 'XR_BONES',
             'POSE': 'XR_POSE'}[drag['kind']]
     entry = (kind, obj.name, obj.data.name if kind != 'OBJECT' else None,
              drag['before'], after,
-             drag['mesh_guard'] if kind == 'XR_VERTS' else None)
+             drag['mesh_guard'] if kind == 'XR_VERTS' else
+             drag.get('armature_guard') if kind in {'XR_BONES', 'XR_POSE'} else None)
     if hasattr(session, 'history') and session.history is not None:
         session.history.push(entry)
     elif getattr(context, 'area', None) and context.area.type == 'VIEW_3D':
@@ -441,21 +502,26 @@ def _apply_history_entry(entry, backwards):
     elif kind == 'XR_BONES':
         if obj.type != 'ARMATURE' or obj.mode != 'EDIT':
             raise ValueError('Enter Armature Edit Mode to undo bone changes')
+        if guard is not None:
+            _assert_armature_guard(obj, 'BONE', guard)
+        if set(data) != set(before) or set(data) != set(after):
+            raise ValueError('Armature history has inconsistent bone names')
+        _finite_bone_state('BONE', data)
+        _assert_bone_state(obj, 'BONE', after if backwards else before)
         for name, (head, tail, roll) in data.items():
-            bone = obj.data.edit_bones.get(name)
-            if not bone:
-                raise ValueError('The edited bone was removed: ' + name)
-            bone.head = head
-            bone.tail = tail
-            bone.roll = roll
+            bone = obj.data.edit_bones[name]
+            bone.head, bone.tail, bone.roll = head, tail, roll
     elif kind == 'XR_POSE':
         if obj.type != 'ARMATURE' or obj.mode != 'POSE':
             raise ValueError('Enter Pose Mode to undo pose changes')
+        if guard is not None:
+            _assert_armature_guard(obj, 'POSE', guard)
+        if set(data) != set(before) or set(data) != set(after):
+            raise ValueError('Pose history has inconsistent bone names')
+        _finite_bone_state('POSE', data)
+        _assert_bone_state(obj, 'POSE', after if backwards else before)
         for name, matrix in data.items():
-            bone = obj.pose.bones.get(name)
-            if not bone:
-                raise ValueError('The posed bone was removed: ' + name)
-            bone.matrix = matrix
+            obj.pose.bones[name].matrix = matrix
     bpy.context.view_layer.update()
 
 
