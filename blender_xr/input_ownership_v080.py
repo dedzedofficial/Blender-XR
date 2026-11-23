@@ -115,6 +115,10 @@ def validate_command(session, action):
     Other callers must release the active edit/gesture first.
     """
     input_interlock_v090.block_unsafe_commands(session, action)
+    if getattr(session, '_xr_rollback_blocked', False):
+        # The interlock already allowlisted only STOP and read-only
+        # diagnostics; let these through even while REARM owns input.
+        return
     active = owner(session)
     if active == 'MODIFIER_PREVIEW':
         kind = session._xr_modifier_preview[2]
