@@ -141,6 +141,13 @@ def _model(layout, context, settings):
                 similar_row.operator('blender_xr.select_similar', text=label,
                                      icon='RESTRICT_SELECT_OFF').operation = action
 
+    if context.mode == 'EDIT_MESH':
+        weld_row = layout.row(align=True)
+        weld_row.enabled = runtime.CURRENT is None
+        weld_row.operator('blender_xr.preview_weld',
+                          text='Preview Duplicate-Vertex Weld',
+                          icon='AUTOMERGE_ON')
+
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
     row = layout.row(align=True)
