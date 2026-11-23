@@ -21,6 +21,7 @@ def patch_runtime(Runtime):
         self.hand_controls = ((0., 0.), (0., 0.))
         self._xr_validated_controls = None
         self._xr_validated_poses = None
+        self._xr_validated_sticks = None
         self.radial_supported = True
         self._xr_neutral_count = 0
 
@@ -36,6 +37,7 @@ def patch_runtime(Runtime):
         # handlers reuse it so a second read cannot invent a trigger release.
         self._xr_validated_controls = None
         self._xr_validated_poses = None
+        self._xr_validated_sticks = None
         state = context.window_manager.xr_session_state
         import bpy
         if not isinstance(context, bpy.types.Context):
@@ -98,6 +100,19 @@ def patch_runtime(Runtime):
             # into legacy handlers. Fresh press edges begin next frame.
             return
 
+        # Sample both native sticks once before routing the frame. A second
+        # OpenXR read later in legacy locomotion could disagree with radial
+        # capture or lose tracking after the validated button snapshot.
+        if self.bridge is None:
+            try:
+                self._xr_validated_sticks = tuple(
+                    input_safety_v086.stick_axes(actions.read(context, 'stick', hand))
+                    for hand in (0, 1))
+            except (RuntimeError, TypeError, ValueError, IndexError, AttributeError):
+                input_ownership_v080.cancel_tracking_loss(self)
+                self.status = 'THUMBSTICK TRACKING LOST / RELEASE CONTROLS'
+                return
+
         if (getattr(self.settings, 'menu_style', 'CLASSIC') != 'RADIAL'
                 or self.bridge is not None):
             self.radial_supported = self.bridge is None
@@ -115,7 +130,7 @@ def patch_runtime(Runtime):
         try:
             off_pose, off_position = self._xr_validated_poses[self.off][1]
             off_held = self.hand_controls[self.off][0] > .55
-            raw_stick = actions.read(context, 'stick', self.off)
+            raw_stick = self._xr_validated_sticks[self.off]
         except (RuntimeError, ValueError, IndexError, TypeError, AttributeError):
             # A missing stick action is not a neutral stick. Do not silently
             # fall through to legacy interaction with partially read inputs.
