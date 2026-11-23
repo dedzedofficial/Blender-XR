@@ -268,6 +268,8 @@ def _armature_guard(obj, kind, names):
         raise ValueError('Armature mode changed during XR transform')
     if obj.data is None:
         raise ValueError('Armature datablock was removed')
+    if kind == 'POSE' and obj.data.pose_position != 'POSE':
+        raise ValueError('Enable Posed View before changing pose bones')
     collection = obj.data.edit_bones if kind == 'BONE' else obj.pose.bones
     if any(collection.get(name) is None for name in names):
         raise ValueError('A held XR bone was removed or renamed')
@@ -675,6 +677,8 @@ def reset_pose_with_history(session, context, all_bones=False):
             depth += 1
             parent = parent.parent
         return depth
+    if obj.data.pose_position != 'POSE':
+        raise ValueError('Switch from Rest View to Pose View before resetting bones')
     chosen.sort(key=bone_depth)
     for bone in chosen:
         if (bone.constraints or bone.bone.hide or bone.bone.hide_select or
