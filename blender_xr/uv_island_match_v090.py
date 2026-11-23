@@ -15,7 +15,8 @@ import bpy
 from mathutils import Vector
 
 from . import (input_ownership_v080, menus, mesh, mesh_axis_snap_v090,
-               mesh_selection_tools_v086, runtime, selection,
+               mesh_selection_tools_v086, mesh_weld_preview_v090,
+               runtime, selection,
                uv_density_audit_v090, uv_island_inspector_v090, v065)
 
 _PAGE = 'XR_UV_MATCH_DENSITY_090'
@@ -143,6 +144,7 @@ def plan(context):
     # against stale edits and UV-map changes between preview and confirm.
     stamp = (
         mesh_selection_tools_v086._topology(bm),
+        mesh_weld_preview_v090._geometry_stamp(bm),
         layer.name,
         _fingerprint(bm, layer),
         mesh_axis_snap_v090._matrix_stamp(obj.matrix_world),
