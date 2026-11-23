@@ -186,6 +186,7 @@ _ICON_BY_ACTION = {
     'XR_PICK_WIDE': 'cursor',
     'XR_PICK_EXTRA_WIDE': 'cursor',
     'XR_PICK_THROUGH': 'mesh_data',
+    'XR_PICK_PRIORITY': 'properties',
     'XR_PICK_NEXT': 'properties',
     'XR_PICK_PREV': 'properties',
     'XR_PICK_CLEAR': 'cancel',
