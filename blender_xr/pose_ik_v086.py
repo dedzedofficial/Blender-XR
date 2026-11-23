@@ -73,7 +73,9 @@ def solve_pose_chain(context, obj, drag, world_target):
         if (bones[tip_name].tail - target).length <= .002:
             break
         moved = False
-        for name in reversed(names[:-1]):
+        # Rotate both the endpoint and its ancestors, so a two-bone chain
+        # has two controllable joints rather than acting like a rigid arm.
+        for name in reversed(names):
             joint = bones[name]
             joint_pos = joint.head.copy()
             to_tip = bones[tip_name].tail - joint_pos
