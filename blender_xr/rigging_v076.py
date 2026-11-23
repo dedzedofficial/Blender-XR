@@ -740,21 +740,36 @@ def patch_runtime(Runtime):
             self.status = 'WEIGHT STROKE / ' + str(len(entry[4])) + ' VERTICES / UNDO READY'
 
     def cancel_work(self):
-        cancel_stroke(self)
-        return original_cancel(self)
+        rollback_blocked = False
+        try:
+            cancel_stroke(self)
+        except (ValueError, RuntimeError, ReferenceError):
+            # Another editor may have changed a painted vertex. Do not
+            # overwrite it, but still cancel every other XR gesture owner.
+            rollback_blocked = True
+        try:
+            return original_cancel(self)
+        finally:
+            if rollback_blocked:
+                self.status = 'WEIGHT ROLLBACK BLOCKED / EXTERNAL CHANGES / REVIEW MESH'
 
     def stroke_sample(self, obj, origin, direction):
         stroke = getattr(self, '_weight_stroke', None)
         if stroke is None:
             stroke = WeightStroke(obj)
             self._weight_stroke = stroke
-        if not stroke.unchanged_target(self.context):
+        try:
+            if not stroke.unchanged_target(self.context):
+                raise ValueError('Weight group or painted object changed during stroke')
+            return paint_vertices(
+                obj, origin, direction, self.settings.weight_brush_radius,
+                self.settings.weight_brush_strength, self.settings.weight_erase,
+                recorder=stroke)
+        except Exception:
+            # A brush dab can fail after modifying an earlier vertex; keep
+            # its before-values until cancellation has attempted rollback.
             cancel_stroke(self)
-            raise ValueError('Weight group or painted object changed during stroke')
-        return paint_vertices(
-            obj, origin, direction, self.settings.weight_brush_radius,
-            self.settings.weight_brush_strength, self.settings.weight_erase,
-            recorder=stroke)
+            raise
 
     def select(self, context, origin, direction, additive=False):
         obj = context.view_layer.objects.active
