@@ -160,6 +160,10 @@ def _model(layout, context, settings):
         audit_row.operator('blender_xr.topology_select',
                            text='Select Non-Quads',
                            icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'
+        mirror_row = layout.row(align=True)
+        mirror_row.enabled = runtime.CURRENT is None
+        mirror_row.operator('blender_xr.mesh_symmetry_audit',
+                            text='Symmetry Audit (Local X)', icon='MOD_MIRROR')
 
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
