@@ -33,6 +33,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_UV_TILE_CONFIRM_090': 'XR_UV_TILE_MOVE_090',
     'XR_UV_TEXEL_CONFIRM_090': 'XR_UV_TEXEL_SNAP_090',
     'XR_EVEN_SPACING_CONFIRM_090': 'XR_EVEN_SPACING_090',
+    'XR_ACTIVE_FACE_PLANE_CONFIRM_090': 'XR_ACTIVE_FACE_PLANE_090',
     'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
     'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
@@ -63,6 +64,7 @@ def expire_pending_approvals(session):
         '_xr_quad_flat_pending',
         '_xr_quad_relax_pending',
         '_xr_even_spacing_pending',
+        '_xr_face_plane_pending',
         '_xr_uv_match_pending',
         '_xr_uv_orient_pending',
         '_xr_uv_orient_action',
