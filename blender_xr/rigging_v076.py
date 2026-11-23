@@ -39,8 +39,8 @@ WEIGHT_PAGE = (
     ('GROUP -', 'WEIGHT_GROUP_PREV'), ('GROUP +', 'WEIGHT_GROUP_NEXT'),
     ('WEIGHT -', 'WEIGHT_STRENGTH_DOWN'), ('WEIGHT +', 'WEIGHT_STRENGTH_UP'),
     ('SIZE -', 'WEIGHT_RADIUS_DOWN'), ('SIZE +', 'WEIGHT_RADIUS_UP'),
-    ('PROBE', 'WEIGHT_SAMPLE'), ('PRECISION', 'WEIGHT_PRECISION_MENU'),
-    ('DONE', 'RIG_EXIT_PAINT'),
+    ('PROBE', 'WEIGHT_SAMPLE'), ('PICK BONE', 'WEIGHT_PICK_BONE'),
+    ('PRECISION', 'WEIGHT_PRECISION_MENU'), ('DONE', 'RIG_EXIT_PAINT'),
 )
 
 # Existing ten-entry weight page stays accessible; the precision submenu
@@ -334,6 +334,61 @@ def sample_vertex_weight(obj, world_origin, world_direction):
     except RuntimeError:
         weight = 0.0
     return index, float(weight), group.name
+
+
+
+def pick_weight_group_from_bone(context, origin, direction):
+    """Pick a deform bone on the painted mesh's *actual* linked armature.
+
+    Ray-test posed bones rather than rest coordinates, without changing bone
+    selection, creating groups or overwriting any native vertex assignments.
+    """
+    obj = context.view_layer.objects.active
+    if obj is None or obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
+        raise ValueError('Enter Weight Paint on the skinned mesh first')
+    armatures = {}
+    arm = getattr(obj, 'parent', None)
+    if arm is not None and arm.type == 'ARMATURE':
+        armatures[arm.as_pointer()] = arm
+    for modifier in obj.modifiers:
+        if modifier.type == 'ARMATURE' and modifier.object is not None:
+            target = modifier.object
+            if target.type == 'ARMATURE':
+                armatures[target.as_pointer()] = target
+    if not armatures:
+        raise ValueError('This mesh has no paired armature or Armature modifier')
+    origin = Vector(origin)
+    direction = Vector(direction)
+    if direction.length_squared < 1e-10 or not all(
+            math.isfinite(float(v)) for v in (*origin, *direction)):
+        raise ValueError('Aim at a valid deform bone')
+    direction.normalize()
+    nearest = None
+    for arm in armatures.values():
+        if not arm.visible_get(view_layer=context.view_layer) or arm.hide_get():
+            continue
+        for bone in arm.pose.bones:
+            if not bone.bone.use_deform or bone.bone.hide or bone.bone.hide_select:
+                continue
+            head = arm.matrix_world @ bone.head
+            tail = arm.matrix_world @ bone.tail
+            picked = armature_v076._closest_segment(origin, direction, head, tail)
+            if picked is None:
+                continue
+            distance, depth, _location, _portion = picked
+            tolerance = max(.03, min(.14, depth * .018))
+            if depth <= 0 or distance > tolerance:
+                continue
+            if nearest is None or (depth, distance) < nearest[0]:
+                nearest = ((depth, distance), bone.name)
+    if nearest is None:
+        return None
+    group = obj.vertex_groups.get(nearest[1])
+    if group is None:
+        raise ValueError('Bone ' + nearest[1] + ' has no matching vertex group')
+    obj.vertex_groups.active_index = group.index
+    return group.name
+
 
 
 def _vertex_weight(group, index):
@@ -1018,6 +1073,11 @@ def patch_runtime(Runtime):
             self.menu.page = 'WEIGHT_PRECISION'
             self.status = 'WEIGHT PRECISION / ' + group.name.upper()
             return
+        if action == 'WEIGHT_PICK_BONE':
+            _weight_target_context(context)
+            self.tool = 'WEIGHT_PICK_BONE'
+            self.status = 'PICK GROUP / AIM AT DEFORM BONE / TRIGGER'
+            return
         if action == 'WEIGHT_SAMPLE':
             obj, group, scope = _weight_target_context(context)
             # A stale brush target from another group cannot later erase
@@ -1161,6 +1221,15 @@ def patch_runtime(Runtime):
     def begin_tool(self, context, origin, rotation):
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT':
+            if self.tool == 'WEIGHT_PICK_BONE':
+                group_name = pick_weight_group_from_bone(
+                    context, origin, rotation @ Vector((0, 0, -1)))
+                if group_name is None:
+                    self.status = 'PICK GROUP / NO DEFORM BONE HIT'
+                else:
+                    clear_weight_target(self)
+                    self.status = 'ACTIVE GROUP / ' + group_name.upper()
+                return
             if self.tool == 'WEIGHT_SAMPLE':
                 result = sample_vertex_weight(
                     obj, origin, rotation @ Vector((0, 0, -1)))
@@ -1215,7 +1284,8 @@ def patch_runtime(Runtime):
                         self.status = 'WEIGHT TARGET RESET / OBJECT OR GROUP CHANGED'
                 except (ValueError, ReferenceError):
                     clear_weight_target(self)
-            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE', 'WEIGHT_EXACT'}:
+            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE', 'WEIGHT_EXACT',
+                                  'WEIGHT_PICK_BONE'}:
                 self.tool = 'WEIGHT_BRUSH'
             if self.menu.page not in {'WEIGHT_PAINT', 'WEIGHT_PRECISION', 'MODE_SELECT'}:
                 self.menu.page = 'WEIGHT_PAINT'
