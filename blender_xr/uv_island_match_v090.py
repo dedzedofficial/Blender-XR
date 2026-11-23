@@ -82,7 +82,8 @@ def plan(context):
         raise ValueError('Choose Face Select Mode and one active face on an existing UV island')
     obj, bm, layer, visible = uv_island_inspector_v090._source(context)
     mesh.editable(obj)
-    if (obj.override_library or obj.data.override_library or
+    if (obj.library or obj.override_library or obj.data.library or
+            obj.data.override_library or
             obj.data.users != 1 or obj.data.shape_keys is not None):
         raise ValueError('UV density matching requires a local, single-user mesh without shape keys')
     if len(bm.faces) > _MAX_FACES:
@@ -142,7 +143,7 @@ def plan(context):
     # against stale edits and UV-map changes between preview and confirm.
     stamp = (
         mesh_selection_tools_v086._topology(bm),
-        uv_density_audit_v090.uv_island_inspector_v090._source(context)[2].name,
+        layer.name,
         _fingerprint(bm, layer),
         mesh_axis_snap_v090._matrix_stamp(obj.matrix_world),
         tuple(uv.name for uv in obj.data.uv_layers),
