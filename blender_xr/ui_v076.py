@@ -225,6 +225,12 @@ def _model(layout, context, settings):
         match_row.enabled = runtime.CURRENT is None
         match_row.operator('blender_xr.uv_match_density',
                            text='Preview Island Density Match', icon='UV')
+        orient_row = layout.row(align=True)
+        orient_row.enabled = runtime.CURRENT is None
+        orient_row.operator('blender_xr.uv_orient',
+                            text='Align UV Island U', icon='UV').action = 'ALIGN_U'
+        orient_row.operator('blender_xr.uv_orient',
+                            text='Rotate UV 90°', icon='UV').action = 'CW'
         boundary_row = layout.row(align=True)
         boundary_row.enabled = runtime.CURRENT is None
         boundary_row.operator('blender_xr.uv_boundary_report',
