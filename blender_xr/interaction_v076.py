@@ -327,9 +327,14 @@ def restore_transform(context, drag):
         _assert_mesh_guard(obj, drag['mesh_guard'])
         bm = bmesh.from_edit_mesh(obj.data)
         bm.verts.ensure_lookup_table()
+        previous = drag['last_mesh_coords']
+        if any(i >= len(bm.verts) or not bm.verts[i].is_valid or
+               bm.verts[i].hide or
+               (bm.verts[i].co - previous[i]).length > 1e-6
+               for i in drag['before']):
+            raise ValueError('Mesh changed externally; cannot safely restore XR drag')
         for i, co in drag['before'].items():
-            if i < len(bm.verts) and bm.verts[i].is_valid:
-                bm.verts[i].co = co
+            bm.verts[i].co = co
         bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
     elif drag['kind'] == 'BONE':
         for name, (head, tail, roll) in drag['before'].items():
