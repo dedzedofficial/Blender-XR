@@ -75,10 +75,20 @@ def _recall(session, context, label):
         return False
     # Reuse the existing native selection-history entry format, so Undo/Redo,
     # disposal and topology/visibility checks stay with one owner.
+    mesh_selection_tools_v086._set_selection(obj, mode, after)
+    # A native Blender select-flush can reconcile related vertices and edges.
+    # Capture the post-flush selection rather than assuming it equals the
+    # requested indices. Undo must expect exactly what Blender now displays.
+    applied_bm, applied_items = mesh_selection_tools_v086._current(obj, mode)
+    if mesh_selection_tools_v086._topology(applied_bm) != topo:
+        raise ValueError('Mesh topology changed during Quick Set recall')
+    applied = mesh_selection_tools_v086._selected(applied_items)
+    if applied == before:
+        _set_status(session, 'UNCHANGED', label, mode, len(applied))
+        return False
     entry = (mesh_selection_tools_v086._TAG, context.scene.name,
              context.view_layer.name, obj.name, obj.as_pointer(),
-             obj.data.name, obj.data.as_pointer(), mode, topo, before, after)
-    mesh_selection_tools_v086._set_selection(obj, mode, after)
+             obj.data.name, obj.data.as_pointer(), mode, topo, before, applied)
     try:
         session.history.push(entry)
     except Exception:
@@ -86,12 +96,12 @@ def _recall(session, context, label):
         # Revalidate topology before restoring; never overwrite external edits.
         check_obj, check_mode, check_bm, check_items, check_topo = _current(context)
         if (check_obj == obj and check_mode == mode and check_topo == topo and
-                mesh_selection_tools_v086._selected(check_items) == after):
+                mesh_selection_tools_v086._selected(check_items) == applied):
             mesh_selection_tools_v086._set_selection(obj, mode, before)
         raise
     session._xr_precision_last_ray = None
     _set_status(session, 'ADDED' if additive else 'RESTORED',
-                label, mode, len(after))
+                label, mode, len(applied))
     return True
 
 
