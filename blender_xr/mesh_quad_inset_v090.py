@@ -169,6 +169,7 @@ def _mutate(context, proposal):
            for edge in original_edges):
         raise ValueError('Inset lost an original perimeter edge')
     for item in patch:
+        item.normal_update()
         if item.normal.dot(original_normal) <= 0:
             raise ValueError('Inset created a reversed or invalid quad normal')
         for loop in item.loops:
