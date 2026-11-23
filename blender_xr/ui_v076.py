@@ -164,6 +164,13 @@ def _model(layout, context, settings):
         mirror_row.enabled = runtime.CURRENT is None
         mirror_row.operator('blender_xr.mesh_symmetry_audit',
                             text='Symmetry Audit (Local X)', icon='MOD_MIRROR')
+        uv_row = layout.row(align=True)
+        uv_row.enabled = runtime.CURRENT is None
+        uv_row.operator('blender_xr.uv_island_inspect',
+                        text='UV Island Report', icon='UV')
+        uv_row.operator('blender_xr.uv_island_select',
+                        text='Select Active Island', icon='UV').action = (
+                            'XR_UV_ISLAND_SELECT_ACTIVE')
 
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
