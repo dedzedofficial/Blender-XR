@@ -147,10 +147,21 @@ def _plan(context, operation):
     positions = tuple((index, tuple(float(c) for c in obj.data.vertices[index].co))
                       for index in sorted({idx for idx, _g, _b, _a in changes}))
     data = obj.data
+    # Include all native group identities and lock flags, not only modified
+    # groups. Undo must reject changes to the locked groups that determined
+    # how much weight was available for normalization/limiting.
+    layout = tuple((group.index, group.name, group.as_pointer(), bool(group.lock_weight))
+                   for group in obj.vertex_groups)
+    locked_totals = []
+    for index, _coords in positions:
+        total = sum(float(member.weight) for member in data.vertices[index].groups
+                    if groups[int(member.group)].lock_weight)
+        locked_totals.append((index, total))
     entry = ('XR_WEIGHT_BALANCE_086', obj.name, obj.as_pointer(),
              data.name, data.as_pointer(),
              (len(data.vertices), len(data.edges), len(data.polygons), _topology(data)),
-             group_guard, positions, tuple(changes), operation)
+             group_guard, positions, tuple(changes), operation,
+             layout, tuple(locked_totals))
     return obj, entry, vertices_affected, skipped_locked
 
 
@@ -180,9 +191,22 @@ def _guard(context, entry):
                 group.as_pointer() != original_ptr or group.lock_weight):
             raise ValueError('Vertex group identity or lock changed outside XR')
         groups[index] = group
+    layout = entry[10]
+    if len(obj.vertex_groups) != len(layout):
+        raise ValueError('Vertex group layout changed outside XR weight repair')
+    for index, name, pointer, locked in layout:
+        group = obj.vertex_groups[index]
+        if (group.index != index or group.name != name or
+                group.as_pointer() != pointer or bool(group.lock_weight) != locked):
+            raise ValueError('Vertex group identity or locks changed outside XR')
     for index, coords in positions:
         if index >= len(data.vertices) or tuple(data.vertices[index].co) != coords:
             raise ValueError('Vertex positions changed outside XR weight repair')
+    for index, total in entry[11]:
+        now = sum(float(member.weight) for member in data.vertices[index].groups
+                  if obj.vertex_groups[int(member.group)].lock_weight)
+        if not math.isfinite(now) or abs(now - total) > 1e-5:
+            raise ValueError('Locked weights changed outside XR weight repair')
     return obj, groups
 
 
