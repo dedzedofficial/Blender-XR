@@ -126,6 +126,15 @@ def _model(layout, context, settings):
                          ('Normal', 'XR_SIM_FACE_NORMAL'),
                          ('Sides', 'XR_SIM_FACE_SIDES')),
             }
+            if mode == 'EDGE':
+                flags_row = layout.row(align=True)
+                flags_row.enabled = runtime.CURRENT is None
+                for label, action in (('Seam', 'XR_EDGE_MARK_SEAM'),
+                                      ('Unseam', 'XR_EDGE_CLEAR_SEAM'),
+                                      ('Sharp', 'XR_EDGE_MARK_SHARP'),
+                                      ('Smooth', 'XR_EDGE_CLEAR_SHARP')):
+                    flags_row.operator('blender_xr.edge_flags', text=label,
+                                       icon='EDGESEL').action = action
             similar_row = layout.row(align=True)
             similar_row.enabled = runtime.CURRENT is None
             for label, action in similar[mode]:
