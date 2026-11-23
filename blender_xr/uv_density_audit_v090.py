@@ -72,7 +72,6 @@ def inspect(context, preset='XR_UV_DENSITY_NORMAL'):
     islands = uv_island_inspector_v090.inspect(context)
     obj, bm, layer, faces = uv_island_inspector_v090._source(context)
     limit = _PRESETS[preset]
-    mesh_select = {face.index: face for face in faces}
     density = {}
     collapsed = set()
     for face in faces:
