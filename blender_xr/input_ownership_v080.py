@@ -85,6 +85,7 @@ def cancel_conflict(session):
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
         session._xr_validated_viewer = None
+        session._xr_validated_aux = None
         session._xr_motion_sample = None
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
@@ -188,6 +189,7 @@ def cancel_session_loss(session):
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
         session._xr_validated_viewer = None
+        session._xr_validated_aux = None
         session._xr_motion_sample = None
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
@@ -207,6 +209,7 @@ def cancel_session_loss(session):
     session._xr_validated_poses = None
     session._xr_validated_sticks = None
     session._xr_validated_viewer = None
+    session._xr_validated_aux = None
     session._xr_motion_sample = None
     # Even an idle stopped session invalidates the controller edge state.
     # Otherwise a held trigger on reconnect can start an unintended edit.
