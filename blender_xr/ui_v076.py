@@ -231,6 +231,12 @@ def _model(layout, context, settings):
                             text='Align UV Island U', icon='UV').action = 'ALIGN_U'
         orient_row.operator('blender_xr.uv_orient',
                             text='Rotate UV 90°', icon='UV').action = 'CW'
+        tile_row = layout.row(align=True)
+        tile_row.enabled = runtime.CURRENT is None
+        tile_row.operator('blender_xr.uv_tile_move',
+                          text='UV Tile Right', icon='UV').action = 'XR_UV_TILE_RIGHT'
+        tile_row.operator('blender_xr.uv_tile_move',
+                          text='UV Tile Up', icon='UV').action = 'XR_UV_TILE_UP'
         boundary_row = layout.row(align=True)
         boundary_row.enabled = runtime.CURRENT is None
         boundary_row.operator('blender_xr.uv_boundary_report',
