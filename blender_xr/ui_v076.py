@@ -133,6 +133,12 @@ def _model(layout, context, settings):
                           icon='BACK').action = 'XR_TIME_PREV'
     timeline_row.operator('blender_xr.timeline_step', text='+1',
                           icon='FORWARD').action = 'XR_TIME_NEXT'
+    play_row = layout.row(align=True)
+    play_row.enabled = runtime.CURRENT is None
+    play_row.operator('blender_xr.timeline_playback', text='Play / Pause',
+                      icon='PLAY').action = 'XR_TIME_PLAY_PAUSE'
+    play_row.operator('blender_xr.timeline_playback', text='Reverse',
+                      icon='PLAY_REVERSE').action = 'XR_TIME_REVERSE'
     marker_row = layout.row(align=True)
     marker_row.enabled = runtime.CURRENT is None
     marker_row.operator('blender_xr.timeline_marker', text='Add Marker',
