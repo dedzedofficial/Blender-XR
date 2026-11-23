@@ -111,6 +111,12 @@ def _model(layout, context, settings):
     row.prop(settings, 'placement_distance', text='Distance', icon='ORIENTATION_VIEW')
 
     if context.mode == 'EDIT_MESH':
+        _header(layout, 'Exact Numeric Mesh Move', 'TRANSFORM_MOVE')
+        move_row = layout.row(align=True)
+        move_row.enabled = runtime.CURRENT is None
+        for axis in 'XYZ':
+            move_row.operator('blender_xr.numeric_mesh_move',
+                              text='Move ' + axis, icon='TRANSFORM_MOVE').axis = axis
         _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH':
