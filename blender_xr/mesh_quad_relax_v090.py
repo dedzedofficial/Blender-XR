@@ -14,7 +14,7 @@ from mathutils import Vector
 
 from . import (input_ownership_v080, menus, mesh, mesh_axis_snap_v090,
                mesh_quad_quality_v090, mesh_selection_tools_v086,
-               mesh_weld_preview_v090, runtime, v065)
+               mesh_weld_preview_v090, runtime, selection, v065)
 
 _PAGE = 'XR_QUAD_RELAX_090'
 _CONFIRM_PAGE = 'XR_QUAD_RELAX_CONFIRM_090'
@@ -37,7 +37,7 @@ def _source(context):
             obj.data.override_library or obj.data.users != 1 or
             obj.data.shape_keys is not None):
         raise ValueError('Quad relaxation requires a local single-user mesh without shape keys')
-    if context.mode != 'EDIT_MESH' or not context.tool_settings.mesh_select_mode[2]:
+    if context.mode != 'EDIT_MESH' or selection.mode(context) != 'FACE':
         raise ValueError('Select the quad patch in Face Select Mode')
     bm, faces = mesh_selection_tools_v086._current(obj, 'FACE')
     if len(bm.verts) > _MAX_MESH_VERTICES:
@@ -215,7 +215,7 @@ class BXR_OT_quad_relax(bpy.types.Operator):
     def poll(cls, context):
         obj = context.view_layer.objects.active
         return bool(obj and obj.type == 'MESH' and context.mode == 'EDIT_MESH'
-                    and context.tool_settings.mesh_select_mode[2])
+                    and selection.mode(context) == 'FACE')
 
     def invoke(self, context, event):
         self._proposal = None
