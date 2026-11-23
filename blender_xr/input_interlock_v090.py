@@ -31,6 +31,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_UV_MATCH_CONFIRM_090': 'XR_UV_MATCH_DENSITY_090',
     'XR_UV_ORIENT_CONFIRM_090': 'XR_UV_ORIENT_090',
     'XR_UV_TILE_CONFIRM_090': 'XR_UV_TILE_MOVE_090',
+    'XR_UV_TEXEL_CONFIRM_090': 'XR_UV_TEXEL_SNAP_090',
     'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
     'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
@@ -65,6 +66,9 @@ def expire_pending_approvals(session):
         '_xr_uv_orient_action',
         '_xr_uv_tile_pending',
         '_xr_uv_tile_action',
+        '_xr_uv_texel_pending',
+        '_xr_uv_texel_resolution',
+        '_xr_uv_texel_mode',
         '_xr_numeric_move_state',
         # Saved ray hits cannot be reused after tracking/session loss.
         '_xr_precision_last_ray',
