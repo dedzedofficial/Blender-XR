@@ -190,6 +190,8 @@ _ICON_BY_ACTION = {
     'ROTATE_EDIT': 'transform_rotate',
     'BONE_SCALE': 'transform_scale', 'BONE_ROTATE': 'transform_rotate',
     'BONE_IK_2': 'pose_hlt', 'BONE_IK_3': 'pose_hlt',
+    'BONE_POSE_RESET_SELECTED': 'undo',
+    'BONE_POSE_RESET_ALL': 'undo',
     'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
     'WEIGHT_SAMPLE': 'brush_data', 'WEIGHT_PICK_BONE': 'armature_data',
     'WEIGHT_PRECISION_MENU': 'mod_vertex_weight',
