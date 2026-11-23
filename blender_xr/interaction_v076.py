@@ -553,6 +553,9 @@ def patch_runtime(Runtime):
         obj = context.view_layer.objects.active
         tool = self.tool
         if tool in TRANSFORMS and obj and obj.mode in {'OBJECT','EDIT','POSE'}:
+            # Validate tracking before changing object/mesh/bone selection.
+            # A missing frame must not leave a changed selection with no drag.
+            tracked_origin, quat = _tracked_pose(self, context, 'trigger')
             if obj.type == 'MESH' and obj.mode == 'EDIT' and tool in {'MOVE','SCALE','ROTATE'}:
                 hit_other = self.object_hit(context, origin, direction)
                 if hit_other and hit_other[0] != obj:
@@ -588,7 +591,6 @@ def patch_runtime(Runtime):
             else:
                 if obj.type == 'ARMATURE':
                     select_context(self, context, origin, direction)
-            tracked_origin, quat = _tracked_pose(self, context, 'trigger')
             self._xr_gesture = begin_transform(
                 context, tool, tracked_origin, quat, source='trigger')
             self.status = tool + ' / HOLD TRIGGER AND MOVE CONTROLLER'
@@ -702,6 +704,7 @@ def patch_runtime(Runtime):
                 obj = context.view_layer.objects.active
                 try:
                     origin, rotation = _tracked_pose(self, context, 'trigger')
+                    grip_pos, grip_rot = _tracked_pose(self, context, 'grip')
                 except (RuntimeError, TypeError, ValueError, IndexError,
                         AttributeError, ReferenceError, OverflowError):
                     input_ownership_v080.cancel_tracking_loss(self)
@@ -749,12 +752,6 @@ def patch_runtime(Runtime):
                                     .get(mode, 'BONE_MOVE'))
                         else:
                             mode = {'SCALE_FACE':'SCALE', 'ROTATE_EDIT':'ROTATE'}.get(mode,mode)
-                        try:
-                            grip_pos, grip_rot = _tracked_pose(self, context, 'grip')
-                        except (RuntimeError, TypeError, ValueError, IndexError,
-                                AttributeError, ReferenceError, OverflowError):
-                            input_ownership_v080.cancel_tracking_loss(self)
-                            return
                         self._xr_gesture = begin_transform(
                             context, mode, grip_pos, grip_rot, source='grip')
                         self.status = 'GRABBED ' + active.name.upper()
