@@ -243,6 +243,12 @@ def _model(layout, context, settings):
                           text='UV Tile Right', icon='UV').action = 'XR_UV_TILE_RIGHT'
         tile_row.operator('blender_xr.uv_tile_move',
                           text='UV Tile Up', icon='UV').action = 'XR_UV_TILE_UP'
+        texel_row = layout.row(align=True)
+        texel_row.enabled = runtime.CURRENT is None
+        texel_row.operator('blender_xr.uv_texel_snap',
+                           text='UV Snap 512px', icon='UV').resolution = '512'
+        texel_row.operator('blender_xr.uv_texel_snap',
+                           text='UV Snap 1024px', icon='UV').resolution = '1024'
         boundary_row = layout.row(align=True)
         boundary_row.enabled = runtime.CURRENT is None
         boundary_row.operator('blender_xr.uv_boundary_report',
