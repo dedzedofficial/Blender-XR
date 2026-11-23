@@ -5,6 +5,7 @@ Keep standard Blender Object, Armature Edit, Weight Paint and Pose modes intact:
 XR menu commands only prepare the native selection/mode state Blender expects.
 """
 import time
+import math
 
 import bpy
 from mathutils import Vector
@@ -503,16 +504,39 @@ def install_weight_history():
     mesh.History._weight_stroke_history = True
 
 
-def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=False, recorder=None):
-    """Controller-ray brush on the selected Blender vertex group (no PC mouse).
+def _paint_weight_index(group, index, value, recorder=None):
+    """Apply one changed native assignment with XR stroke rollback bookkeeping.
 
-    Uses a bounded KD query and writes real vertex-group weights so standard
-    Blender Weight Paint and Pose Mode see the same data. No mesh topology edits.
+    None represents an absent group assignment, unlike an assigned zero.
+    Failure after the Blender write still records the last live value so
+    cancel can restore the original state rather than leaking a partial dab.
+    """
+    previous = _vertex_weight(group, index)
+    if _same_weight(previous, value):
+        return False
+    if recorder is not None:
+        recorder.record(index)
+    try:
+        _write_weight(group, index, value)
+    finally:
+        if recorder is not None:
+            recorder.mark_written(index)
+    return True
+
+
+def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=False,
+                   recorder=None, target_weight=None, exact=False):
+    """Paint real Blender vertex-group assignments from a controller ray.
+
+    The legacy Paint and Erase modes behave as before. An explicitly selected
+    target blends weight toward the user's sampled/preset value. Exact mode
+    writes that value to only the closest visible vertex on the ray-hit face.
+    Every change uses the same atomic XR weight-stroke history transaction.
     """
     if obj.type != 'MESH' or obj.mode != 'WEIGHT_PAINT':
         raise ValueError('Activate a mesh in Blender Weight Paint mode')
-    if getattr(obj, 'hide_select', False):
-        raise ValueError('Unlock the object before painting weights')
+    if getattr(obj, 'hide_select', False) or obj.hide_get() or not obj.visible_get():
+        raise ValueError('Unlock and show the object before painting weights')
     group = active_group(obj)
     if group.lock_weight:
         raise ValueError('Active vertex group is locked')
@@ -520,6 +544,20 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
         raise ValueError('Make the weight mesh local and single-user before editing')
     if recorder is not None and (recorder.object != obj or recorder.group != group):
         raise ValueError('Stroke mesh or vertex group changed')
+    if target_weight is not None:
+        target = float(target_weight)
+        if not math.isfinite(target) or not 0.0 <= target <= 1.0:
+            raise ValueError('Brush target weight must be between zero and one')
+    else:
+        target = 1.0
+    if exact and target_weight is None:
+        raise ValueError('Choose a target weight before using Paint Exact')
+    radius = float(radius)
+    strength = float(strength)
+    if (not math.isfinite(radius) or radius <= 0.0 or
+            not math.isfinite(strength) or not 0.0 <= strength <= 1.0):
+        raise ValueError('Brush radius and strength must be valid')
+
     local_point = weight_surface_point(obj, world_origin, world_direction)
     if local_point is None:
         return 0
@@ -527,53 +565,64 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     if not verts:
         return 0
     tree = cached_weight_tree(obj)
+    if exact:
+        nearest = tree.find(local_point)
+        if nearest is None:
+            return 0
+        _co, index, _dist = nearest
+        # Do not select an arbitrarily distant vertex on a huge polygon.
+        world_point = obj.matrix_world @ local_point
+        if (obj.matrix_world @ verts[index].co - world_point).length > max(radius * 3.0, .025):
+            return 0
+        value = None if target <= 0.0 else target
+        if not _paint_weight_index(group, index, value, recorder):
+            return 0
+        obj.data.update()
+        bpy.context.view_layer.update()
+        return 1
+
     scale = max(1e-6, min(abs(v) for v in obj.matrix_world.to_scale()))
     search_radius = radius / scale
     changes = 0
     world_point = obj.matrix_world @ local_point
+
+    def apply(index, influence):
+        before = _vertex_weight(group, index)
+        current = 0.0 if before is None else before
+        amount = min(1.0, max(0.0, influence))
+        result = (current * (1.0 - amount) if erase
+                  else current + (target - current) * amount)
+        result = min(1.0, max(0.0, result))
+        # Painting with zero target should never manufacture empty 0.0
+        # assignments, and an exact full-strength zero can remove one.
+        value = (None if result <= 1e-8 and
+                 (before is None or (not erase and target == 0.0
+                                     and amount >= 1.0 - 1e-6))
+                 else result)
+        return _paint_weight_index(group, index, value, recorder)
+
     for _co, index, _dist in tree.find_range(local_point, search_radius):
-        falloff = 1 - (obj.matrix_world @ verts[index].co - world_point).length / radius
-        if falloff <= 0:
+        falloff = 1.0 - (obj.matrix_world @ verts[index].co - world_point).length / radius
+        if falloff <= 0.0:
             continue
-        try:
-            weight = group.weight(index)
-        except RuntimeError:
-            weight = 0.0
-        influence = min(1.0, strength * falloff)
-        result = (weight * (1.0 - influence) if erase
-                  else weight + (1.0 - weight) * influence)
-        if recorder is not None:
-            recorder.record(index)
-        group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
-        if recorder is not None:
-            recorder.mark_written(index)
-        changes += 1
+        if apply(index, strength * falloff):
+            changes += 1
         if changes >= 256:
             break
     if not changes:
-        # Low-poly meshes can have no vertex inside a narrow brush circle.
-        # If the ray hit a visible polygon, paint the nearest vertex rather
-        # than silently doing nothing (especially common for Quest assets).
+        # Low-poly geometry can have no nearby vertex inside the brush
+        # circle. Tolerate a nearby corner, but not an unrelated far vertex.
         nearest = tree.find(local_point)
         if nearest:
             _co, index, _dist = nearest
-            try:
-                weight = group.weight(index)
-            except RuntimeError:
-                weight = 0.0
-            influence = min(1.0, strength * 0.5)
-            result = (weight * (1.0 - influence) if erase
-                      else weight + (1.0 - weight) * influence)
-            if recorder is not None:
-                recorder.record(index)
-            group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
-            if recorder is not None:
-                recorder.mark_written(index)
-            changes = 1
+            distance = (obj.matrix_world @ verts[index].co - world_point).length
+            if distance <= max(radius * 3.0, .025) and apply(index, strength * .5):
+                changes = 1
     if changes:
         obj.data.update()
         bpy.context.view_layer.update()
     return changes
+
 
 class BXR_OT_select_mesh(bpy.types.Operator):
     bl_idname = 'blender_xr.select_mesh'
