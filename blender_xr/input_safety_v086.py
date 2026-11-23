@@ -193,6 +193,11 @@ STICK_REARM_THRESHOLD = 0.25
 MAX_EDIT_SAMPLE_GAP = 0.5
 MIN_TRACKING_JUMP = 1.25
 MAX_TRACKED_HAND_SPEED = 7.0
+# Room-scale controllers should stay near the tracked headset. These bounds
+# are intentionally generous: reject clearly corrupted or mismatched spaces,
+# not an artist reaching across a room or moving their head independently.
+MAX_HEAD_RELATIVE_REACH = 12.0
+MAX_AIM_GRIP_SEPARATION = 2.0
 
 
 def _head_relative_pose(poses, viewer):
@@ -212,6 +217,16 @@ def _head_relative_pose(poses, viewer):
             if not all(math.isfinite(float(v)) for v in point):
                 raise ValueError('Invalid HMD-relative controller pose')
             local.append(tuple(float(v) for v in point))
+        # Both poses describe the *same* physical controller. Even when
+        # individual coordinates are finite, a lost tracking origin or a
+        # mixed action-space packet can place aim and grip metres apart.
+        # Reject the whole frame before the ray or mesh editor sees it.
+        if any(sum(component * component for component in point) >
+               MAX_HEAD_RELATIVE_REACH ** 2 for point in local):
+            raise ValueError('XR controller is outside plausible headset reach')
+        if sum((a - b) ** 2 for a, b in zip(local[0], local[1])) > (
+                MAX_AIM_GRIP_SEPARATION ** 2):
+            raise ValueError('XR controller aim/grip tracking spaces disagree')
         relative[hand] = tuple(local)
     return relative
 
@@ -476,8 +491,11 @@ def preflight_controller_frame(session, context):
             sticks = tuple(stick_axes(actions.read(context, 'stick', hand))
                            for hand in (0, 1))
         aux = optional_controller_sample(session, context)
-        # A discontinuous tracked pose must cancel held mesh/object/paint
-        # gestures before another transform step or trigger release is seen.
+        # Plausibility is required even when no gesture is active. A finite
+        # but wildly misplaced aim pose must never produce a destructive
+        # selection ray, a menu at infinity, or an unsafe first gesture.
+        # The continuity guard reuses the same HMD-relative checks for
+        # active edits and catches jumps across otherwise plausible frames.
         enforce_edit_pose_continuity(session, poses, viewer)
         session._xr_validated_poses = poses
         session._xr_validated_controls = samples
