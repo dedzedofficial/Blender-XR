@@ -249,28 +249,69 @@ def enforce_edit_pose_continuity(session, poses, viewer):
 
 
 
-def neutral_rearm_frame(session, context, samples):
-    """Require released buttons AND a centered radial stick before rearming.
+REARM_HAND_STABILITY = 0.35
 
-    A controller that reconnects with its offhand stick deflected must not
-    immediately open or select a radial wedge on the first resumed frame.
-    SteamVR hand-bridge input does not provide the same native stick action;
-    it is intentionally guarded by its validated trigger/grip packet only.
-    An absent native stick is input loss, not a neutral sample.
+
+def neutral_rearm_frame(session, context, samples):
+    """Require all native controls released before controller dispatch resumes.
+
+    Both thumbsticks can move the viewer in CLASSIC mode, not only the radial
+    offhand stick. A reconnect with either deflected would start locomotion or
+    turn the scene on the first resumed edit frame. Hand bridges cannot report
+    thumbsticks, so their existing complete neutral button packet is used.
     """
     if not neutral(samples):
         return False
-    if (getattr(session, 'bridge', None) is not None or
-            getattr(getattr(session, 'settings', None), 'menu_style', 'CLASSIC') != 'RADIAL'):
+    if getattr(session, 'bridge', None) is not None:
         return True
-    snapshot = getattr(session, '_xr_validated_sticks', None)
-    if snapshot is None or session.off >= len(snapshot):
-        # This path is retained for older callers of advance_rearm only.
-        # The shared frame preflight always captures sticks *before* rearm.
-        stick = stick_axes(actions.read(context, 'stick', session.off))
-    else:
-        stick = stick_axes(snapshot[session.off])
-    return max(abs(stick[0]), abs(stick[1])) < STICK_REARM_THRESHOLD
+    sticks = getattr(session, '_xr_validated_sticks', None)
+    if sticks is None:
+        # Compatibility with direct callers; the shared frame router always
+        # populates a validated native pair before invoking advance_rearm.
+        sticks = tuple(stick_axes(actions.read(context, 'stick', i))
+                       for i in (0, 1))
+    if len(sticks) != 2:
+        raise ValueError('Both tracked thumbsticks are required to rearm')
+    if any(max(abs(axis) for axis in stick_axes(stick)) >= STICK_REARM_THRESHOLD
+           for stick in sticks):
+        return False
+    if getattr(session, 'finger_touch', False):
+        aux = getattr(session, '_xr_validated_aux', None)
+        if aux is not None and any(aux[0]):
+            # A held two-finger toggle must start a fresh HoldGesture rather
+            # than fire immediately after a tracking interruption.
+            return False
+    return True
+
+
+def stable_rearm_pose(session):
+    """Compare consecutive neutral frames in HMD-relative coordinates.
+
+    Large localization jumps may produce individually finite 'neutral' frames.
+    Never approve a reconnect from two unrelated hand placements. Direct
+    legacy callers without router snapshots retain the original rearm API.
+    """
+    poses = getattr(session, '_xr_validated_poses', None)
+    viewer = getattr(session, '_xr_validated_viewer', None)
+    if poses is None and viewer is None:
+        return True
+    if poses is None or viewer is None:
+        raise ValueError('Incomplete controller/headset rearm frame')
+    current = _head_relative_pose(poses, viewer)
+    previous = getattr(session, '_xr_rearm_pose', None)
+    session._xr_rearm_pose = current
+    if previous is None:
+        return True
+    if set(previous) != set(current):
+        return False
+    for hand, positions in current.items():
+        old_positions = previous[hand]
+        if len(positions) != len(old_positions):
+            return False
+        for xyz, old_xyz in zip(positions, old_positions):
+            if sum((a - b) ** 2 for a, b in zip(xyz, old_xyz)) > REARM_HAND_STABILITY ** 2:
+                return False
+    return True
 
 
 def advance_rearm(session, context, samples):
@@ -300,7 +341,22 @@ def advance_rearm(session, context, samples):
         return True
     if not is_neutral:
         session._xr_neutral_count = 0
-        session.status = 'RELEASE TRIGGERS, GRIPS AND RADIAL STICK'
+        session._xr_rearm_pose = None
+        session.status = 'RELEASE TRIGGERS, GRIPS, STICKS AND TOUCHES'
+        return True
+    try:
+        stable = stable_rearm_pose(session)
+    except (RuntimeError, TypeError, ValueError, IndexError, AttributeError, OverflowError):
+        from . import input_ownership_v080
+        input_ownership_v080.cancel_tracking_loss(session)
+        session._xr_neutral_count = 0
+        session.status = 'REARM TRACKING LOST / RELEASE CONTROLS'
+        return True
+    if not stable:
+        # Keep the current finite pose as the next neutral baseline; require
+        # another complete stable sample rather than accepting a pose jump.
+        session._xr_neutral_count = 0
+        session.status = 'REARM HAND TRACKING / STABILIZING'
         return True
     session._xr_neutral_count = getattr(session, '_xr_neutral_count', 0) + 1
     if session._xr_neutral_count < NEUTRAL_FRAMES:
@@ -308,6 +364,12 @@ def advance_rearm(session, context, samples):
         return True
     session._xr_neutral_count = 0
     session._xr_rearm_required = False
+    session._xr_rearm_pose = None
+    # Discard any touch hold begun before tracking was lost. After rearm, a
+    # finger-touch toggle must complete a full new hold, not inherit elapsed
+    # time from an interrupted OpenXR session.
+    for hold in (getattr(session, 'touch_holds', None) or ()):
+        hold.update(False, 0.0)
     # A snap-turn may have been armed before tracking disappeared. Reset its
     # edge state as well; the next non-neutral stick motion must be fresh.
     turning = getattr(session, 'turning', None)
