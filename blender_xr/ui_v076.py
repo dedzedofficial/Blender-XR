@@ -157,6 +157,10 @@ def _model(layout, context, settings):
         audit_row.enabled = runtime.CURRENT is None
         audit_row.operator('blender_xr.topology_audit',
                            text='Quad Topology Report', icon='MESH_DATA')
+        pair_row = layout.row(align=True)
+        pair_row.enabled = runtime.CURRENT is None
+        pair_row.operator('blender_xr.quad_pair',
+                          text='Preview Triangle Pair to Quad', icon='MESH_DATA')
         audit_row.operator('blender_xr.topology_select',
                            text='Select Non-Quads',
                            icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'
