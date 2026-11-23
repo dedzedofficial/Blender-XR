@@ -173,6 +173,28 @@ def _model(layout, context, settings):
         col.prop(settings, 'weight_brush_strength', text='Brush strength', icon='BRUSH_DATA')
         col.prop(settings, 'weight_brush_radius', text='Brush size', icon='BRUSH_DATA')
         col.prop(settings, 'weight_erase', text='Erase', icon='X')
+        # Mirror only the active VR session's sample/target state. This is
+        # diagnostic UI, not a second editor or a saved Blender datablock.
+        session = runtime.CURRENT
+        if session and obj.mode == 'WEIGHT_PAINT' and obj.vertex_groups.active:
+            group = obj.vertex_groups.active
+            try:
+                scope = (obj.name, obj.as_pointer(), obj.data.name,
+                         obj.data.as_pointer(), group.name, group.as_pointer())
+                if getattr(session, '_xr_weight_target_scope', None) == scope:
+                    value = getattr(session, '_xr_weight_target', None)
+                    if value is not None:
+                        label = ('Paint Exact' if getattr(session, 'tool', '') == 'WEIGHT_EXACT'
+                                 else 'Brush target')
+                        col.label(text='{}: {:.4f}'.format(label, value),
+                                  icon='GROUP_VERTEX')
+                sampled = getattr(session, '_xr_weight_probe', None)
+                if sampled and sampled[0] == scope:
+                    col.label(text='Sample: V{} / {:.4f}'.format(
+                        sampled[1], 0.0 if sampled[3] is None else sampled[3]),
+                        icon='EYEDROPPER')
+            except (ReferenceError, RuntimeError):
+                pass
 
     if obj and obj.type == 'ARMATURE' and obj.mode == 'OBJECT':
         _operator(col, 'blender_xr.pose_test', 'Pose', 'POSE_HLT')
