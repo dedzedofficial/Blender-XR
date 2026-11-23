@@ -16,6 +16,7 @@ from . import armature_v076, menus
 # hit the same unmodified mesh. Edit Mode cannot change topology during a
 # Weight Paint stroke. A small TTL bounds stale vertex-position risk.
 _WEIGHT_SPATIAL_CACHE = {'key': None, 'tree': None, 'expires': 0.0}
+_WEIGHT_NEIGHBOURS_CACHE = {'key': None, 'data': None, 'expires': 0.0}
 
 
 def cached_weight_tree(obj):
@@ -32,6 +33,30 @@ def cached_weight_tree(obj):
     tree.balance()
     cache.update(key=key, tree=tree, expires=now + 0.20)
     return tree
+
+
+def cached_weight_neighbours(obj):
+    """Short-lived native mesh edge adjacency for one Smooth stroke sample.
+
+    No geometry or attributes are created. The cache is bounded by the same
+    short lifetime as the weight spatial tree and invalidated on topology
+    counts or Blender datablock changes.
+    """
+    data = obj.data
+    key = (data.as_pointer(), len(data.vertices), len(data.edges))
+    now = time.monotonic()
+    cache = _WEIGHT_NEIGHBOURS_CACHE
+    if cache['key'] == key and cache['data'] is not None and now < cache['expires']:
+        return cache['data']
+    neighbours = [set() for _ in range(len(data.vertices))]
+    for edge in data.edges:
+        left, right = tuple(edge.vertices)
+        if 0 <= left < len(neighbours) and 0 <= right < len(neighbours):
+            neighbours[left].add(right)
+            neighbours[right].add(left)
+    result = tuple(tuple(sorted(group)) for group in neighbours)
+    cache.update(key=key, data=result, expires=now + .20)
+    return result
 
 
 WEIGHT_PAGE = (
@@ -52,7 +77,7 @@ WEIGHT_PRECISION_PAGE = (
     ('TARGET 0', 'WEIGHT_TARGET_ZERO'), ('TARGET .5', 'WEIGHT_TARGET_HALF'),
     ('TARGET 1', 'WEIGHT_TARGET_FULL'), ('TARGET -', 'WEIGHT_TARGET_DOWN'),
     ('TARGET +', 'WEIGHT_TARGET_UP'), ('RESET', 'WEIGHT_TARGET_CLEAR'),
-    ('BACK', 'BACK'),
+    ('SMOOTH', 'WEIGHT_SMOOTH'), ('BACK', 'BACK'),
 )
 
 PARENT_PAGE = (
@@ -614,7 +639,7 @@ def _paint_weight_index(group, index, value, recorder=None):
 
 
 def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=False,
-                   recorder=None, target_weight=None, exact=False):
+                   recorder=None, target_weight=None, exact=False, smooth=False):
     """Paint real Blender vertex-group assignments from a controller ray.
 
     The legacy Paint and Erase modes behave as before. An explicitly selected
@@ -641,6 +666,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
         target = 1.0
     if exact and target_weight is None:
         raise ValueError('Choose a target weight before using Paint Exact')
+    if smooth and (exact or erase):
+        raise ValueError('Smooth must use its own native brush mode')
     radius = float(radius)
     strength = float(strength)
     if (not math.isfinite(radius) or radius <= 0.0 or
@@ -654,6 +681,50 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
     if not verts:
         return 0
     tree = cached_weight_tree(obj)
+    if smooth:
+        # Plan every dab from one snapshot so smoothing does not depend on
+        # vertex iteration order. Touch only the vertices inside the brush,
+        # and never replace unrelated groups or other native mesh data.
+        world_point = obj.matrix_world @ local_point
+        scale = max(1e-6, min(abs(v) for v in obj.matrix_world.to_scale()))
+        search_radius = radius / scale
+        choices = []
+        for _co, index, _dist in tree.find_range(local_point, search_radius):
+            falloff = 1.0 - (obj.matrix_world @ verts[index].co - world_point).length / radius
+            if falloff > 0:
+                choices.append((index, falloff))
+            if len(choices) >= 256:
+                break
+        if not choices:
+            nearest = tree.find(local_point)
+            if nearest:
+                _co, index, _dist = nearest
+                if ((obj.matrix_world @ verts[index].co - world_point).length
+                        <= max(radius * 3.0, .025)):
+                    choices.append((index, .5))
+        if not choices:
+            return 0
+        neighbours = cached_weight_neighbours(obj)
+        ids = {idx for idx, _falloff in choices}
+        for index, _falloff in choices:
+            ids.update(neighbours[index])
+        weights = {idx: _vertex_weight(group, idx) for idx in ids}
+        changed = 0
+        for index, falloff in choices:
+            adjacent = neighbours[index]
+            if not adjacent:
+                continue  # Loose vertices have no topology to smooth.
+            current = weights[index] or 0.0
+            average = sum(weights[other] or 0.0 for other in adjacent) / len(adjacent)
+            influence = min(1.0, max(0.0, strength * falloff))
+            value = max(0.0, min(1.0, current + (average - current) * influence))
+            if _paint_weight_index(group, index, None if value <= 1e-8 else value,
+                                   recorder=recorder):
+                changed += 1
+        if changed:
+            obj.data.update()
+            bpy.context.view_layer.update()
+        return changed
     if exact:
         nearest = tree.find(local_point)
         if nearest is None:
@@ -926,13 +997,15 @@ def patch_runtime(Runtime):
         try:
             if not stroke.unchanged_target(self.context):
                 raise ValueError('Weight group or painted object changed during stroke')
-            target = (None if self.settings.weight_erase
+            target = (None if self.settings.weight_erase or
+                      self.tool == 'WEIGHT_SMOOTH'
                       else get_weight_target(self, obj))
             return paint_vertices(
                 obj, origin, direction, self.settings.weight_brush_radius,
                 self.settings.weight_brush_strength, self.settings.weight_erase,
                 recorder=stroke, target_weight=target,
-                exact=(self.tool == 'WEIGHT_EXACT'))
+                exact=(self.tool == 'WEIGHT_EXACT'),
+                smooth=(self.tool == 'WEIGHT_SMOOTH'))
         except Exception:
             # A brush dab can fail after modifying an earlier vertex; keep
             # its before-values until cancellation has attempted rollback.
@@ -1134,6 +1207,14 @@ def patch_runtime(Runtime):
             self.tool = 'WEIGHT_BRUSH'
             self.status = 'WEIGHT TARGET CLEARED / NORMAL PAINT'
             return
+        if action == 'WEIGHT_SMOOTH':
+            obj, group, _scope = _weight_target_context(context)
+            if group.lock_weight:
+                raise ValueError('Unlock the vertex group before smoothing')
+            self.tool = 'WEIGHT_SMOOTH'
+            self.settings.weight_erase = False
+            self.status = 'SMOOTH WEIGHTS / HOLD TRIGGER / ' + group.name.upper()
+            return
         if action == 'WEIGHT_EXACT':
             obj, group, scope = _weight_target_context(context)
             value = get_weight_target(self, obj)
@@ -1248,12 +1329,13 @@ def patch_runtime(Runtime):
                     self.status = '{} / V{} = {:.4f} / USE SAMPLE'.format(
                         name.upper(), index, weight)
                 return
-            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}:
-                raise ValueError('Use Paint, Erase or Probe from the weight menu')
+            if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT', 'WEIGHT_SMOOTH'}:
+                raise ValueError('Use Paint, Erase, Smooth or Probe from the weight menu')
             changes = stroke_sample(self, obj, origin,
                                     rotation @ Vector((0, 0, -1)))
             self._weight_last_sample = time.monotonic()
-            label = ('EXACT' if self.tool == 'WEIGHT_EXACT' else
+            label = ('SMOOTHED' if self.tool == 'WEIGHT_SMOOTH' else
+                     'EXACT' if self.tool == 'WEIGHT_EXACT' else
                      'ERASED' if self.settings.weight_erase else 'PAINTED')
             self.status = '{} {} VERTS / {}'.format(
                 label, changes, active_group(obj).name.upper())
@@ -1285,7 +1367,7 @@ def patch_runtime(Runtime):
                 except (ValueError, ReferenceError):
                     clear_weight_target(self)
             if self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_SAMPLE', 'WEIGHT_EXACT',
-                                  'WEIGHT_PICK_BONE'}:
+                                  'WEIGHT_PICK_BONE', 'WEIGHT_SMOOTH'}:
                 self.tool = 'WEIGHT_BRUSH'
             if self.menu.page not in {'WEIGHT_PAINT', 'WEIGHT_PRECISION', 'MODE_SELECT'}:
                 self.menu.page = 'WEIGHT_PAINT'
@@ -1296,20 +1378,22 @@ def patch_runtime(Runtime):
         obj = context.view_layer.objects.active if hasattr(context, 'view_layer') else None
         stroke = getattr(self, '_weight_stroke', None)
         if stroke is not None and (not self.trigger.down or
-                                   self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}):
-            if self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}:
+                                   self.tool not in {'WEIGHT_BRUSH', 'WEIGHT_EXACT',
+                                                     'WEIGHT_SMOOTH'}):
+            if self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT', 'WEIGHT_SMOOTH'}:
                 commit_stroke(self)
             else:
                 cancel_stroke(self)
         if (obj and obj.type == 'MESH' and obj.mode == 'WEIGHT_PAINT'
-                and self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT'}
+                and self.tool in {'WEIGHT_BRUSH', 'WEIGHT_EXACT', 'WEIGHT_SMOOTH'}
                 and self.trigger.down and not self.hover and self.ray):
             now = time.monotonic()
             if now - getattr(self, '_weight_last_sample', 0.0) >= 0.045:
                 origin, direction = self.ray
                 count = stroke_sample(self, obj, origin, direction)
                 self._weight_last_sample = now
-                label = ('EXACT ' if self.tool == 'WEIGHT_EXACT' else
+                label = ('SMOOTH ' if self.tool == 'WEIGHT_SMOOTH' else
+                         'EXACT ' if self.tool == 'WEIGHT_EXACT' else
                          'ERASE ' if self.settings.weight_erase else 'PAINT ')
                 self.status = (label + active_group(obj).name.upper() + ' / ' +
                                (str(count) + ' VERTICES' if count else

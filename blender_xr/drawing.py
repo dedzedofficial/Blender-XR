@@ -194,6 +194,7 @@ _ICON_BY_ACTION = {
     'BONE_POSE_RESET_ALL': 'undo',
     'WEIGHT_BRUSH': 'brush_data', 'WEIGHT_ERASE': 'delete',
     'WEIGHT_SAMPLE': 'brush_data', 'WEIGHT_PICK_BONE': 'armature_data',
+    'WEIGHT_SMOOTH': 'brush_data',
     'WEIGHT_PRECISION_MENU': 'mod_vertex_weight',
     'WEIGHT_USE_SAMPLE': 'brush_data', 'WEIGHT_EXACT': 'mod_vertex_weight',
     'WEIGHT_TARGET_ZERO': 'mod_vertex_weight',
