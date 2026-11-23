@@ -11,7 +11,8 @@ import math
 
 from mathutils import Vector
 
-from . import input_ownership_v080, menus, mesh, selection, v065
+from . import (input_ownership_v080, menus, mesh, mesh_selection_tools_v086,
+               selection, v065)
 
 _PAGE = 'XR_MESH_SNAP_086'
 _ACTIONS = {
@@ -101,6 +102,40 @@ def _plan(context, obj, operation, size):
     return after if moved else None
 
 
+def _native_selection_stamp(context, obj, operation):
+    """Fingerprint the native edit targets before a guarded snap transaction.
+
+    Capture topology/visibility, selected element IDs, implied target vertex
+    coordinates and world transform. A target cursor is a live reference, so
+    cursor movement also expires the planned snap. No Blender data is changed.
+    """
+    mode = selection.mode(context)
+    bm, elements = mesh_selection_tools_v086._current(obj, mode)
+    selected = tuple(mesh_selection_tools_v086._selected(elements))
+    targets = tuple(sorted(mesh.selected_transform_vertices(obj, mode),
+                           key=lambda vertex: vertex.index))
+    if not targets:
+        raise ValueError('Select native geometry before snapping')
+    if any(not v.is_valid or v.hide for v in targets):
+        raise ValueError('Snap targets are hidden or invalid')
+    points = tuple((int(v.index), tuple(float(component) for component in v.co))
+                   for v in targets)
+    matrix = tuple(tuple(float(value) for value in row)
+                   for row in obj.matrix_world)
+    cursor = (tuple(float(value) for value in context.scene.cursor.location)
+              if operation == 'CENTER_CURSOR' else None)
+    if (not all(math.isfinite(c) for _idx, point in points for c in point) or
+            not all(math.isfinite(c) for row in matrix for c in row) or
+            (cursor is not None and not all(math.isfinite(c) for c in cursor))):
+        raise ValueError('Snap targets or reference contain non-finite values')
+    return (
+        context.scene.as_pointer(), context.view_layer.name,
+        obj.as_pointer(), obj.data.as_pointer(), mode,
+        mesh_selection_tools_v086._topology(bm),
+        selected, points, matrix, cursor,
+    )
+
+
 def _apply(session, context, action):
     if input_ownership_v080.is_editing(session):
         raise ValueError('Release the active XR gesture before snapping')
@@ -112,20 +147,32 @@ def _apply(session, context, action):
     if not math.isfinite(step) or not 0.0001 <= step <= 10.0:
         raise ValueError('Set a valid tool step to use grid snapping')
     operation = _ACTIONS[action]
+    before = _native_selection_stamp(context, obj, operation)
     plan = _plan(context, obj, operation, step)
     if not plan:
         session.status = 'SNAP / ALREADY ALIGNED / NO CHANGE'
         return False
 
     def mutate():
+        # Preflight the entire current native edit cage before the first
+        # coordinate write. Index-only checks are insufficient when Blender
+        # edits or Undo reuse an index with different geometry/selection.
+        if _eligible(context) != obj or _native_selection_stamp(
+                context, obj, operation) != before:
+            raise ValueError('Native mesh, selection or snap reference changed')
         bm = mesh.editable(obj)
         bm.verts.ensure_lookup_table()
-        # Reject stale or hidden targets before editing any vertex.
-        for idx in plan:
-            if idx < 0 or idx >= len(bm.verts) or not bm.verts[idx].is_valid or bm.verts[idx].hide:
-                raise ValueError('Mesh selection changed; snap again')
-        for idx, target in plan.items():
-            bm.verts[idx].co = target
+        expected = tuple(idx for idx, _point in before[7])
+        if tuple(sorted(plan)) != expected:
+            raise ValueError('Snap targets changed before commit')
+        for idx in expected:
+            target = plan[idx]
+            if (idx < 0 or idx >= len(bm.verts) or
+                    not bm.verts[idx].is_valid or bm.verts[idx].hide or
+                    not all(math.isfinite(float(v)) for v in target)):
+                raise ValueError('Snap target is no longer valid')
+        for idx in expected:
+            bm.verts[idx].co = plan[idx]
 
     mesh.snapshot_and_push(obj, mutate, session.history)
     session._xr_precision_last_ray = None
