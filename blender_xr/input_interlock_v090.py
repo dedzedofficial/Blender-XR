@@ -29,6 +29,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_QUAD_PLANARIZE_CONFIRM_090': 'XR_QUAD_PLANARIZE_090',
     'XR_QUAD_RELAX_CONFIRM_090': 'XR_QUAD_RELAX_090',
     'XR_UV_MATCH_CONFIRM_090': 'XR_UV_MATCH_DENSITY_090',
+    'XR_UV_ORIENT_CONFIRM_090': 'XR_UV_ORIENT_090',
     'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
     'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
@@ -59,6 +60,8 @@ def expire_pending_approvals(session):
         '_xr_quad_flat_pending',
         '_xr_quad_relax_pending',
         '_xr_uv_match_pending',
+        '_xr_uv_orient_pending',
+        '_xr_uv_orient_action',
         '_xr_numeric_move_state',
         # Saved ray hits cannot be reused after tracking/session loss.
         '_xr_precision_last_ray',
