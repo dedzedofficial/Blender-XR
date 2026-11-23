@@ -181,6 +181,14 @@ def _model(layout, context, settings):
                             icon='MOD_MIRROR').action = 'XR_SHAPE_MIRROR_NEG_POS'
         deform_row.operator('blender_xr.shape_deform', text='+X to -X',
                             icon='MOD_MIRROR').action = 'XR_SHAPE_MIRROR_POS_NEG'
+        shape_keyframe_row = layout.row(align=True)
+        shape_keyframe_row.enabled = shape_row.enabled
+        shape_keyframe_row.operator('blender_xr.shape_keyframe', text='Key Current',
+                                    icon='KEY_HLT').action = 'XR_SHAPE_KEY_CURRENT'
+        shape_keyframe_row.operator('blender_xr.shape_keyframe', text='Key 0',
+                                    icon='DECORATE_KEYFRAME').action = 'XR_SHAPE_KEY_0'
+        shape_keyframe_row.operator('blender_xr.shape_keyframe', text='Key 1',
+                                    icon='DECORATE_KEYFRAME').action = 'XR_SHAPE_KEY_1'
     else:
         layout.label(text='No editable non-Basis key on active mesh', icon='INFO')
 
