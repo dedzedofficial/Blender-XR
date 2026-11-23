@@ -26,6 +26,7 @@ def patch_runtime(Runtime):
         self._xr_validated_aux = None
         self._xr_motion_sample = None
         self._xr_rearm_pose = None
+        self._xr_rearm_rotations = None
         self.radial_supported = True
         self._xr_neutral_count = 0
         # A fresh runtime instance is the only safe reset for a failed
@@ -100,6 +101,7 @@ def patch_runtime(Runtime):
                 self._xr_rearm_required = True
                 self._xr_neutral_count = 0
                 self._xr_rearm_pose = None
+                self._xr_rearm_rotations = None
                 input_ownership_v080.reset_touch_holds(self)
                 self.status = 'MENU MODE CHANGED / RELEASE CONTROLS'
                 return
