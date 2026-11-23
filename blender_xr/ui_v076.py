@@ -215,6 +215,12 @@ def _model(layout, context, settings):
         uv_row.operator('blender_xr.uv_island_select',
                         text='Select Active Island', icon='UV').action = (
                             'XR_UV_ISLAND_SELECT_ACTIVE')
+        density_row = layout.row(align=True)
+        density_row.enabled = runtime.CURRENT is None
+        density_row.operator('blender_xr.uv_density_report',
+                             text='UV Density Report', icon='UV')
+        density_row.operator('blender_xr.uv_density_select',
+                             text='Select UV Problems', icon='RESTRICT_SELECT_OFF')
 
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
