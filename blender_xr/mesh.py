@@ -365,6 +365,25 @@ def apply_tool(obj, tool, amount, segments=2, axis=None, mode=None):
     update(obj)
 
 
+class MeshRollbackFailure(RuntimeError):
+    """A failed native mesh restore requires reviewing the scene and restarting XR."""
+
+
+def _dispose_temporary_meshes(*data_blocks):
+    """Only dispose our owned Blender Mesh datablocks, even after a failed edit."""
+    for data in data_blocks:
+        if data is None:
+            continue
+        try:
+            if bpy.data.meshes.get(data.name) == data:
+                bpy.data.meshes.remove(data)
+        except Exception:
+            # Cleanup errors cannot overwrite a more important edit/restore
+            # exception, but remain visible in Blender's Python console.
+            import traceback
+            traceback.print_exc()
+
+
 def _snapshot_operation(obj, callback):
     """Run one native edit-mesh transaction with owned snapshot cleanup.
 
@@ -383,17 +402,17 @@ def _snapshot_operation(obj, callback):
         after = snapshot(obj)
         return ('MESH', obj.name, obj.data.name, before, after)
     except BaseException:
+        restore_error = None
         try:
             restore(obj, before)
-        except Exception:
-            # Keep the original mutation error; a failed restore is still
-            # observable in Blender's traceback and requires session reset.
-            import traceback
-            traceback.print_exc()
+        except Exception as exc:
+            restore_error = exc
         finally:
-            for temporary in (after, before):
-                if temporary is not None and temporary.name in bpy.data.meshes:
-                    bpy.data.meshes.remove(temporary)
+            _dispose_temporary_meshes(after, before)
+        if restore_error is not None:
+            raise MeshRollbackFailure(
+                'Native mesh restore FAILED; review the Blender scene and restart XR'
+            ) from restore_error
         raise
 
 
@@ -404,19 +423,29 @@ def snapshot_and_push(obj, callback, history):
     If so, restore the original edit mesh and release both snapshots rather
     than leaving an untracked edit or leaking Blender mesh datablocks.
     """
-    entry = _snapshot_operation(obj, callback)
+    if getattr(history, '_xr_mesh_rollback_blocked', False):
+        raise MeshRollbackFailure(
+            'Previous mesh restore failed; review Blender and restart XR')
+    try:
+        entry = _snapshot_operation(obj, callback)
+    except MeshRollbackFailure:
+        history._xr_mesh_rollback_blocked = True
+        raise
     try:
         history.push(entry)
     except BaseException:
+        restore_error = None
         try:
             restore(obj, entry[3])
-        except Exception:
-            import traceback
-            traceback.print_exc()
+        except Exception as exc:
+            restore_error = exc
         finally:
-            for temporary in entry[3:5]:
-                if temporary is not None and temporary.name in bpy.data.meshes:
-                    bpy.data.meshes.remove(temporary)
+            _dispose_temporary_meshes(*entry[3:5])
+        if restore_error is not None:
+            history._xr_mesh_rollback_blocked = True
+            raise MeshRollbackFailure(
+                'Failed to restore mesh after history error; restart XR'
+            ) from restore_error
         raise
     return entry
 
@@ -550,25 +579,64 @@ class History:
     def __init__(self):
         self.undo = []
         self.redo = []
+        # A failed Blender ID cleanup must never make an active Undo entry
+        # point at an already removed native snapshot. Retry stale removals
+        # on later pushes and on clear(), outside both live history stacks.
+        self._cleanup_pending = []
+        self._xr_mesh_rollback_blocked = False
 
     @staticmethod
     def release(entry):
         if entry[0] == 'MESH':
             for mesh_data in entry[3:5]:
-                if mesh_data and mesh_data.name in bpy.data.meshes:
-                    bpy.data.meshes.remove(mesh_data)
+                if mesh_data is None:
+                    continue
+                try:
+                    # Names can be reused by Blender. Remove only the *same*
+                    # owned temporary ID, never another mesh with that name.
+                    if bpy.data.meshes.get(mesh_data.name) == mesh_data:
+                        bpy.data.meshes.remove(mesh_data)
+                except ReferenceError:
+                    # Blender can already have disposed the temporary ID;
+                    # deletion is idempotent in this case.
+                    continue
         elif entry[0] == 'CREATE':
-            bpy.data.meshes.remove(entry[3])
+            mesh_data = entry[3]
+            try:
+                if bpy.data.meshes.get(mesh_data.name) == mesh_data:
+                    bpy.data.meshes.remove(mesh_data)
+            except ReferenceError:
+                pass
+
+    def _dispose_stale(self, entries):
+        pending = self._cleanup_pending
+        self._cleanup_pending = []
+        for old in (*pending, *entries):
+            try:
+                self.release(old)
+            except Exception:
+                # A stale ID cleanup failure is not an edit/history failure.
+                # Keep that record for a later retry without leaving its
+                # snapshot reachable from the live Undo/Redo stacks.
+                self._cleanup_pending.append(old)
+                try:
+                    import traceback
+                    traceback.print_exc()
+                except Exception:
+                    pass
 
     def push(self, entry):
         if not entry:
             return
-        for old in self.redo:
-            self.release(old)
+        # Calculate the new history first, before touching any existing
+        # native Mesh datablocks. Commit BOTH stacks together. Releasing
+        # removed redo/oldest Undo snapshots is strictly post-commit and
+        # cannot raise into the caller's mesh.snapshot_and_push rollback.
+        pending_undo = self.undo + [entry]
+        removed = tuple(self.redo) + tuple(pending_undo[:-20])
+        self.undo[:] = pending_undo[-20:]
         self.redo.clear()
-        self.undo.append(entry)
-        while len(self.undo) > 20:
-            self.release(self.undo.pop(0))
+        self._dispose_stale(removed)
 
     def step(self, backwards=True):
         source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
@@ -644,7 +712,10 @@ class History:
         return True
 
     def clear(self):
-        for entry in self.undo + self.redo:
-            self.release(entry)
+        # Dispose history once it is no longer reachable by an active Undo
+        # operation. A failing Blender ID deletion is retained for cleanup
+        # retry, rather than short-circuiting halfway through the stacks.
+        stale = tuple(self.undo) + tuple(self.redo)
         self.undo.clear()
         self.redo.clear()
+        self._dispose_stale(stale)

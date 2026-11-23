@@ -41,7 +41,10 @@ def patch_runtime(Runtime):
         self._xr_validated_controls = None
         self._xr_validated_poses = None
         self._xr_validated_sticks = None
-        if getattr(self, '_xr_rollback_blocked', False):
+        if (getattr(self, '_xr_rollback_blocked', False) or
+                getattr(getattr(self, 'history', None),
+                        '_xr_mesh_rollback_blocked', False)):
+            self._xr_rollback_blocked = True
             self._xr_rearm_required = True
             self.status = 'XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
             return
