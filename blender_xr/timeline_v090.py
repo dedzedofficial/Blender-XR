@@ -43,6 +43,9 @@ def jump_frame(context, target, history=None):
     guarded Undo/Redo entry instead of maintaining a parallel timeline.
     """
     scene = _scene(context)
+    window = getattr(context, 'window', None)
+    if window is not None and window.screen.is_animation_playing:
+        raise ValueError('Pause Blender playback before manually stepping frames')
     start, end = _frame_limits(scene)
     value = int(target)
     if value < start or value > end:
