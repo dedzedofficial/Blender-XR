@@ -64,6 +64,9 @@ def _face_candidates(obj, origin, direction, through):
     bm.faces.index_update()
     vertices = tuple(v for v in bm.verts if v.is_valid)
     positions = {vertex: i for i, vertex in enumerate(vertices)}
+    if any(not all(math.isfinite(float(x)) for x in vertex.co)
+           for vertex in vertices):
+        raise ValueError('Native face selection requires finite edit coordinates')
     faces = tuple(
         face for face in bm.faces
         if (face.is_valid and not face.hide and len(face.verts) >= 3 and
@@ -94,6 +97,8 @@ def _face_candidates(obj, origin, direction, through):
             source + local_direction * progress, local_direction)
         if local_hit is None or polygon_index is None:
             break
+        if not 0 <= polygon_index < len(faces):
+            raise ValueError('Native face BVH returned an invalid polygon index')
         face = faces[polygon_index]
         local_depth = (local_hit - source).dot(local_direction)
         world_hit = obj.matrix_world @ local_hit
@@ -108,7 +113,9 @@ def _face_candidates(obj, origin, direction, through):
                 break
         # In local edit-mesh units, advance slightly beyond the last hit.
         # Ensure strict progress even if the BVH returns a repeated polygon.
-        epsilon = max(1e-7, abs(local_depth) * 1e-7)
+        # Limit the step to local precision rather than controller distance;
+        # very small overlapping surfaces can remain independently selectable.
+        epsilon = max(1e-8, abs(local_depth) * 1e-8)
         next_progress = max(progress + epsilon, local_depth + epsilon)
         if not math.isfinite(next_progress):
             raise ValueError('Native face ray exceeded safe traversal range')
