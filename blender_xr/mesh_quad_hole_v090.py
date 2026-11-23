@@ -124,9 +124,18 @@ def plan(context):
     obj, bm, edges, picked = _eligible(context)
     ring = _choose_orientation(_cycle(picked), picked)
     _geometry(ring)
-    if any(set(face.verts) == set(ring) for face in bm.faces
-           if len(face.verts) == 4):
-        raise ValueError('A native quad already occupies the chosen four vertices')
+    # Do not cap a boundary already covered by native triangles/ngons. A
+    # second coincident surface is especially dangerous in VR: it looks
+    # correct from one side but causes z-fighting and non-manifold topology.
+    # This catches triangulated four-corner holes as well as existing quads.
+    ring_set = set(ring)
+    if any(set(face.verts).issubset(ring_set) for face in bm.faces):
+        raise ValueError('Existing faces already occupy this four-corner region')
+    # An internal diagonal, even without faces, would be buried beneath the
+    # new quad. Refuse it instead of silently making a hidden wire edge.
+    for edge in bm.edges:
+        if edge not in picked and set(edge.verts).issubset(ring_set):
+            raise ValueError('An existing diagonal crosses the proposed quad')
     neighbors = set(face for edge in picked for face in edge.link_faces)
     material_state = {(face.material_index, bool(face.smooth))
                       for face in neighbors}
@@ -178,6 +187,10 @@ def _verify(context, previous):
 def _mutate(context, proposal):
     obj, bm, ring = _verify(context, proposal)
     created = bm.faces.new(ring)
+    # Reject an unexpected Blender BMesh result before committing the
+    # transaction. snapshot_and_push owns restoration on any failure.
+    if not created.is_valid or set(created.verts) != set(ring):
+        raise ValueError('Blender returned an unexpected native quad')
     created.material_index = proposal['material']
     created.smooth = proposal['smooth']
     created.select_set(True)
