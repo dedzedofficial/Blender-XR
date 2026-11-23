@@ -173,6 +173,13 @@ def _model(layout, context, settings):
         col.prop(settings, 'weight_brush_strength', text='Brush strength', icon='BRUSH_DATA')
         col.prop(settings, 'weight_brush_radius', text='Brush size', icon='BRUSH_DATA')
         col.prop(settings, 'weight_erase', text='Erase', icon='X')
+        col.prop(settings, 'weight_mirror_tolerance', text='X match tolerance', icon='MOD_MIRROR')
+        mirror_row = col.row(align=True)
+        mirror_row.enabled = (obj.mode == 'WEIGHT_PAINT' and runtime.CURRENT is None)
+        mirror_row.operator('blender_xr.weight_mirror_x', text='-X to +X',
+                            icon='MOD_MIRROR').direction = 'NEG_POS'
+        mirror_row.operator('blender_xr.weight_mirror_x', text='+X to -X',
+                            icon='MOD_MIRROR').direction = 'POS_NEG'
         # Mirror only the active VR session's sample/target state. This is
         # diagnostic UI, not a second editor or a saved Blender datablock.
         session = runtime.CURRENT
