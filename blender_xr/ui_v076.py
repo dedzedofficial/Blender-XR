@@ -133,6 +133,12 @@ def _model(layout, context, settings):
                           icon='BACK').action = 'XR_TIME_PREV'
     timeline_row.operator('blender_xr.timeline_step', text='+1',
                           icon='FORWARD').action = 'XR_TIME_NEXT'
+    marker_row = layout.row(align=True)
+    marker_row.enabled = runtime.CURRENT is None
+    marker_row.operator('blender_xr.timeline_marker', text='Add Marker',
+                        icon='ADD').action = 'XR_MARKER_ADD'
+    marker_row.operator('blender_xr.timeline_marker', text='Remove XR',
+                        icon='REMOVE').action = 'XR_MARKER_REMOVE'
 
     layout.separator()
     _header(layout, 'Shape Keys', 'SHAPEKEY_DATA')
