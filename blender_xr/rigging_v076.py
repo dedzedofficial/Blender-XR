@@ -39,7 +39,20 @@ WEIGHT_PAGE = (
     ('GROUP -', 'WEIGHT_GROUP_PREV'), ('GROUP +', 'WEIGHT_GROUP_NEXT'),
     ('WEIGHT -', 'WEIGHT_STRENGTH_DOWN'), ('WEIGHT +', 'WEIGHT_STRENGTH_UP'),
     ('SIZE -', 'WEIGHT_RADIUS_DOWN'), ('SIZE +', 'WEIGHT_RADIUS_UP'),
-    ('PROBE', 'WEIGHT_SAMPLE'), ('DONE', 'RIG_EXIT_PAINT'),
+    ('PROBE', 'WEIGHT_SAMPLE'), ('PRECISION', 'WEIGHT_PRECISION_MENU'),
+    ('DONE', 'RIG_EXIT_PAINT'),
+)
+
+# Existing ten-entry weight page stays accessible; the precision submenu
+# keeps both the classic 12-cell menu and the eight-wedge radial pagination
+# within their supported capacities. No new top-level workspace is created.
+WEIGHT_PRECISION_PAGE = (
+    ('PROBE', 'WEIGHT_SAMPLE'), ('USE SAMPLE', 'WEIGHT_USE_SAMPLE'),
+    ('PAINT TARGET', 'WEIGHT_BRUSH'), ('PAINT EXACT', 'WEIGHT_EXACT'),
+    ('TARGET 0', 'WEIGHT_TARGET_ZERO'), ('TARGET .5', 'WEIGHT_TARGET_HALF'),
+    ('TARGET 1', 'WEIGHT_TARGET_FULL'), ('TARGET -', 'WEIGHT_TARGET_DOWN'),
+    ('TARGET +', 'WEIGHT_TARGET_UP'), ('RESET', 'WEIGHT_TARGET_CLEAR'),
+    ('BACK', 'BACK'),
 )
 
 PARENT_PAGE = (
@@ -69,8 +82,10 @@ def install_pages():
     )
     menus.PAGES['PARENT_RIG'] = PARENT_PAGE
     menus.PAGES['WEIGHT_PAINT'] = WEIGHT_PAGE
+    menus.PAGES['WEIGHT_PRECISION'] = WEIGHT_PRECISION_PAGE
     menus.TITLES['PARENT_RIG'] = 'PARENT TO ARMATURE'
     menus.TITLES['WEIGHT_PAINT'] = 'WEIGHT PAINT MODE'
+    menus.TITLES['WEIGHT_PRECISION'] = 'WEIGHT PRECISION'
 
 
 def _valid(context, obj, kind):
