@@ -668,7 +668,14 @@ def reset_pose_with_history(session, context, all_bones=False):
         chosen = [active] if active else []
     if not chosen:
         raise ValueError('Select one or more pose bones to reset')
-    chosen.sort(key=lambda bone: len(bone.parent_recursive))
+    def bone_depth(bone):
+        depth = 0
+        parent = bone.parent
+        while parent is not None:
+            depth += 1
+            parent = parent.parent
+        return depth
+    chosen.sort(key=bone_depth)
     for bone in chosen:
         if (bone.constraints or bone.bone.hide or bone.bone.hide_select or
                 any(bone.lock_rotation) or any(bone.lock_location) or
