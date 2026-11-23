@@ -110,6 +110,28 @@ def _model(layout, context, settings):
     row.prop(settings, 'primitive_size', text='Shape', icon='MESH_CUBE')
     row.prop(settings, 'placement_distance', text='Distance', icon='ORIENTATION_VIEW')
 
+    if context.mode == 'EDIT_MESH':
+        _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
+        obj = context.view_layer.objects.active
+        if obj and obj.type == 'MESH':
+            mode = ('VERT' if context.tool_settings.mesh_select_mode[0]
+                    else 'EDGE' if context.tool_settings.mesh_select_mode[1]
+                    else 'FACE')
+            similar = {
+                'VERT': (('Valence', 'XR_SIM_VERT_VALENCE'),),
+                'EDGE': (('Length', 'XR_SIM_EDGE_LENGTH'),
+                         ('Seam', 'XR_SIM_EDGE_SEAM'),
+                         ('Sharp', 'XR_SIM_EDGE_SHARP')),
+                'FACE': (('Area', 'XR_SIM_FACE_AREA'),
+                         ('Normal', 'XR_SIM_FACE_NORMAL'),
+                         ('Sides', 'XR_SIM_FACE_SIDES')),
+            }
+            similar_row = layout.row(align=True)
+            similar_row.enabled = runtime.CURRENT is None
+            for label, action in similar[mode]:
+                similar_row.operator('blender_xr.select_similar', text=label,
+                                     icon='RESTRICT_SELECT_OFF').operation = action
+
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
     row = layout.row(align=True)
