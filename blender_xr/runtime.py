@@ -693,8 +693,20 @@ class Runtime:
         # frame. Invalid headset scale/position must not reach mesh tools.
         from . import input_safety_v086
         try:
-            viewer, scale = input_safety_v086.viewer_frame(state)
-            viewer_rotation = input_safety_v086.viewer_orientation(state)
+            viewer_snapshot = getattr(self, '_xr_validated_viewer', None)
+            if validated_poses is not None:
+                if viewer_snapshot is None:
+                    # Never mix routed controller poses with a later HMD read.
+                    raise ValueError('Validated headset frame is missing')
+                viewer, scale, viewer_rotation = viewer_snapshot
+            elif viewer_snapshot is not None:
+                # An orphaned viewer cache must not be used by a standalone
+                # legacy caller with a different controller sample.
+                raise ValueError('Orphaned headset frame without controllers')
+            else:
+                # Standalone legacy Blender integrations can still tick the
+                # runtime directly, but must validate the entire HMD frame.
+                viewer, scale, viewer_rotation = input_safety_v086.headset_frame(state)
         except (ValueError, RuntimeError, TypeError, AttributeError, OverflowError):
             from . import input_ownership_v080
             input_ownership_v080.cancel_tracking_loss(self)
