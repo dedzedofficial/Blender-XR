@@ -201,6 +201,14 @@ def _model(layout, context, settings):
         relax_row.enabled = runtime.CURRENT is None
         relax_row.operator('blender_xr.quad_relax',
                            text='Preview Interior Quad Relax', icon='MESH_DATA')
+        pole_row = layout.row(align=True)
+        pole_row.enabled = runtime.CURRENT is None
+        pole_row.operator('blender_xr.quad_pole_report',
+                          text='Quad Pole Report', icon='MESH_DATA')
+        if context.tool_settings.mesh_select_mode[0]:
+            pole_row.operator('blender_xr.quad_pole_select',
+                              text='Select Quad Poles',
+                              icon='RESTRICT_SELECT_OFF')
         audit_row.operator('blender_xr.topology_select',
                            text='Select Non-Quads',
                            icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'
