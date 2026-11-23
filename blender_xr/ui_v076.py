@@ -111,6 +111,13 @@ def _model(layout, context, settings):
     row.prop(settings, 'placement_distance', text='Distance', icon='ORIENTATION_VIEW')
 
     if context.mode == 'EDIT_MESH':
+        _header(layout, 'Rigid Axis Snap to 3D Cursor', 'SNAP_ON')
+        axis_row = layout.row(align=True)
+        axis_row.enabled = runtime.CURRENT is None
+        for axis in 'XYZ':
+            axis_row.operator('blender_xr.snap_axis_center',
+                              text='Cursor ' + axis, icon='SNAP_ON').action = (
+                                  'XR_SNAP_CURSOR_' + axis)
         _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH':
