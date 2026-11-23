@@ -249,6 +249,14 @@ def _model(layout, context, settings):
                            text='UV Snap 512px', icon='UV').resolution = '512'
         texel_row.operator('blender_xr.uv_texel_snap',
                            text='UV Snap 1024px', icon='UV').resolution = '1024'
+        winding_row = layout.row(align=True)
+        winding_row.enabled = runtime.CURRENT is None
+        winding_row.operator('blender_xr.uv_winding_report',
+                             text='UV Winding Report', icon='UV')
+        if context.tool_settings.mesh_select_mode[2]:
+            winding_row.operator('blender_xr.uv_winding_select',
+                                 text='Select UV Warnings',
+                                 icon='RESTRICT_SELECT_OFF')
         boundary_row = layout.row(align=True)
         boundary_row.enabled = runtime.CURRENT is None
         boundary_row.operator('blender_xr.uv_boundary_report',
