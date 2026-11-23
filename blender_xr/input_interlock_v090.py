@@ -20,6 +20,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_SHAPE_RENAME_090': 'XR_SHAPE_MANAGE_090',
     'XR_KEY_DELETE_CONFIRM_090': 'XR_INTERP_PICK_090',
     'XR_INTERP_STYLE_090': 'XR_INTERP_PICK_090',
+    'XR_WELD_CONFIRM_090': 'XR_WELD_PREVIEW_090',
 }
 
 
@@ -38,6 +39,7 @@ def expire_pending_approvals(session):
         '_xr_key_delete_pending',
         '_xr_interp_target',
         '_xr_interp_source',
+        '_xr_weld_pending',
     )
     had_tokens = any(getattr(session, name, None) is not None for name in fields)
     source = getattr(session, '_xr_interp_source', None)
