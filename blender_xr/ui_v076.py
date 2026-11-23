@@ -157,6 +157,13 @@ def _model(layout, context, settings):
         audit_row.enabled = runtime.CURRENT is None
         audit_row.operator('blender_xr.topology_audit',
                            text='Quad Topology Report', icon='MESH_DATA')
+        quality_row = layout.row(align=True)
+        quality_row.enabled = runtime.CURRENT is None
+        quality_row.operator('blender_xr.quad_quality_report',
+                             text='Quad Shape Quality', icon='MESH_DATA')
+        quality_row.operator('blender_xr.quad_quality_select',
+                             text='Select Poor Quads',
+                             icon='RESTRICT_SELECT_OFF').category = 'XR_QUAD_QUALITY_ALL'
         pair_row = layout.row(align=True)
         pair_row.enabled = runtime.CURRENT is None
         pair_row.operator('blender_xr.quad_pair',
