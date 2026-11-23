@@ -168,6 +168,28 @@ def _bone_entries(arm, kind):
     return {b.name: b.matrix.copy() for b in selected}
 
 
+def _object_guard(obj):
+    """Retain the actual Blender object, not only its reusable name."""
+    return (obj.as_pointer(), obj.name, obj.type)
+
+
+def _assert_object_guard(obj, guard):
+    if obj.as_pointer() != guard[0] or obj.name != guard[1] or obj.type != guard[2]:
+        raise ValueError('XR object was replaced, renamed or changed type')
+
+
+def _assert_object_state(obj, expected):
+    if any(not math.isfinite(float(v)) for row in obj.matrix_world for v in row):
+        raise ValueError('XR object matrix contains non-finite values')
+    if _changed(expected, obj.matrix_world, 'OBJECT'):
+        raise ValueError('Object moved outside XR controller transform')
+
+
+def _finite_object_matrix(matrix):
+    if not all(math.isfinite(float(v)) for row in matrix for v in row):
+        raise ValueError('XR controller produced an invalid object matrix')
+
+
 def _mesh_guard(obj):
     """Identify the exact editable mesh connectivity without mesh snapshots."""
     from . import mesh_selection_tools_v086
@@ -272,6 +294,8 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         'rotation': Quaternion(rotation).copy(), 'pivot': pivot,
         'before': before, 'part': part,
         'mode': obj.mode, 'fine_factor': fine,
+        'object_guard': _object_guard(obj),
+        'last_object_matrix': before.copy() if kind == 'OBJECT' else None,
         'mesh_guard': topology_guard if kind == 'MESH' else None,
         'last_mesh_coords': {i: co.copy() for i, co in before.items()}
                             if kind == 'MESH' else None,
@@ -312,7 +336,12 @@ def update_transform(context, drag, position, rotation):
     delta = _delta_matrix(drag, position, rotation)
     kind = drag['kind']
     if kind == 'OBJECT':
-        obj.matrix_world = delta @ drag['before']
+        _assert_object_guard(obj, drag['object_guard'])
+        _assert_object_state(obj, drag['last_object_matrix'])
+        planned = delta @ drag['before']
+        _finite_object_matrix(planned)
+        obj.matrix_world = planned
+        drag['last_object_matrix'] = obj.matrix_world.copy()
     elif kind == 'MESH':
         _assert_mesh_guard(obj, drag['mesh_guard'])
         inv = obj.matrix_world.inverted_safe()
@@ -372,6 +401,8 @@ def restore_transform(context, drag):
     if obj is None or obj.mode != drag['mode']:
         return
     if drag['kind'] == 'OBJECT':
+        _assert_object_guard(obj, drag['object_guard'])
+        _assert_object_state(obj, drag['last_object_matrix'])
         obj.matrix_world = drag['before']
     elif drag['kind'] == 'MESH':
         # Never write old indices into unrelated replacement geometry.
@@ -407,6 +438,7 @@ def restore_transform(context, drag):
 def _current_coords(obj, drag):
     kind = drag['kind']
     if kind == 'OBJECT':
+        _assert_object_guard(obj, drag['object_guard'])
         return obj.matrix_world.copy()
     if kind == 'MESH':
         _assert_mesh_guard(obj, drag['mesh_guard'])
@@ -447,6 +479,8 @@ def _push_transform_history(session, context, drag):
     if obj is None or obj.mode != drag['mode']:
         return
     after = _current_coords(obj, drag)
+    if drag['kind'] == 'OBJECT':
+        _assert_object_state(obj, drag['last_object_matrix'])
     if drag['kind'] == 'MESH' and (
             set(after) != set(drag['last_mesh_coords']) or
             any((after[i] - co).length > 1e-6
@@ -462,7 +496,8 @@ def _push_transform_history(session, context, drag):
     entry = (kind, obj.name, obj.data.name if kind != 'OBJECT' else None,
              drag['before'], after,
              drag['mesh_guard'] if kind == 'XR_VERTS' else
-             drag.get('armature_guard') if kind in {'XR_BONES', 'XR_POSE'} else None)
+             drag.get('armature_guard') if kind in {'XR_BONES', 'XR_POSE'} else
+             drag.get('object_guard') if kind == 'OBJECT' else None)
     if hasattr(session, 'history') and session.history is not None:
         session.history.push(entry)
     elif getattr(context, 'area', None) and context.area.type == 'VIEW_3D':
