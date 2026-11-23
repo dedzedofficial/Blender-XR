@@ -125,6 +125,13 @@ def _verify(context, proposal):
 def _mutate(context, proposal):
     obj, bm, face = _verify(context, proposal)
     old_verts = set(bm.verts)
+    original_vertices = set(face.verts)
+    original_edges = set(face.edges)
+    original_normal = face.normal.copy()
+    uv_layers = tuple(bm.loops.layers.uv.get(layer.name)
+                      for layer in obj.data.uv_layers)
+    if any(layer is None for layer in uv_layers):
+        raise ValueError('Native UV layer became unavailable before inset')
     result = bmesh.ops.inset_individual(
         bm, faces=[face], thickness=proposal['distance'], depth=0.0,
         use_even_offset=True, use_interpolate=True, use_relative_offset=False)
@@ -141,8 +148,35 @@ def _mutate(context, proposal):
     if any(len(face.verts) != 4 or not math.isfinite(float(face.calc_area()))
            or face.calc_area() <= 1e-12 for face in patch):
         raise ValueError('Blender produced a triangle or degenerate inset face')
-    if any(face not in bm.faces for face in result.get('faces', ())):
+    if any(item not in bm.faces or not item.is_valid
+           for item in result.get('faces', ())):
         raise ValueError('Blender inset returned an unavailable face')
+    # A safe inset must retain the four source corners and perimeter edges.
+    # Reject unexpected rewiring, duplicated centre faces, or inverted quads.
+    if (any(not vertex.is_valid for vertex in original_vertices) or
+            any(not edge.is_valid for edge in original_edges)):
+        raise ValueError('Inset unexpectedly removed original boundary geometry')
+    centres = [item for item in patch
+               if all(vertex in new_verts for vertex in item.verts)]
+    if len(centres) != 1:
+        raise ValueError('Inset did not create exactly one inner quad')
+    sides = [item for item in patch if item not in centres]
+    if (len(sides) != 4 or
+            any(len(set(item.verts) & original_vertices) != 2 or
+                len(set(item.verts) & new_verts) != 2 for item in sides)):
+        raise ValueError('Inset side faces do not match the original quad')
+    if any(not any(edge in item.edges for item in sides)
+           for edge in original_edges):
+        raise ValueError('Inset lost an original perimeter edge')
+    for item in patch:
+        item.normal_update()
+        if item.normal.dot(original_normal) <= 0:
+            raise ValueError('Inset created a reversed or invalid quad normal')
+        for loop in item.loops:
+            for layer in uv_layers:
+                if not all(math.isfinite(float(value))
+                           for value in loop[layer].uv):
+                    raise ValueError('Inset generated non-finite UV coordinates')
     return obj
 
 
