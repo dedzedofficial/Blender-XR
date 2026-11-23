@@ -182,6 +182,8 @@ _ICON_BY_ACTION = {
     'XR_UV_ORIENT_HALF': 'uv',
     'XR_UV_ORIENT_ALIGN_U': 'uv',
     'XR_UV_ORIENT_ALIGN_V': 'uv',
+    'XR_UV_ORIENT_FLIP_U': 'uv',
+    'XR_UV_ORIENT_FLIP_V': 'uv',
     'XR_UV_ORIENT_PREVIEW': 'properties',
     'XR_UV_ORIENT_APPLY': 'checkmark',
     'XR_UV_ORIENT_CANCEL': 'cancel',
