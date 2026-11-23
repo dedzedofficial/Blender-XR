@@ -368,8 +368,8 @@ def advance_rearm(session, context, samples):
     # Discard any touch hold begun before tracking was lost. After rearm, a
     # finger-touch toggle must complete a full new hold, not inherit elapsed
     # time from an interrupted OpenXR session.
-    for hold in (getattr(session, 'touch_holds', None) or ()):
-        hold.update(False, 0.0)
+    from . import input_ownership_v080
+    input_ownership_v080.reset_touch_holds(session)
     # A snap-turn may have been armed before tracking disappeared. Reset its
     # edge state as well; the next non-neutral stick motion must be fresh.
     turning = getattr(session, 'turning', None)
