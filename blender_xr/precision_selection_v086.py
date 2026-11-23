@@ -67,7 +67,8 @@ def _face_candidates(obj, origin, direction, through):
     faces = tuple(
         face for face in bm.faces
         if (face.is_valid and not face.hide and len(face.verts) >= 3 and
-            all(v.is_valid and not v.hide for v in face.verts))
+            all(v.is_valid and not v.hide for v in face.verts) and
+            all(edge.is_valid and not edge.hide for edge in face.edges))
     )
     if not faces:
         return []
@@ -224,6 +225,12 @@ def _world_matrix_stamp(obj):
     return stamp
 
 
+def _selection_stamp(context, obj, kind):
+    """Native selected indices, with no data writes or evaluated modifiers."""
+    bm, items = mesh_selection_tools_v086._current(obj, kind)
+    return mesh_selection_tools_v086._selected(items)
+
+
 def _history_pick(session, context, kind, index, additive):
     """Select or toggle a native BMesh index through guarded XR Undo/Redo.
 
@@ -277,6 +284,9 @@ def _current_candidates(session, context):
     if state.get('stamp') != _native_stamp(context, obj):
         _clear(session)
         raise ValueError('Native geometry or object transform changed; aim and Select again')
+    if state.get('selected') != _selection_stamp(context, obj, state['kind']):
+        _clear(session)
+        raise ValueError('Selection changed outside Precision; aim and Select again')
     return state, obj, _candidates(
         obj, state['origin'], state['direction'], state['kind'],
         _radius(session), bool(getattr(session, '_xr_precision_through', False)))
@@ -301,6 +311,7 @@ def _cycle(session, context, step):
     # Ordinary grip+trigger additive toggling still works with Select.
     changed = _history_pick(session, context, state['kind'], chosen[2], False)
     state['index'] = chosen[2]
+    state['selected'] = _selection_stamp(context, obj, state['kind'])
     # Selection history recall clears prior precision rays. This particular
     # cycle revalidated the geometry so it can retain its own saved ray.
     session._xr_precision_last_ray = state
@@ -351,6 +362,7 @@ def _select(session, context, origin, direction, additive, legacy_select):
         'direction': ray.copy(),
         'index': picked[2],
         'stamp': native_stamp,
+        'selected': _selection_stamp(context, obj, kind),
     }
     session.status = 'PRECISION / {} / {} NEARBY HITS / {}'.format(
         kind, len(candidates), 'XR UNDO READY' if changed else 'UNCHANGED')
