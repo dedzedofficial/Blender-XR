@@ -15,7 +15,8 @@ from . import armature_v076, mesh, selection, rigging_v076
 
 TRANSFORMS = {'MOVE', 'SCALE', 'ROTATE', 'MOVE_FACE', 'SCALE_FACE',
               'ROTATE_EDIT', 'BONE_MOVE', 'BONE_MOVE_HEAD',
-              'BONE_MOVE_TAIL', 'BONE_SCALE', 'BONE_ROTATE'}
+              'BONE_MOVE_TAIL', 'BONE_SCALE', 'BONE_ROTATE',
+              'BONE_IK_2', 'BONE_IK_3'}
 MOVE = {'MOVE', 'MOVE_FACE', 'BONE_MOVE', 'BONE_MOVE_HEAD', 'BONE_MOVE_TAIL'}
 SCALE = {'SCALE', 'SCALE_FACE', 'BONE_SCALE'}
 ROTATE = {'ROTATE', 'ROTATE_EDIT', 'BONE_ROTATE'}
@@ -312,6 +313,8 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
     if obj.hide_select:
         raise ValueError('Selection is locked: unlock the object before grabbing it')
     before = None
+    ik_chain = None
+    ik_tip_world = None
     if kind == 'OBJECT':
         before = obj.matrix_world.copy()
         pivot = before.translation.copy()
@@ -326,14 +329,21 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         topology_guard = _mesh_guard(obj)
         pivot = obj.matrix_world @ (sum(before.values(), Vector()) / len(before))
     else:
-        before = _bone_entries(obj, kind)
-        if not before:
-            raise ValueError('Select bones first')
-        if kind == 'BONE':
-            points = [(head + tail) * .5 for head, tail, _ in before.values()]
+        if kind == 'POSE' and tool in {'BONE_IK_2', 'BONE_IK_3'}:
+            from . import pose_ik_v086
+            ik_chain = pose_ik_v086.pose_chain(obj, int(tool[-1]))
+            before = pose_ik_v086.chain_snapshot(obj, ik_chain)
+            ik_tip_world = (obj.matrix_world @ obj.pose.bones[ik_chain[-1]].tail)
+            pivot = ik_tip_world.copy()
         else:
-            points = [matrix.translation for matrix in before.values()]
-        pivot = obj.matrix_world @ (sum(points, Vector()) / len(points))
+            before = _bone_entries(obj, kind)
+            if not before:
+                raise ValueError('Select bones first')
+            if kind == 'BONE':
+                points = [(head + tail) * .5 for head, tail, _ in before.values()]
+            else:
+                points = [matrix.translation for matrix in before.values()]
+            pivot = obj.matrix_world @ (sum(points, Vector()) / len(points))
     # Freeze fine-movement sensitivity at the beginning of each gesture.
     settings = getattr(context.scene, 'blender_xr', None)
     fine = (max(0.02, min(1.0, float(settings.fine_grab_factor)))
@@ -346,6 +356,7 @@ def begin_transform(context, tool, pos, rotation, source='grip', target=None, pa
         'source': source, 'start': position.copy(),
         'rotation': Quaternion(rotation).copy(), 'pivot': pivot,
         'before': before, 'part': part,
+        'ik_chain': ik_chain, 'ik_tip_world': ik_tip_world,
         'mode': obj.mode, 'fine_factor': fine,
         'object_guard': _object_guard(obj),
         'last_object_matrix': before.copy() if kind == 'OBJECT' else None,
@@ -363,7 +374,7 @@ def _delta_matrix(drag, position, rotation):
     tool = drag['tool']
     pivot = drag['pivot']
     precision = max(0.02, min(1.0, float(drag.get('fine_factor', 1.0))))
-    if tool in MOVE or tool == 'SELECT':
+    if tool in MOVE or tool == 'SELECT' or tool in {'BONE_IK_2', 'BONE_IK_3'}:
         offset = (Vector(position) - drag['start']) * precision
         return Matrix.Translation(offset)
     if tool in SCALE:
@@ -438,6 +449,12 @@ def update_transform(context, drag, position, rotation):
             for name, (head, tail, roll) in planned.items():
                 bone = obj.data.edit_bones[name]
                 bone.head, bone.tail, bone.roll = head, tail, roll
+        elif drag['tool'] in {'BONE_IK_2', 'BONE_IK_3'}:
+            from . import pose_ik_v086
+            target_world = (drag['ik_tip_world'] +
+                            (Vector(position) - drag['start']) *
+                            drag['fine_factor'])
+            pose_ik_v086.solve_pose_chain(context, obj, drag, target_world)
         else:
             planned = {name: inv @ delta @ obj.matrix_world @ prior
                        for name, prior in drag['before'].items()}
