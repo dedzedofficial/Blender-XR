@@ -124,6 +124,17 @@ def _model(layout, context, settings):
                   operation='DISTRIBUTE', axis=axis)
 
     layout.separator()
+    _header(layout, 'Scene Timeline', 'TIME')
+    layout.label(text='Frame {} / {}..{}'.format(context.scene.frame_current,
+                  context.scene.frame_start, context.scene.frame_end), icon='TIME')
+    timeline_row = layout.row(align=True)
+    timeline_row.enabled = runtime.CURRENT is None
+    timeline_row.operator('blender_xr.timeline_step', text='-1',
+                          icon='BACK').action = 'XR_TIME_PREV'
+    timeline_row.operator('blender_xr.timeline_step', text='+1',
+                          icon='FORWARD').action = 'XR_TIME_NEXT'
+
+    layout.separator()
     _header(layout, 'Shape Keys', 'SHAPEKEY_DATA')
     shape_obj = context.view_layer.objects.active
     shape_data = (shape_obj.data.shape_keys if shape_obj and
