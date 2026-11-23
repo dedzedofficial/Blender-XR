@@ -92,8 +92,8 @@ def viewer_frame(state):
     if not valid_position(viewer):
         raise ValueError('XR viewer location is invalid')
     scale = float(getattr(state, 'viewer_scale', 1.0))
-    if not math.isfinite(scale) or scale <= 0.0:
-        raise ValueError('XR viewer scale is invalid')
+    if not math.isfinite(scale) or not 1e-6 <= scale <= 1e6:
+        raise ValueError('XR viewer scale is invalid or unsafe')
     return viewer, scale
 
 
