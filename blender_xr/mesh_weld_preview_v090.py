@@ -76,17 +76,22 @@ def _find_map(bm, verts, distance):
     if any(src not in selected_indices or dst not in selected_indices
            for src, dst in pairs):
         raise ValueError('Native weld proposal referenced an unselected vertex')
-    if len({source for source, target in pairs}) != len(pairs):
-        raise ValueError('Ambiguous Blender weld target mapping')
+    sources = {source for source, target in pairs}
+    if len(sources) != len(pairs) or any(target in sources for _src, target in pairs):
+        raise ValueError('Ambiguous chained Blender weld target mapping')
     return pairs
 
 
 def _degenerate_faces(bm, pairs):
-    """Conservatively refuse any weld that would collapse face side count."""
+    """Refuse any weld that would lower an existing face's vertex count.
+
+    In particular, a selected quad must never silently turn into a triangle,
+    and an existing triangle must never collapse to a line.
+    """
     targets = dict(pairs)
     for face in bm.faces:
         if any(vert.index in targets for vert in face.verts):
-            if len({targets.get(v.index, v.index) for v in face.verts}) < 3:
+            if len({targets.get(v.index, v.index) for v in face.verts}) < len(face.verts):
                 return True
     return False
 
@@ -103,7 +108,7 @@ def _plan(context, distance):
     if not pairs:
         raise ValueError('No selected duplicate vertices within this distance')
     if _degenerate_faces(bm, pairs):
-        raise ValueError('Weld would collapse a face: inspect geometry in Blender first')
+        raise ValueError('Weld would reduce face sides; inspect geometry in Blender first')
     return {
         'scene': context.scene.name, 'layer': context.view_layer.name,
         'obj': obj.name, 'obj_ptr': obj.as_pointer(),
