@@ -161,6 +161,7 @@ def cancel_session_loss(session):
     # specialized handler or a later legacy input reader.
     session._xr_validated_controls = None
     session._xr_validated_poses = None
+    session._xr_validated_sticks = None
     # Even an idle stopped session invalidates the controller edge state.
     # Otherwise a held trigger on reconnect can start an unintended edit.
     if has_mutation or radial_active:
