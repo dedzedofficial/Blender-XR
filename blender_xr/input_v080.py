@@ -22,6 +22,7 @@ def patch_runtime(Runtime):
         self._xr_validated_controls = None
         self._xr_validated_poses = None
         self._xr_validated_sticks = None
+        self._xr_validated_viewer = None
         self.radial_supported = True
         self._xr_neutral_count = 0
         # A fresh runtime instance is the only safe reset for a failed
@@ -41,6 +42,7 @@ def patch_runtime(Runtime):
         self._xr_validated_controls = None
         self._xr_validated_poses = None
         self._xr_validated_sticks = None
+        self._xr_validated_viewer = None
         if (getattr(self, '_xr_rollback_blocked', False) or
                 getattr(getattr(self, 'history', None),
                         '_xr_mesh_rollback_blocked', False)):
@@ -131,7 +133,10 @@ def patch_runtime(Runtime):
         # Reuse the world-space menu's original offhand-facing placement, but
         # never let the dominant controller decide radial wedges.
         try:
-            viewer, scale = input_safety_v086.viewer_frame(state)
+            viewer_snapshot = getattr(self, '_xr_validated_viewer', None)
+            if viewer_snapshot is None:
+                raise ValueError('Validated headset frame is missing')
+            viewer, scale, _viewer_rotation = viewer_snapshot
         except (RuntimeError, TypeError, ValueError, OverflowError, AttributeError):
             input_ownership_v080.cancel_tracking_loss(self)
             self.status = ('XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
