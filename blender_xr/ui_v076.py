@@ -117,6 +117,16 @@ def _model(layout, context, settings):
         for axis in 'XYZ':
             move_row.operator('blender_xr.numeric_mesh_move',
                               text='Move ' + axis, icon='TRANSFORM_MOVE').axis = axis
+        _header(layout, 'Even Vertex Spacing (Preview)', 'TRANSFORM_MOVE')
+        for space in ('LOCAL', 'WORLD'):
+            spacing_row = layout.row(align=True)
+            spacing_row.enabled = runtime.CURRENT is None
+            for axis in 'XYZ':
+                op = spacing_row.operator('blender_xr.even_mesh_spacing',
+                                          text=space.title() + ' ' + axis,
+                                          icon='TRANSFORM_MOVE')
+                op.axis = axis
+                op.space = space
         _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH':
