@@ -456,7 +456,7 @@ def install_weight_history():
         source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
         if not source or source[-1][0] != 'WEIGHT_STROKE':
             return previous_step(self, backwards)
-        _kind, object_name, mesh_name, group_name, changes = source[-1]
+        _kind, object_name, mesh_name, group_name, changes = source[-1][:5]
         obj = bpy.data.objects.get(object_name)
         if (obj is None or obj.type != 'MESH' or obj.data.name != mesh_name
                 or obj.mode not in {'OBJECT', 'WEIGHT_PAINT'} or obj.hide_select
