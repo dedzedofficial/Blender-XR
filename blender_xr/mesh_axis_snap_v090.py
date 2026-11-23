@@ -79,8 +79,13 @@ def _plan(context, obj, axis, target, space):
         raise ValueError('Unknown axis snap target or axis')
     if space not in _SPACES.values():
         raise ValueError('Choose local or world axis space')
+    selected_mode = selection.mode(context)
+    bm, _items = mesh_selection_tools_v086._current(obj, selected_mode)
+    topology = mesh_selection_tools_v086._topology(bm)
+    # Refresh native BMesh lookup tables before storing index-addressed
+    # coordinates. Geometry edits may otherwise leave stale element.index.
     vertices = tuple(sorted(mesh.selected_transform_vertices(
-        obj, selection.mode(context)), key=lambda v: v.index))
+        obj, selected_mode), key=lambda v: v.index))
     if not vertices or len(vertices) > 120000:
         raise ValueError('Select between 1 and 120,000 visible vertices')
     if any(not vert.is_valid or vert.hide for vert in vertices):
@@ -94,8 +99,6 @@ def _plan(context, obj, axis, target, space):
         raise ValueError('Object transform is singular or invalid')
     inverse = matrix.inverted()
     world_target, reference = _reference(context, obj, target)
-    bm, _items = mesh_selection_tools_v086._current(obj, selection.mode(context))
-    topology = mesh_selection_tools_v086._topology(bm)
     if space == 'LOCAL':
         # Cursor and world origin are Blender world-space coordinates;
         # convert only the target to the object's local coordinates.
@@ -119,7 +122,7 @@ def _plan(context, obj, axis, target, space):
     # Retain original coordinates to reject a stale plan if another
     # operation modified the mesh before the XR history transaction.
     return (original, original_indices, planned, _matrix_stamp(matrix),
-            reference, topology, selection.mode(context))
+            reference, topology, selected_mode)
 
 
 def _apply(session, context, axis):
