@@ -502,21 +502,26 @@ def _apply_history_entry(entry, backwards):
     elif kind == 'XR_BONES':
         if obj.type != 'ARMATURE' or obj.mode != 'EDIT':
             raise ValueError('Enter Armature Edit Mode to undo bone changes')
+        if guard is not None:
+            _assert_armature_guard(obj, 'BONE', guard)
+        if set(data) != set(before) or set(data) != set(after):
+            raise ValueError('Armature history has inconsistent bone names')
+        _finite_bone_state('BONE', data)
+        _assert_bone_state(obj, 'BONE', after if backwards else before)
         for name, (head, tail, roll) in data.items():
-            bone = obj.data.edit_bones.get(name)
-            if not bone:
-                raise ValueError('The edited bone was removed: ' + name)
-            bone.head = head
-            bone.tail = tail
-            bone.roll = roll
+            bone = obj.data.edit_bones[name]
+            bone.head, bone.tail, bone.roll = head, tail, roll
     elif kind == 'XR_POSE':
         if obj.type != 'ARMATURE' or obj.mode != 'POSE':
             raise ValueError('Enter Pose Mode to undo pose changes')
+        if guard is not None:
+            _assert_armature_guard(obj, 'POSE', guard)
+        if set(data) != set(before) or set(data) != set(after):
+            raise ValueError('Pose history has inconsistent bone names')
+        _finite_bone_state('POSE', data)
+        _assert_bone_state(obj, 'POSE', after if backwards else before)
         for name, matrix in data.items():
-            bone = obj.pose.bones.get(name)
-            if not bone:
-                raise ValueError('The posed bone was removed: ' + name)
-            bone.matrix = matrix
+            obj.pose.bones[name].matrix = matrix
     bpy.context.view_layer.update()
 
 
