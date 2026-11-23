@@ -645,6 +645,58 @@ def _apply_history_entry(entry, backwards):
     bpy.context.view_layer.update()
 
 
+
+def reset_pose_with_history(session, context, all_bones=False):
+    """Clear native Blender pose transforms with one XR-local Undo entry.
+
+    Pose Mode only. The rest armature, animation keys, constraints and bone
+    parenting are untouched. Reject constrained/locked chains instead of
+    silently bypassing the creator's existing rig protection.
+    """
+    obj = context.view_layer.objects.active
+    if (obj is None or obj.type != 'ARMATURE' or obj.mode != 'POSE' or
+            obj.library or obj.override_library or
+            obj.data.library or obj.data.override_library or obj.hide_select):
+        raise ValueError('Select an editable local armature in Pose Mode')
+    if getattr(session, 'history', None) is None:
+        raise ValueError('XR pose history is unavailable')
+    chosen = (list(obj.pose.bones) if all_bones else
+              [bone for bone in obj.pose.bones
+               if getattr(bone.bone, 'select', False)])
+    if not chosen and not all_bones and obj.data.bones.active is not None:
+        active = obj.pose.bones.get(obj.data.bones.active.name)
+        chosen = [active] if active else []
+    if not chosen:
+        raise ValueError('Select one or more pose bones to reset')
+    chosen.sort(key=lambda bone: len(bone.parent_recursive))
+    for bone in chosen:
+        if (bone.constraints or bone.bone.hide or bone.bone.hide_select or
+                any(bone.lock_rotation) or any(bone.lock_location) or
+                any(bone.lock_scale) or getattr(bone, 'lock_rotation_w', False)):
+            raise ValueError('Unlock constrained or hidden bones before resetting pose')
+    before = {bone.name: bone.matrix.copy() for bone in chosen}
+    _finite_bone_state('POSE', before)
+    guard = _armature_guard(obj, 'POSE', before)
+    try:
+        for bone in chosen:
+            bone.matrix_basis = Matrix.Identity(4)
+        context.view_layer.update()
+        after = {bone.name: obj.pose.bones[bone.name].matrix.copy()
+                 for bone in chosen}
+        _finite_bone_state('POSE', after)
+        if not _changed(before, after, 'POSE'):
+            return False
+        session.history.push(('XR_POSE', obj.name, obj.data.name,
+                              before, after, guard))
+    except Exception:
+        _assert_armature_guard(obj, 'POSE', guard)
+        for name, matrix in before.items():
+            obj.pose.bones[name].matrix = matrix
+        context.view_layer.update()
+        raise
+    return True
+
+
 def patch_history():
     if getattr(mesh.History, '_v076_controller_transform_history', False):
         return
@@ -711,6 +763,8 @@ def install_pages():
         ('SELECT', 'SELECT'), ('MOVE', 'BONE_MOVE'),
         ('SCALE', 'BONE_SCALE'), ('ROTATE', 'BONE_ROTATE'),
         ('IK 2 BONES', 'BONE_IK_2'), ('IK 3 BONES', 'BONE_IK_3'),
+        ('RESET SEL', 'BONE_POSE_RESET_SELECTED'),
+        ('RESET ALL', 'BONE_POSE_RESET_ALL'),
         ('FINISH POSE', 'RIG_EXIT_POSE'),
     )
     menus.TITLES['POSE_EDIT'] = 'POSE BONES'
@@ -762,6 +816,12 @@ def patch_runtime(Runtime):
             return result
         if action == 'BACK' and self.menu.page == 'POSE_EDIT':
             return old_command(self, context, 'RIG_EXIT_POSE')
+        if action in {'BONE_POSE_RESET_SELECTED', 'BONE_POSE_RESET_ALL'}:
+            count_all = action.endswith('ALL')
+            changed = reset_pose_with_history(self, context, all_bones=count_all)
+            self.status = ('POSE RESTORED / UNDO READY' if changed else
+                           'POSE ALREADY RESET / NO CHANGE')
+            return
         if action in {'BONE_IK_2', 'BONE_IK_3'}:
             obj = context.view_layer.objects.active
             if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
