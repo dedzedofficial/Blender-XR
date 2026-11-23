@@ -267,6 +267,7 @@ _ICON_BY_ACTION = {
     'XR_MARKER_MENU': 'properties',
     'XR_MARKER_ADD': 'add', 'XR_MARKER_REMOVE': 'delete',
     'XR_MARKER_PREVIOUS': 'undo', 'XR_MARKER_NEXT': 'redo',
+    'XR_TIME_PLAY_PAUSE': 'properties', 'XR_TIME_REVERSE': 'undo',
     'XR_MEASURE_X_POS': 'transform_move', 'XR_MEASURE_X_NEG': 'transform_move',
     'XR_MEASURE_Y_POS': 'transform_move', 'XR_MEASURE_Y_NEG': 'transform_move',
     'XR_MEASURE_Z_POS': 'transform_move', 'XR_MEASURE_Z_NEG': 'transform_move',
