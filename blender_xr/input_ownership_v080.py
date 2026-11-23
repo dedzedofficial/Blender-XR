@@ -29,6 +29,7 @@ def _gesture_owner(session, honor_rearm=True):
         ('_xr_curve_pending', 'CURVE_POINT'),
         ('_xr_light_pending', 'LIGHT_AIM'),
         ('_xr_paint_pending', 'TEXTURE_PAINT'),
+        ('_xr_surface_pending', 'SURFACE_PLACEMENT'),
     )
     for field, name in fields:
         if getattr(session, field, None) is not None:
@@ -166,7 +167,8 @@ def cancel_session_loss(session):
     """
     live_fields = ('_xr_modifier_preview', '_weight_stroke', '_xr_gesture', 'transaction',
                    'two_hand_scale', 'axis_move', 'axis_drag', 'grab',
-                   'air_grab', 'bone_drag', '_xr_curve_pending', '_xr_light_pending', '_xr_paint_pending')
+                   'air_grab', 'bone_drag', '_xr_curve_pending', '_xr_light_pending', '_xr_paint_pending',
+                   '_xr_surface_pending')
     has_mutation = any(getattr(session, name, None) is not None
                        for name in live_fields)
     radial = getattr(session, 'radial', None)
