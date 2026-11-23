@@ -127,6 +127,17 @@ def plan(context):
     if len(common) != 1:
         raise ValueError('Selected triangles must share exactly one edge')
     shared = next(iter(common))
+    # Reject reversed/native inconsistent triangle winding at the shared
+    # edge; Blender's join operator otherwise may silently flip a new quad.
+    def directed_edge(face, edge):
+        for loop in face.loops:
+            if loop.edge is edge:
+                return loop.vert, loop.link_loop_next.vert
+        raise ValueError('Triangle does not own the expected shared edge')
+    a0, a1 = directed_edge(first, shared)
+    b0, b1 = directed_edge(second, shared)
+    if not (a0 is b1 and a1 is b0):
+        raise ValueError('Triangle pair has inconsistent shared-edge winding')
     if (len(shared.link_faces) != 2 or shared.seam or not shared.smooth or
             shared.hide or not shared.is_manifold):
         raise ValueError('Shared edge is a boundary, seam, non-manifold or sharp')
@@ -139,6 +150,14 @@ def plan(context):
         if (face not in selected and len(face.verts) == 4 and
                 set(face.verts) == set(cycle)):
             raise ValueError('A quad already covers these four vertices')
+    # Capture all existing UV maps on both proposed triangles, including
+    # unselected/nonactive maps. A late UV edit invalidates the preview.
+    uv_stamp = tuple(
+        (layer.name, tuple(tuple(float(v) for v in loop[
+            bm.loops.layers.uv.get(layer.name)].uv) for face in selected
+            for loop in face.loops))
+        for layer in obj.data.uv_layers
+    )
     signature = (
         mesh_selection_tools_v086._topology(bm),
         mesh_weld_preview_v090._geometry_stamp(bm),
@@ -146,6 +165,7 @@ def plan(context):
         shared.index,
         tuple(v.index for v in cycle),
         tuple((face.material_index, bool(face.smooth)) for face in selected),
+        uv_stamp,
     )
     return {
         'scene': context.scene.name,
