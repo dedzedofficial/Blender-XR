@@ -108,7 +108,22 @@ def viewer_orientation(state):
     rotation = Quaternion(state.viewer_pose_rotation)
     if not valid_rotation(rotation):
         raise ValueError('XR viewer rotation is invalid')
+    # A small OpenXR quaternion norm drift must never scale locomotion or
+    # ray orientation. Validate before normalising; zero/invalid is loss.
+    rotation.normalize()
     return rotation
+
+
+def headset_frame(state):
+    """Capture a complete, finite viewer frame once per controller preflight.
+
+    Specialized editors, legacy navigation and radial menus consume the same
+    validated viewer location/scale/rotation instead of mixing later HMD reads
+    with the controller snapshot already accepted by the input router.
+    """
+    viewer, scale = viewer_frame(state)
+    orientation = viewer_orientation(state)
+    return viewer, scale, orientation
 
 
 def control_value(value):
@@ -243,6 +258,7 @@ def preflight_controller_frame(session, context):
     session._xr_validated_controls = None
     session._xr_validated_poses = None
     session._xr_validated_sticks = None
+    session._xr_validated_viewer = None
     # Failed Undo/cancel must not be converted into a harmless neutral
     # rearm on the next controller tick. Require a fresh XR runtime session.
     if (getattr(session, '_xr_rollback_blocked', False) or
@@ -257,6 +273,11 @@ def preflight_controller_frame(session, context):
         if state is None or not bpy.types.XrSessionState.is_running(context):
             input_ownership_v080.cancel_session_loss(session)
             return False
+        # Validate HMD placement and rotation before accepting any controller
+        # release/gesture. Previously the legacy renderer checked the viewer
+        # only after the router had already allowed the frame, while some
+        # specialised editors bypassed that late check altogether.
+        viewer = headset_frame(state)
         poses = controller_poses(state, context, (session.dom, session.off))
         if input_ownership_v080.cancel_conflict(session):
             return False
@@ -271,6 +292,7 @@ def preflight_controller_frame(session, context):
         session._xr_validated_poses = poses
         session._xr_validated_controls = samples
         session._xr_validated_sticks = sticks
+        session._xr_validated_viewer = viewer
         session.hand_controls = samples
         if advance_rearm(session, context, samples):
             return False
