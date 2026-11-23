@@ -694,13 +694,15 @@ class Runtime:
         from . import input_safety_v086
         try:
             viewer_snapshot = getattr(self, '_xr_validated_viewer', None)
-            if viewer_snapshot is not None:
+            if validated_poses is not None:
+                if viewer_snapshot is None:
+                    # Never mix routed controller poses with a later HMD read.
+                    raise ValueError('Validated headset frame is missing')
                 viewer, scale, viewer_rotation = viewer_snapshot
-            elif validated_poses is not None:
-                # A routed controller frame without the matching HMD frame
-                # must be treated as tracking loss, never as permission to
-                # read a newer unsynchronised viewer pose.
-                raise ValueError('Validated headset frame is missing')
+            elif viewer_snapshot is not None:
+                # An orphaned viewer cache must not be used by a standalone
+                # legacy caller with a different controller sample.
+                raise ValueError('Orphaned headset frame without controllers')
             else:
                 # Standalone legacy Blender integrations can still tick the
                 # runtime directly, but must validate the entire HMD frame.
