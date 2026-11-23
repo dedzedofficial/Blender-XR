@@ -272,7 +272,9 @@ def preflight_controller_frame(session, context):
     except (RuntimeError, TypeError, ValueError, IndexError, AttributeError,
             OverflowError, ReferenceError) as exc:
         input_ownership_v080.cancel_tracking_loss(session)
-        session.status = ('XR FRAME INVALID / EDIT CANCELLED / ' +
+        session.status = ('XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+                          if getattr(session, '_xr_rollback_blocked', False) else
+                          'XR FRAME INVALID / EDIT CANCELLED / ' +
                           str(exc).upper()[:30] + ' / RELEASE CONTROLS')
         return False
 

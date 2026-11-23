@@ -6,6 +6,8 @@ creator diagnostics. It is intentionally pure: existing mode handlers still
 own their state transitions until the staged dispatcher migration is tested.
 """
 
+from . import input_interlock_v090
+
 
 def _gesture_owner(session, honor_rearm=True):
     """Resolve live gestures, optionally looking behind the rearm latch."""
@@ -78,6 +80,7 @@ def cancel_conflict(session):
         radial = getattr(session, 'radial', None)
         if radial is not None:
             radial.reset(require_release=True)
+        input_interlock_v090.expire_pending_approvals(session)
         session._xr_validated_controls = None
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
@@ -111,6 +114,11 @@ def validate_command(session, action):
     Only commands explicitly tagged by that input source may pass the guard.
     Other callers must release the active edit/gesture first.
     """
+    input_interlock_v090.block_unsafe_commands(session, action)
+    if getattr(session, '_xr_rollback_blocked', False):
+        # The interlock already allowlisted only STOP and read-only
+        # diagnostics; let these through even while REARM owns input.
+        return
     active = owner(session)
     if active == 'MODIFIER_PREVIEW':
         kind = session._xr_modifier_preview[2]
@@ -133,6 +141,8 @@ def dispatch_command(session, context, action, legacy_handler):
     branches one at a time without another Runtime.command wrapper.
     Nested calls retain their established delegation behavior.
     """
+    # Even nested legacy delegation cannot bypass a rollback-blocked runtime.
+    input_interlock_v090.block_unsafe_commands(session, action)
     if getattr(session, '_xr_command_depth', 0):
         return legacy_handler(session, context, action)
     validate_command(session, action)
@@ -171,6 +181,7 @@ def cancel_session_loss(session):
     # A failed rollback may leave Blender data externally modified. Repeated
     # tracking-loss callbacks must never clear that failure or rearm input.
     if getattr(session, '_xr_rollback_blocked', False):
+        input_interlock_v090.expire_pending_approvals(session)
         session._xr_validated_controls = None
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
@@ -202,6 +213,7 @@ def cancel_session_loss(session):
     finally:
         if radial is not None:
             radial.reset(require_release=True)
+        input_interlock_v090.expire_pending_approvals(session)
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
         session._xr_rollback_blocked = failed
