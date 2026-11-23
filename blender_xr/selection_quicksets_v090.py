@@ -72,26 +72,38 @@ def restore_indices(session, context, indices, additive=False):
              else tuple(sorted(set(validated))))
     if before == after:
         return len(before), False
-    # Reuse the established XR_MESH_SELECTION_086 history format.
-    mesh_selection_tools_v086._set_selection(obj, mode, after)
-    applied_bm, applied_items = mesh_selection_tools_v086._current(obj, mode)
-    if mesh_selection_tools_v086._topology(applied_bm) != topo:
-        raise ValueError('Mesh topology changed during selection recall')
-    applied = mesh_selection_tools_v086._selected(applied_items)
-    if applied == before:
-        return len(applied), False
-    entry = (mesh_selection_tools_v086._TAG, context.scene.name,
-             context.view_layer.name, obj.name, obj.as_pointer(),
-             obj.data.name, obj.data.as_pointer(), mode, topo, before, applied)
+    # Reuse XR_MESH_SELECTION_086, capturing Blender's actual post-flush
+    # selection. A refused native update or failed history push must not
+    # silently strand an edit outside XR Undo/Redo.
+    applied = None
     try:
+        mesh_selection_tools_v086._set_selection(obj, mode, after)
+        applied_bm, applied_items = mesh_selection_tools_v086._current(obj, mode)
+        if mesh_selection_tools_v086._topology(applied_bm) != topo:
+            raise ValueError('Mesh topology changed during selection recall')
+        applied = mesh_selection_tools_v086._selected(applied_items)
+        if applied == before:
+            return len(applied), False
+        entry = (mesh_selection_tools_v086._TAG, context.scene.name,
+                 context.view_layer.name, obj.name, obj.as_pointer(),
+                 obj.data.name, obj.data.as_pointer(), mode, topo,
+                 before, applied)
         session.history.push(entry)
     except Exception:
-        # Roll back only when the same Blender mesh and post-flush selection
-        # are still present; never overwrite another editor's selection.
-        check_obj, check_mode, check_bm, check_items, check_topo = _current(context)
-        if (check_obj == obj and check_mode == mode and check_topo == topo and
-                mesh_selection_tools_v086._selected(check_items) == applied):
-            mesh_selection_tools_v086._set_selection(obj, mode, before)
+        # A synchronous selection update may fail after Blender has already
+        # changed some BMesh flags. Restore only when the SAME object,
+        # visibility/connectivity and select mode are still available.
+        try:
+            check_obj, check_mode, check_bm, check_items, check_topo = _current(context)
+            if check_obj == obj and check_mode == mode and check_topo == topo:
+                actual = mesh_selection_tools_v086._selected(check_items)
+                if actual != before and (applied is None or actual == applied):
+                    mesh_selection_tools_v086._set_selection(obj, mode, before)
+        except Exception:
+            # Preserve the initiating mutation/history exception. A failed
+            # guarded rollback remains visible for explicit creator review.
+            import traceback
+            traceback.print_exc()
         raise
     session._xr_precision_last_ray = None
     return len(applied), True

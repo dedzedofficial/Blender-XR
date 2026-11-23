@@ -219,18 +219,18 @@ def _apply(session, context, action):
     if before == after:
         session.status = 'SELECTION / {} / ALREADY MATCHED'.format(operation)
         return False
-    topo = _topology(bm)
-    _set_selection(obj, mode, after)
-    entry = (_TAG, context.scene.name, context.view_layer.name,
-             obj.name, obj.as_pointer(), obj.data.name, obj.data.as_pointer(),
-             mode, topo, before, after)
-    session.history.push(entry)
-    # Other precision tools may carry a ray hit whose selection is no longer
-    # what the user sees. Force a new explicit controller ray selection.
-    session._xr_precision_last_ray = None
-    session.status = 'SELECTION / {} / {} {}'.format(
-        operation, len(after), mode)
-    return True
+    # Delegate to the same guarded native recall used by Quick Sets and
+    # persistent attributes. Blender may flush implied vertex/edge/face
+    # selection after setting a target: the historical "after" tuple must
+    # describe what Blender ACTUALLY selected, not just the requested list.
+    # The shared helper also restores selection on failed history pushes.
+    from . import selection_quicksets_v090
+    count, changed = selection_quicksets_v090.restore_indices(
+        session, context, after, additive=False)
+    session.status = 'SELECTION / {} / {} {} / {}'.format(
+        operation, count, mode,
+        'XR UNDO READY' if changed else 'UNCHANGED')
+    return changed
 
 
 def _patch_history():
@@ -265,8 +265,30 @@ def _patch_history():
         current = _selected(items)
         if current != (after if backwards else before):
             raise ValueError('Selection changed outside XR selection history')
-        _set_selection(obj, mode, before if backwards else after)
-        dst.append(src.pop())
+        expected = after if backwards else before
+        target = before if backwards else after
+        # Reserve the destination entry before any native selection write.
+        # On failure leave both Undo/Redo stacks intact and restore the
+        # visible selection when Blender has not changed topology/mode.
+        entry = src[-1]
+        dst.append(entry)
+        try:
+            _set_selection(obj, mode, target)
+            check_bm, check_items = _current(obj, mode)
+            if (_topology(check_bm) != topo or
+                    _selected(check_items) != target):
+                raise ValueError('Blender selection flush changed the XR history target')
+        except Exception:
+            try:
+                check_bm, check_items = _current(obj, mode)
+                if _topology(check_bm) == topo and _selected(check_items) != expected:
+                    _set_selection(obj, mode, expected)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+            dst.pop()
+            raise
+        src.pop()
         return True
 
     mesh.History.release = staticmethod(release)
