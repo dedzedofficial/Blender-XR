@@ -221,6 +221,10 @@ def _model(layout, context, settings):
                              text='UV Density Report', icon='UV')
         density_row.operator('blender_xr.uv_density_select',
                              text='Select UV Problems', icon='RESTRICT_SELECT_OFF')
+        match_row = layout.row(align=True)
+        match_row.enabled = runtime.CURRENT is None
+        match_row.operator('blender_xr.uv_match_density',
+                           text='Preview Island Density Match', icon='UV')
 
     layout.separator()
     _header(layout, 'Quick Layout (Object Mode)', 'EMPTY_ARROWS')
