@@ -169,31 +169,61 @@ def _guard(context, state):
     return obj, keys, block, fc, point
 
 
+def _set_point_meta(point, metadata):
+    (point.interpolation, point.easing, point.type,
+     point.handle_left_type, point.handle_right_type) = metadata
+
+
 def _toggle(context, state, backwards):
     if bool(state['present']) != bool(backwards):
         raise ValueError('XR keyframe history is out of sequence')
-    obj, keys, block, fc, point = _guard(context, state)
+    _obj, _keys, block, fc, point = _guard(context, state)
+    frame = state['frame']
     if backwards:
         old_meta = _metadata(point)
         fc.keyframe_points.remove(point)
-        fc.update()
-        state['rest_missing'] = _rest_signature(fc, state['frame'])
+        try:
+            fc.update()
+            # The native Action owns the evaluated value at this frame.
+            context.scene.frame_set(frame)
+            if len(fc.keyframe_points) == 0:
+                block.value = state['prior']
+            context.view_layer.update()
+        except Exception:
+            # Do not strand an un-undoable key deletion if Blender's
+            # evaluation/depsgraph fails after editing the FCurve.
+            try:
+                if _point(fc, frame) is None:
+                    restored = fc.keyframe_points.insert(
+                        frame, state['value'], options=set())
+                    _set_point_meta(restored, old_meta)
+                    fc.update()
+                context.scene.frame_set(frame)
+            except Exception:
+                pass
+            raise
+        state['rest_missing'] = _rest_signature(fc, frame)
         state['present'] = False
-        # Blender's native evaluation owns the final property value.
-        context.scene.frame_set(state['frame'])
-        if len(fc.keyframe_points) == 0:
-            block.value = state['prior']
         state['point_meta'] = old_meta
     else:
         created = fc.keyframe_points.insert(
-            state['frame'], state['value'], options=set())
-        (created.interpolation, created.easing, created.type,
-         created.handle_left_type, created.handle_right_type) = state['point_meta']
-        fc.update()
-        state['rest_present'] = _rest_signature(fc, state['frame'])
+            frame, state['value'], options=set())
+        try:
+            _set_point_meta(created, state['point_meta'])
+            fc.update()
+            context.scene.frame_set(frame)
+            context.view_layer.update()
+        except Exception:
+            try:
+                if _point(fc, frame) == created:
+                    fc.keyframe_points.remove(created)
+                    fc.update()
+                    context.scene.frame_set(frame)
+            except Exception:
+                pass
+            raise
+        state['rest_present'] = _rest_signature(fc, frame)
         state['present'] = True
-        context.scene.frame_set(state['frame'])
-    context.view_layer.update()
 
 
 def _insert(context, action_name, history=None):
