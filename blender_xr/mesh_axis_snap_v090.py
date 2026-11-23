@@ -37,8 +37,11 @@ def _plan(context, obj, axis, target, space):
     if any(not vert.is_valid or vert.hide for vert in vertices):
         raise ValueError('Selection contains hidden or deleted vertices')
     original = tuple((vert.index, vert.co.copy()) for vert in vertices)
+    original_indices = tuple(idx for idx, _point in original)
     matrix = obj.matrix_world.copy()
-    if not _finite(matrix.translation) or abs(matrix.determinant()) <= 1e-10:
+    if (not all(_finite(row) for row in matrix) or
+            not math.isfinite(float(matrix.determinant())) or
+            abs(matrix.determinant()) <= 1e-10):
         raise ValueError('Object transform is singular or invalid')
     inverse = matrix.inverted()
     if target == 'CURSOR':
@@ -71,7 +74,7 @@ def _plan(context, obj, axis, target, space):
         return None
     # Retain original coordinates to reject a stale plan if another
     # operation modified the mesh before the XR history transaction.
-    return original, planned
+    return original, original_indices, planned
 
 
 def _apply(session, context, axis):
@@ -86,11 +89,15 @@ def _apply(session, context, axis):
     if plan is None:
         session.status = 'AXIS SNAP / ALREADY ALIGNED / NO CHANGE'
         return False
-    original, planned = plan
+    original, original_indices, planned = plan
 
     def mutate():
         bm = mesh.editable(obj)
         bm.verts.ensure_lookup_table()
+        selected_now = tuple(sorted(v.index for v in mesh.selected_transform_vertices(
+            obj, selection.mode(context)) if v.is_valid and not v.hide))
+        if selected_now != original_indices:
+            raise ValueError('Mesh selection changed before axis snap')
         # Validate every target before writing the first vertex.
         for idx, position in original:
             if (idx < 0 or idx >= len(bm.verts) or
