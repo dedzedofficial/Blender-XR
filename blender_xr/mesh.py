@@ -147,25 +147,35 @@ def _clear_selection(bm):
 
 
 def select_element(obj, mode, index, additive=False):
+    """Select one native element without clearing on invalid/hidden targets.
+
+    Legacy selection callers (including face picks) retain their original
+    toggle behavior. Validate the destination first so a stale ray index or
+    hidden vertex cannot erase the artist's existing selection on failure.
+    Selection-only writes must not request destructive BMesh topology updates.
+    """
+    if mode not in SELECT_MODES:
+        raise ValueError('Unknown mesh selection mode')
     bm = editable(obj)
+    collection = getattr(bm, {'VERT': 'verts', 'EDGE': 'edges',
+                              'FACE': 'faces'}[mode])
+    collection.ensure_lookup_table()
+    collection.index_update()
+    if not isinstance(index, int) or index < 0 or index >= len(collection):
+        raise ValueError('Selected mesh index is no longer available')
+    element = collection[index]
+    if (not element.is_valid or element.hide or
+            (mode == 'EDGE' and any(
+                vertex.hide or not vertex.is_valid for vertex in element.verts)) or
+            (mode == 'FACE' and any(
+                vertex.hide or not vertex.is_valid for vertex in element.verts))):
+        raise ValueError('Cannot select hidden or deleted mesh geometry')
+    toggled = not element.select if additive else True
     if not additive:
         _clear_selection(bm)
-    if mode == 'VERT':
-        bm.verts.ensure_lookup_table()
-        element = bm.verts[index]
-    elif mode == 'EDGE':
-        bm.edges.ensure_lookup_table()
-        element = bm.edges[index]
-    elif mode == 'FACE':
-        bm.faces.ensure_lookup_table()
-        element = bm.faces[index]
-    else:
-        raise ValueError('Unknown mesh selection mode')
-    if not element.is_valid:
-        raise ValueError('Selected mesh element is no longer valid')
-    element.select_set(not element.select if additive else True)
+    element.select_set(toggled)
     bm.select_flush_mode()
-    update(obj)
+    bmesh.update_edit_mesh(obj.data, loop_triangles=False, destructive=False)
 
 
 def select_face(obj, index, additive=False):
