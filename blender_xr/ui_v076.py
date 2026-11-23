@@ -124,6 +124,24 @@ def _model(layout, context, settings):
                   operation='DISTRIBUTE', axis=axis)
 
     layout.separator()
+    _header(layout, 'Shape Keys', 'SHAPEKEY_DATA')
+    shape_obj = context.view_layer.objects.active
+    shape_data = (shape_obj.data.shape_keys if shape_obj and
+                  shape_obj.type == 'MESH' else None)
+    if shape_data and len(shape_data.key_blocks) > 1:
+        layout.prop(shape_obj, 'active_shape_key_index', text='Active key')
+        shape_row = layout.row(align=True)
+        shape_row.enabled = context.mode == 'OBJECT' and runtime.CURRENT is None
+        shape_row.operator('blender_xr.shape_key_value', text='Value -',
+                           icon='REMOVE').action = 'XR_SHAPE_VALUE_DOWN'
+        shape_row.operator('blender_xr.shape_key_value', text='Value +',
+                           icon='ADD').action = 'XR_SHAPE_VALUE_UP'
+        shape_row.operator('blender_xr.shape_key_value', text='Mute',
+                           icon='HIDE_ON').action = 'XR_SHAPE_MUTE'
+    else:
+        layout.label(text='No editable non-Basis key on active mesh', icon='INFO')
+
+    layout.separator()
     _header(layout, 'Asset audit', 'CHECKMARK')
     layout.prop(settings, 'triangle_budget', text='Triangle budget', icon='MESH_DATA')
     obj = context.view_layer.objects.active
