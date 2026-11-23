@@ -390,6 +390,11 @@ def _push_transform_history(session, context, drag):
     if obj is None or obj.mode != drag['mode']:
         return
     after = _current_coords(obj, drag)
+    if drag['kind'] == 'MESH' and (
+            set(after) != set(drag['last_mesh_coords']) or
+            any((after[i] - co).length > 1e-6
+                for i, co in drag['last_mesh_coords'].items())):
+        raise ValueError('Mesh changed outside XR before transform commit')
     if not _changed(drag['before'], after, drag['kind']):
         return
     kind = {'OBJECT': 'OBJECT', 'MESH': 'XR_VERTS', 'BONE': 'XR_BONES',
