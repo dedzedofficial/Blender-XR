@@ -28,6 +28,8 @@ _CHOICES = {
     'XR_UV_ORIENT_HALF': 'HALF',
     'XR_UV_ORIENT_ALIGN_U': 'ALIGN_U',
     'XR_UV_ORIENT_ALIGN_V': 'ALIGN_V',
+    'XR_UV_ORIENT_FLIP_U': 'FLIP_U',
+    'XR_UV_ORIENT_FLIP_V': 'FLIP_V',
 }
 _MAX_TARGET_FACES = 15000
 _EPS = 1e-10
@@ -118,19 +120,30 @@ def plan(context, action):
     obj, bm, layer, face, ids, lookup, islands, before = _source(context)
     moving_faces = tuple(lookup[i] for i in ids)
     _hidden_adjacency(bm, moving_faces, layer)
-    angle = _angle(action, face, layer)
-    if not math.isfinite(angle) or abs(angle) < 1e-8:
+    mirrored = action in {'FLIP_U', 'FLIP_V'}
+    angle = 0.0 if mirrored else _angle(action, face, layer)
+    if not mirrored and (not math.isfinite(angle) or abs(angle) < 1e-8):
         raise ValueError('Selected UV edge is already aligned in this direction')
     midpoint = (sum(p[0] for p in before)/len(before),
                 sum(p[1] for p in before)/len(before))
-    cosine, sine = math.cos(angle), math.sin(angle)
-    after = tuple(
-        (midpoint[0] + (p[0]-midpoint[0])*cosine - (p[1]-midpoint[1])*sine,
-         midpoint[1] + (p[0]-midpoint[0])*sine + (p[1]-midpoint[1])*cosine)
-        for p in before
-    )
+    if action == 'FLIP_U':
+        after = tuple((2*midpoint[0] - u, v) for u, v in before)
+    elif action == 'FLIP_V':
+        after = tuple((u, 2*midpoint[1] - v) for u, v in before)
+    else:
+        cosine, sine = math.cos(angle), math.sin(angle)
+        after = tuple(
+            (midpoint[0] + (p[0]-midpoint[0])*cosine - (p[1]-midpoint[1])*sine,
+             midpoint[1] + (p[0]-midpoint[0])*sine + (p[1]-midpoint[1])*cosine)
+            for p in before
+        )
     if any(not all(math.isfinite(v) for v in p) for p in after):
-        raise ValueError('UV rotation produced invalid native coordinates')
+        raise ValueError('UV orientation produced invalid native coordinates')
+    if mirrored and all(
+            abs(a-b) <= 1e-10
+            for before_uv, after_uv in zip(before, after)
+            for a, b in zip(before_uv, after_uv)):
+        raise ValueError('Selected UV island is degenerate on the requested mirror axis')
     old_box = uv_island_match_v090._box(before)
     new_box = uv_island_match_v090._box(after)
     # Reject newly introduced bounding-box overlap, including hidden faces.
@@ -149,7 +162,7 @@ def plan(context, action):
         obstacle = uv_island_match_v090._box(corners)
         if (uv_island_match_v090._overlap(new_box, obstacle) and
                 not uv_island_match_v090._overlap(old_box, obstacle)):
-            raise ValueError('UV rotation could overlap another island; move it first')
+            raise ValueError('UV orientation could overlap another island; move it first')
     # Entire native edit-cage and active UV layer are guarded, not only the
     # island being edited. Any external Blender edit invalidates the preview.
     signature = (
@@ -216,7 +229,7 @@ def commit(context, proposal, history=None):
 class BXR_OT_uv_orient(bpy.types.Operator):
     bl_idname = 'blender_xr.uv_orient'
     bl_label = 'Preview Native UV Island Orientation'
-    bl_description = 'Rotate the complete active UV island, preserving density and mesh geometry'
+    bl_description = 'Rotate or mirror the active UV island while preserving mesh geometry'
     bl_options = {'REGISTER', 'UNDO'}
     action: bpy.props.EnumProperty(
         name='Orientation',
@@ -226,6 +239,8 @@ class BXR_OT_uv_orient(bpy.types.Operator):
             ('HALF', 'Rotate 180°', 'Rotate the UV island 180 degrees'),
             ('ALIGN_U', 'Align Longest Edge to U', 'Orient active face longest UV edge horizontally'),
             ('ALIGN_V', 'Align Longest Edge to V', 'Orient active face longest UV edge vertically'),
+            ('FLIP_U', 'Mirror UV Horizontally', 'Flip U around island pivot; reverses UV handedness'),
+            ('FLIP_V', 'Mirror UV Vertically', 'Flip V around island pivot; reverses UV handedness'),
         ), default='ALIGN_U')
     _proposal = None
 
@@ -251,9 +266,14 @@ class BXR_OT_uv_orient(bpy.types.Operator):
         p = self._proposal
         if p:
             self.layout.label(text='UV island faces: {}'.format(len(p['face_ids'])))
-            self.layout.label(text='Preview rotation: {:.2f} degrees'.format(
-                math.degrees(p['angle'])))
-        self.layout.label(text='Only the active Blender UV layer will rotate')
+            if p['action'] in {'FLIP_U', 'FLIP_V'}:
+                self.layout.label(text='Preview: Mirror ' + p['action'][-1])
+                self.layout.label(text='UV handedness reverses: check textures/normal maps',
+                                  icon='ERROR')
+            else:
+                self.layout.label(text='Preview rotation: {:.2f} degrees'.format(
+                    math.degrees(p['angle'])))
+        self.layout.label(text='Only the active Blender UV layer will change')
         self.layout.label(text='Existing stacked islands are preserved')
 
     def execute(self, context):
@@ -268,8 +288,12 @@ class BXR_OT_uv_orient(bpy.types.Operator):
             self.report({'ERROR'}, str(exc))
             return {'CANCELLED'}
         self._proposal = None
-        self.report({'INFO'}, '{} faces rotated {:.2f} degrees'.format(
-            count, degrees))
+        if self.action in {'FLIP_U', 'FLIP_V'}:
+            self.report({'INFO'}, '{} native UV faces mirrored on {}'.format(
+                count, self.action[-1]))
+        else:
+            self.report({'INFO'}, '{} faces rotated {:.2f} degrees'.format(
+                count, degrees))
         return {'FINISHED'}
 
 
@@ -289,27 +313,31 @@ def install_pages():
         ('ROTATE 180', 'XR_UV_ORIENT_HALF'),
         ('ALIGN U', 'XR_UV_ORIENT_ALIGN_U'),
         ('ALIGN V', 'XR_UV_ORIENT_ALIGN_V'),
+        ('MIRROR U', 'XR_UV_ORIENT_FLIP_U'),
+        ('MIRROR V', 'XR_UV_ORIENT_FLIP_V'),
         ('PREVIEW', _PREVIEW),
         ('BACK', 'BACK'),
     )
     menus.PAGES[_CONFIRM_PAGE] = (
         ('APPLY ROTATION', _APPLY), ('KEEP UVS', _CANCEL), ('BACK', 'BACK'))
     menus.TITLES[_PAGE] = 'ALIGN NATIVE UV ISLAND'
-    menus.TITLES[_CONFIRM_PAGE] = 'CONFIRM UV ISLAND ROTATION'
+    menus.TITLES[_CONFIRM_PAGE] = 'CONFIRM UV ISLAND EDIT'
     v065.TOOLTIPS.update({
         _ENTRY: ('Native UV Island Orientation',
                  'Select one active face to orient its entire UV-continuous island'),
         _PREVIEW: ('Preview UV Island Orientation',
                    'Review a fixed rotation before changing the active UV layer'),
         _APPLY: ('Confirm UV Island Orientation',
-                 'Rotate active native UV coordinates in one XR Undo transaction'),
+                 'Rotate or mirror active native UV coordinates with XR Undo'),
         _CANCEL: ('Keep UV Island',
                   'Cancel native UV orientation without changing mesh data'),
     })
     for action, value in _CHOICES.items():
         v065.TOOLTIPS[action] = (
             'UV Island ' + value.replace('_', ' ').title(),
-            'Choose a native UV orientation; preview is required before editing')
+            ('Mirror reverses native UV handedness; preview before editing'
+             if value.startswith('FLIP_') else
+             'Choose a native UV rotation; preview before editing'))
 
 
 def patch_runtime(Runtime):
@@ -345,8 +373,12 @@ def patch_runtime(Runtime):
             proposal = plan(context, getattr(self, '_xr_uv_orient_action', 'ALIGN_U'))
             self._xr_uv_orient_pending = proposal
             self.menu.page = _CONFIRM_PAGE
-            self.status = 'UV PREVIEW / {:.1f} DEG / {} FACES / CONFIRM'.format(
-                math.degrees(proposal['angle']), len(proposal['face_ids']))
+            if proposal['action'] in {'FLIP_U', 'FLIP_V'}:
+                self.status = 'UV PREVIEW / MIRROR {} / REVERSES UV WINDING / {} FACES'.format(
+                    proposal['action'][-1], len(proposal['face_ids']))
+            else:
+                self.status = 'UV PREVIEW / {:.1f} DEG / {} FACES / CONFIRM'.format(
+                    math.degrees(proposal['angle']), len(proposal['face_ids']))
             return
         if page == _CONFIRM_PAGE:
             if action in {_CANCEL, 'BACK'}:
@@ -368,8 +400,12 @@ def patch_runtime(Runtime):
             self._xr_uv_orient_pending = None
             self.menu.page = _PAGE
             self._xr_precision_last_ray = None
-            self.status = 'UV ROTATED / {:.1f} DEG / {} FACES / XR UNDO'.format(
-                degrees, count)
+            if proposal['action'] in {'FLIP_U', 'FLIP_V'}:
+                self.status = 'UV MIRRORED {} / {} FACES / XR UNDO'.format(
+                    proposal['action'][-1], count)
+            else:
+                self.status = 'UV ROTATED / {:.1f} DEG / {} FACES / XR UNDO'.format(
+                    degrees, count)
             return
         return previous_command(self, context, action)
 
