@@ -78,7 +78,16 @@ def _matches(point, saved):
     if any(now[key] != saved[key] for key in (
             'interp', 'easing', 'type', 'left_type', 'right_type')):
         return False
-    return math.isclose(now['value'], saved['value'], abs_tol=1e-5)
+    if not math.isclose(now['value'], saved['value'], abs_tol=1e-5):
+        return False
+    # A creator can move FREE/ALIGNED Bezier handles without changing the
+    # point value. Treat those manual coordinates as artist-owned edits,
+    # never delete an externally modified key.
+    for side in ('left', 'right'):
+        if saved[side + '_type'] in {'FREE', 'ALIGNED'}:
+            if any(abs(a-b) > 1e-5 for a, b in zip(now[side], saved[side])):
+                return False
+    return True
 
 
 def _recreate(curve, frame, saved):
