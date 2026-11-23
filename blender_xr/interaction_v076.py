@@ -710,6 +710,7 @@ def install_pages():
     menus.PAGES['POSE_EDIT'] = (
         ('SELECT', 'SELECT'), ('MOVE', 'BONE_MOVE'),
         ('SCALE', 'BONE_SCALE'), ('ROTATE', 'BONE_ROTATE'),
+        ('IK 2 BONES', 'BONE_IK_2'), ('IK 3 BONES', 'BONE_IK_3'),
         ('FINISH POSE', 'RIG_EXIT_POSE'),
     )
     menus.TITLES['POSE_EDIT'] = 'POSE BONES'
@@ -761,6 +762,15 @@ def patch_runtime(Runtime):
             return result
         if action == 'BACK' and self.menu.page == 'POSE_EDIT':
             return old_command(self, context, 'RIG_EXIT_POSE')
+        if action in {'BONE_IK_2', 'BONE_IK_3'}:
+            obj = context.view_layer.objects.active
+            if not obj or obj.type != 'ARMATURE' or obj.mode != 'POSE':
+                raise ValueError('Enter Pose Mode before direct IK')
+            from . import pose_ik_v086
+            chain = pose_ik_v086.pose_chain(obj, int(action[-1]))
+            self.tool = action
+            self.status = 'IK / GRIP OR TRIGGER / ' + str(len(chain)) + ' BONES'
+            return
         if action == 'BONE_MOVE':
             obj = context.view_layer.objects.active
             if obj and obj.type == 'ARMATURE' and obj.mode == 'POSE':
@@ -1018,8 +1028,11 @@ def patch_runtime(Runtime):
                             if mode not in {'MOVE_FACE','SCALE_FACE','ROTATE_EDIT'}:
                                 mode = {'SCALE':'SCALE_FACE','ROTATE':'ROTATE_EDIT'}.get(mode, 'MOVE_FACE')
                         elif active.mode in {'EDIT','POSE'} and active.type == 'ARMATURE':
-                            mode = ({'SCALE':'BONE_SCALE','ROTATE':'BONE_ROTATE'}
-                                    .get(mode, 'BONE_MOVE'))
+                            if active.mode == 'POSE' and mode in {'BONE_IK_2', 'BONE_IK_3'}:
+                                pass  # Keep explicit IK chain tool in Pose Mode.
+                            else:
+                                mode = ({'SCALE':'BONE_SCALE','ROTATE':'BONE_ROTATE'}
+                                        .get(mode, 'BONE_MOVE'))
                         else:
                             mode = {'SCALE_FACE':'SCALE', 'ROTATE_EDIT':'ROTATE'}.get(mode,mode)
                         self._xr_gesture = begin_transform(
