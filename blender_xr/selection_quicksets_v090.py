@@ -57,52 +57,59 @@ def _store(session, context, label):
     return True
 
 
-def _recall(session, context, label):
-    saved = getattr(session, '_xr_selection_quicksets', None) or {}
-    if label not in saved:
-        raise ValueError('Quick Set ' + label + ' is empty; save a selection')
+def restore_indices(session, context, indices, additive=False):
+    """One native guarded selection-recall path for Quick and persistent sets."""
+    _check_owner(session)
     obj, mode, _bm, items, topo = _current(context)
-    identity, indices = saved[label]
-    if identity != _identity(context, obj, mode, topo):
-        # Do not destroy a different mesh's current selection when a topology
-        # edit or view-layer switch invalidated an earlier stored slot.
-        raise ValueError('Quick Set ' + label + ' is stale; save it again')
     before = mesh_selection_tools_v086._selected(items)
-    additive = bool(getattr(session, '_xr_selection_slots_add', False))
-    after = tuple(sorted(set(before).union(indices))) if additive else indices
+    validated = []
+    for index in indices:
+        if (not isinstance(index, int) or index < 0 or index >= len(items) or
+                not items[index].is_valid or items[index].hide):
+            raise ValueError('Selection set contains a hidden or invalid element')
+        validated.append(index)
+    after = (tuple(sorted(set(before).union(validated))) if additive
+             else tuple(sorted(set(validated))))
     if before == after:
-        _set_status(session, 'UNCHANGED', label, mode, len(after))
-        return False
-    # Reuse the existing native selection-history entry format, so Undo/Redo,
-    # disposal and topology/visibility checks stay with one owner.
+        return len(before), False
+    # Reuse the established XR_MESH_SELECTION_086 history format.
     mesh_selection_tools_v086._set_selection(obj, mode, after)
-    # A native Blender select-flush can reconcile related vertices and edges.
-    # Capture the post-flush selection rather than assuming it equals the
-    # requested indices. Undo must expect exactly what Blender now displays.
     applied_bm, applied_items = mesh_selection_tools_v086._current(obj, mode)
     if mesh_selection_tools_v086._topology(applied_bm) != topo:
-        raise ValueError('Mesh topology changed during Quick Set recall')
+        raise ValueError('Mesh topology changed during selection recall')
     applied = mesh_selection_tools_v086._selected(applied_items)
     if applied == before:
-        _set_status(session, 'UNCHANGED', label, mode, len(applied))
-        return False
+        return len(applied), False
     entry = (mesh_selection_tools_v086._TAG, context.scene.name,
              context.view_layer.name, obj.name, obj.as_pointer(),
              obj.data.name, obj.data.as_pointer(), mode, topo, before, applied)
     try:
         session.history.push(entry)
     except Exception:
-        # A history failure must not strand a selection that cannot be undone.
-        # Revalidate topology before restoring; never overwrite external edits.
+        # Roll back only when the same Blender mesh and post-flush selection
+        # are still present; never overwrite another editor's selection.
         check_obj, check_mode, check_bm, check_items, check_topo = _current(context)
         if (check_obj == obj and check_mode == mode and check_topo == topo and
                 mesh_selection_tools_v086._selected(check_items) == applied):
             mesh_selection_tools_v086._set_selection(obj, mode, before)
         raise
     session._xr_precision_last_ray = None
-    _set_status(session, 'ADDED' if additive else 'RESTORED',
-                label, mode, len(applied))
-    return True
+    return len(applied), True
+
+
+def _recall(session, context, label):
+    saved = getattr(session, '_xr_selection_quicksets', None) or {}
+    if label not in saved:
+        raise ValueError('Quick Set ' + label + ' is empty; save a selection')
+    obj, mode, _bm, _items, topo = _current(context)
+    identity, indices = saved[label]
+    if identity != _identity(context, obj, mode, topo):
+        raise ValueError('Quick Set ' + label + ' is stale; save it again')
+    additive = bool(getattr(session, '_xr_selection_slots_add', False))
+    count, changed = restore_indices(session, context, indices, additive)
+    _set_status(session, 'ADDED' if additive else
+                'RESTORED' if changed else 'UNCHANGED', label, mode, count)
+    return changed
 
 
 def install_pages():
