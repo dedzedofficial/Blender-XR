@@ -22,40 +22,58 @@ ROTATE = {'ROTATE', 'ROTATE_EDIT', 'BONE_ROTATE'}
 
 
 def ray_element(obj, origin, direction, mode, radius=0.075):
-    """Pick vertices/edges within ray tolerance even when no face was hit.
+    """Pick visible edit-cage elements with stable BMesh indices.
 
-    The old picker required hitting a polygon first, making loose vertices,
-    isolated edges and small VR controller targets impossible to grab.
+    Compare candidates in world space, including loose geometry. Invalid or
+    degenerate controller rays must never select a nearby arbitrary element.
     """
     if obj is None or obj.type != 'MESH' or obj.mode != 'EDIT':
         return None
+    if mode not in {'VERT', 'EDGE', 'FACE'}:
+        return None
+    origin, direction = Vector(origin), Vector(direction)
+    if not all(math.isfinite(v) for v in (*origin, *direction)):
+        return None
+    if direction.length_squared < 1e-12:
+        return None
+    direction.normalize()
     if mode == 'FACE':
         return mesh.element_hit(obj, origin, direction, 'FACE')
-    direction = Vector(direction).normalized()
+
     bm = bmesh.from_edit_mesh(obj.data)
+    bm.verts.ensure_lookup_table()
+    bm.verts.index_update()
+    bm.edges.ensure_lookup_table()
+    bm.edges.index_update()
     candidates = []
     if mode == 'VERT':
         for vert in bm.verts:
-            if vert.hide or not vert.is_valid:
+            if not vert.is_valid or vert.hide:
                 continue
             world = obj.matrix_world @ vert.co
+            if not all(math.isfinite(v) for v in world):
+                continue
             along = (world - origin).dot(direction)
             if along <= 0:
                 continue
             distance = (origin + along * direction - world).length
             if distance <= max(radius, along * .013):
                 candidates.append((along, distance, vert.index, world.copy()))
-    elif mode == 'EDGE':
+    else:
         for edge in bm.edges:
-            if edge.hide or not edge.is_valid:
+            if not edge.is_valid or edge.hide or any(v.hide for v in edge.verts):
                 continue
-            h = armature_v076._closest_segment(
-                origin, direction, obj.matrix_world @ edge.verts[0].co,
-                obj.matrix_world @ edge.verts[1].co)
-            if h and h[0] <= max(radius, h[1] * .013):
-                candidates.append((h[1], h[0], edge.index, h[2]))
+            start = obj.matrix_world @ edge.verts[0].co
+            end = obj.matrix_world @ edge.verts[1].co
+            if not all(math.isfinite(v) for v in (*start, *end)):
+                continue
+            hit = armature_v076._closest_segment(origin, direction, start, end)
+            if hit and hit[1] > 0 and math.isfinite(hit[0]) and math.isfinite(hit[1]):
+                if hit[0] <= max(radius, hit[1] * .013):
+                    candidates.append((hit[1], hit[0], edge.index, hit[2]))
     if candidates:
-        best = min(candidates, key=lambda item: (item[0], item[1]))
+        # Depth first, then distance to ray and stable cage index.
+        best = min(candidates, key=lambda item: (item[0], item[1], item[2]))
         return best[2], best[3]
     return mesh.element_hit(obj, origin, direction, mode)
 
