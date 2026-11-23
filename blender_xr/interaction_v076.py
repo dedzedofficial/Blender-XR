@@ -37,8 +37,22 @@ def ray_element(obj, origin, direction, mode, radius=0.075):
     if direction.length_squared < 1e-12:
         return None
     direction.normalize()
+    if not math.isfinite(radius) or radius <= 0:
+        return None
     if mode == 'FACE':
         return mesh.element_hit(obj, origin, direction, 'FACE')
+
+    # The first visible edit-cage surface bounds depth selection. Keep a
+    # world-space tolerance for vertices and edges lying on that surface;
+    # loose geometry remains selectable when there is no face hit.
+    surface = mesh.face_hit(obj, origin, direction)
+    surface_depth = None
+    if surface is not None:
+        surface_point = Vector(surface[1])
+        if all(math.isfinite(v) for v in surface_point):
+            depth = (surface_point - origin).dot(direction)
+            if depth > 0:
+                surface_depth = depth
 
     bm = bmesh.from_edit_mesh(obj.data)
     bm.verts.ensure_lookup_table()
@@ -71,10 +85,16 @@ def ray_element(obj, origin, direction, mode, radius=0.075):
             if hit and hit[1] > 0 and math.isfinite(hit[0]) and math.isfinite(hit[1]):
                 if hit[0] <= max(radius, hit[1] * .013):
                     candidates.append((hit[1], hit[0], edge.index, hit[2]))
+    if surface_depth is not None:
+        # A small allowance preserves surface-boundary picking at grazing
+        # angles without selecting elements behind the frontmost face.
+        candidates = [item for item in candidates
+                      if item[0] <= surface_depth + max(radius, surface_depth * .013)]
     if candidates:
         # Depth first, then distance to ray and stable cage index.
         best = min(candidates, key=lambda item: (item[0], item[1], item[2]))
         return best[2], best[3]
+    # Face-local fallback must not bypass the front-surface visibility guard.
     return mesh.element_hit(obj, origin, direction, mode)
 
 
