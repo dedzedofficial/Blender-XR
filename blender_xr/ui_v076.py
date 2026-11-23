@@ -197,6 +197,10 @@ def _model(layout, context, settings):
         flatten_quad_row.enabled = runtime.CURRENT is None
         flatten_quad_row.operator('blender_xr.quad_planarize',
                                   text='Preview Warped Quad Repair', icon='MESH_DATA')
+        relax_row = layout.row(align=True)
+        relax_row.enabled = runtime.CURRENT is None
+        relax_row.operator('blender_xr.quad_relax',
+                           text='Preview Interior Quad Relax', icon='MESH_DATA')
         audit_row.operator('blender_xr.topology_select',
                            text='Select Non-Quads',
                            icon='RESTRICT_SELECT_OFF').action = 'XR_TOPO_SELECT_NONQUADS'
