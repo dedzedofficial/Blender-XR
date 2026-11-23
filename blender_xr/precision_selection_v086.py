@@ -10,12 +10,17 @@ mesh so deleted/replaced elements cannot be reached through stale pointers.
 No scene objects, hidden geometry, mesh data, or persistent custom properties
 are written. Precision Pick is an XR-session option, not a global Blender mode.
 """
+import hashlib
 import heapq
+import math
+import struct
 
 import bmesh
 from mathutils import Vector
 
-from . import armature_v076, input_ownership_v080, mesh, menus, selection, v065
+from . import (armature_v076, input_ownership_v080, mesh, menus, selection,
+               mesh_axis_snap_v090, mesh_selection_tools_v086,
+               selection_quicksets_v090, v065)
 
 _PAGE = 'XR_PRECISION_PICK_086'
 _RADII = (0.012, 0.03, 0.07, 0.12)
@@ -26,7 +31,9 @@ def _target(context):
     obj = context.view_layer.objects.active
     if context.mode != 'EDIT_MESH' or obj is None or obj.type != 'MESH':
         raise ValueError('Precision selection requires Mesh Edit Mode')
-    mesh.check_editable(obj)
+    # Use the same native edit-mesh ownership policy as history-backed
+    # selection tools. A linked/overridden mesh cannot be safely restored.
+    mesh_selection_tools_v086._editable(context)
     if obj.hide_select or not obj.visible_get(view_layer=context.view_layer):
         raise ValueError('Show and unlock the edited mesh')
     return obj
@@ -35,8 +42,10 @@ def _target(context):
 def _ray(origin, direction):
     origin = Vector(origin)
     direction = Vector(direction)
-    if direction.length_squared <= 1e-12:
-        raise ValueError('Controller ray has no direction')
+    if (not all(math.isfinite(float(value)) for value in origin) or
+            not all(math.isfinite(float(value)) for value in direction) or
+            direction.length_squared <= 1e-12):
+        raise ValueError('Controller ray has missing or non-finite coordinates')
     return origin, direction.normalized()
 
 
@@ -71,6 +80,11 @@ def _candidates(obj, origin, direction, kind, radius, through):
     for element in elements:
         if not element.is_valid or element.hide:
             continue
+        # BMesh edge hide state does not guarantee that both endpoints are
+        # visible, especially after native hide/unhide operations.
+        if kind == 'EDGE' and any(
+                not vertex.is_valid or vertex.hide for vertex in element.verts):
+            continue
         if kind == 'VERT':
             point = obj.matrix_world @ element.co
             depth = (point - origin).dot(direction)
@@ -86,6 +100,8 @@ def _candidates(obj, origin, direction, kind, radius, through):
             if hit is None:
                 continue
             distance, depth, point, _fraction = hit
+        if not math.isfinite(float(depth)) or not math.isfinite(float(distance)):
+            continue
         if cutoff is not None and depth > cutoff:
             continue
         # World-space thresholds adapt gently with distance without making
@@ -97,6 +113,73 @@ def _candidates(obj, origin, direction, kind, radius, through):
     # Deterministic ordering and bounded output. Depth is primary for cycling;
     # the closest controller-ray distance disambiguates same-depth elements.
     return heapq.nsmallest(_MAX_HITS, hits, key=lambda h: (h[0], h[1], h[2]))
+
+
+def _geometry_stamp(bm):
+    """Hash native vertex coordinates without a mesh-size or copy limit.
+
+    Precision selection previously worked on large meshes. Use a streaming
+    fingerprint rather than the bounded weld-preview snapshot, whose 150k
+    vertex cap would otherwise introduce a new precision-picking regression.
+    """
+    digest = hashlib.blake2b(digest_size=16)
+    for vert in bm.verts:
+        coordinates = tuple(float(value) for value in vert.co)
+        if not all(math.isfinite(value) for value in coordinates):
+            raise ValueError('Native precision mesh has invalid coordinates')
+        digest.update(struct.pack('<ddd', *coordinates))
+    return digest.digest()
+
+
+def _native_stamp(context, obj):
+    """Fingerprint the exact edit cage and object transform under a saved ray.
+
+    Re-evaluating an old ray against only matching indices can select a
+    completely different vertex after topology edits, or a moved mesh after
+    object transform/Undo. Visibility, all coordinates, and connectivity are
+    required to match before Next/Previous is accepted. Selection flags are
+    intentionally excluded so XR Undo and additive selection can still cycle.
+    """
+    bm, _items = mesh_selection_tools_v086._current(obj, selection.mode(context))
+    return (
+        context.scene.as_pointer(), context.view_layer.name,
+        mesh_selection_tools_v086._topology(bm),
+        _geometry_stamp(bm),
+        _world_matrix_stamp(obj),
+    )
+
+
+def _world_matrix_stamp(obj):
+    stamp = mesh_axis_snap_v090._matrix_stamp(obj.matrix_world)
+    if not all(math.isfinite(value) for row in stamp for value in row):
+        raise ValueError('Native precision object has an invalid world transform')
+    return stamp
+
+
+def _history_pick(session, context, kind, index, additive):
+    """Select or toggle a native BMesh index through guarded XR Undo/Redo.
+
+    Quick Set's restore_indices validates the complete destination, records
+    Blender's actual flushed selection and restores it if history.push fails.
+    Passing the final target (rather than additive=True) preserves the
+    existing grip+trigger TOGGLE semantics when the vertex/edge is selected.
+    """
+    _obj, mode, _bm, items, _topo = selection_quicksets_v090._current(context)
+    if mode != kind or index < 0 or index >= len(items):
+        raise ValueError('Precision selection mode or index changed')
+    element = items[index]
+    if not element.is_valid or element.hide:
+        raise ValueError('Precision target was hidden or deleted')
+    before = set(mesh_selection_tools_v086._selected(items))
+    if not additive:
+        after = {index}
+    elif index in before:
+        after = before - {index}
+    else:
+        after = before | {index}
+    _count, changed = selection_quicksets_v090.restore_indices(
+        session, context, tuple(sorted(after)), additive=False)
+    return changed
 
 
 def _pick_enabled(session):
@@ -123,6 +206,9 @@ def _current_candidates(session, context):
             selection.mode(context) != state['kind']):
         _clear(session)
         raise ValueError('Mesh or selection mode changed; aim and Select again')
+    if state.get('stamp') != _native_stamp(context, obj):
+        _clear(session)
+        raise ValueError('Native geometry or object transform changed; aim and Select again')
     return state, obj, _candidates(
         obj, state['origin'], state['direction'], state['kind'],
         _radius(session), bool(getattr(session, '_xr_precision_through', False)))
@@ -145,11 +231,15 @@ def _cycle(session, context, step):
     chosen = candidates[next_pos]
     # Cycling is an exclusive selection. Ordinary grip+trigger additive
     # selection still works on the existing Select tool.
-    mesh.select_element(obj, state['kind'], chosen[2], additive=False)
+    changed = _history_pick(session, context, state['kind'], chosen[2], False)
     state['index'] = chosen[2]
+    # Selection history recall clears prior precision rays. This particular
+    # cycle revalidated the geometry so it can retain its own saved ray.
+    session._xr_precision_last_ray = state
     session.pointer = chosen[3].copy()
     session.status = 'PRECISION / {} {} OF {}'.format(
-        state['kind'], next_pos + 1, len(candidates))
+        state['kind'], next_pos + 1, len(candidates)) + (
+            ' / XR UNDO READY' if changed else ' / UNCHANGED')
 
 
 def _select(session, context, origin, direction, additive, legacy_select):
@@ -166,6 +256,7 @@ def _select(session, context, origin, direction, additive, legacy_select):
         _clear(session)
         return legacy_select(session, context, origin, direction, additive=additive)
     origin, ray = _ray(origin, direction)
+    native_stamp = _native_stamp(context, obj)
     candidates = _candidates(
         obj, origin, ray, kind, _radius(session),
         bool(getattr(session, '_xr_precision_through', False)))
@@ -185,7 +276,7 @@ def _select(session, context, origin, direction, additive, legacy_select):
         session.status = 'PRECISION / NO VISIBLE {} NEAR RAY'.format(kind)
         return None
     picked = candidates[0]
-    mesh.select_element(obj, kind, picked[2], additive=additive)
+    changed = _history_pick(session, context, kind, picked[2], additive)
     session.pointer = picked[3].copy()
     session._xr_precision_last_ray = {
         'object_ptr': obj.as_pointer(),
@@ -194,9 +285,10 @@ def _select(session, context, origin, direction, additive, legacy_select):
         'origin': origin.copy(),
         'direction': ray.copy(),
         'index': picked[2],
+        'stamp': native_stamp,
     }
-    session.status = 'PRECISION / {} / {} NEARBY HITS'.format(
-        kind, len(candidates))
+    session.status = 'PRECISION / {} / {} NEARBY HITS / {}'.format(
+        kind, len(candidates), 'XR UNDO READY' if changed else 'UNCHANGED')
     return picked[2], picked[3]
 
 
