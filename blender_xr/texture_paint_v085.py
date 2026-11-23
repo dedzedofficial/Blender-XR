@@ -466,7 +466,19 @@ def _tick(session, context):
                     session.status = 'PAINT CANCELLED / ' + str(exc).upper()[:38]
                 return
             if entry:
-                session.history.push(entry)
+                try:
+                    # Do not report a committed stroke until the exact native
+                    # pixel delta is stored for XR Undo/Redo. On history failure
+                    # the pending PaintStroke still owns its before-pixels.
+                    if getattr(session, 'history', None) is None:
+                        raise ValueError('XR image history is unavailable')
+                    session.history.push(entry)
+                except Exception as exc:
+                    clean = _cancel(session, True)
+                    if clean:
+                        session.status = ('PAINT ROLLED BACK / HISTORY FAILED / ' +
+                                          str(exc).upper()[:24])
+                    return
             _cancel(session, False)
             session.status = 'PAINT STROKE SAVED' if entry else 'PAINT STROKE UNCHANGED'
             return

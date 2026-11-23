@@ -111,12 +111,21 @@ def _world_position(session, context):
     if ray is None:
         raise ValueError('Point the dominant controller at the scene')
     origin, direction = (Vector(ray[0]), Vector(ray[1]))
+    if not all(math.isfinite(v) for v in (*origin, *direction)):
+        raise ValueError('Controller aim contains invalid coordinates')
     if direction.length < .5:
         raise ValueError('Controller aim pose is not ready')
     distance = float(session.settings.placement_distance)
     scale = float(getattr(getattr(context.window_manager, 'xr_session_state', None),
                           'viewer_scale', 1.0))
-    return origin + direction.normalized() * distance * max(.01, scale)
+    if not math.isfinite(distance) or distance <= 0.0:
+        raise ValueError('Curve placement distance must be positive and finite')
+    if not math.isfinite(scale) or scale <= 0.0:
+        raise ValueError('XR viewer scale is invalid')
+    result = origin + direction.normalized() * distance * scale
+    if not all(math.isfinite(v) for v in result):
+        raise ValueError('Curve position is outside valid coordinate range')
+    return result
 
 
 def _create(session, context):
@@ -234,11 +243,19 @@ def _edit(session, context, action, world=None):
         _restore(obj, before)
         raise
     after = _state(obj)
-    if not _float_equal(before, after):
-        session.history.push(('XR_CURVE_EDIT', obj.name, obj.data.name,
-                              obj, obj.data, before, after))
+    changed = not _float_equal(before, after)
+    if changed:
+        try:
+            session.history.push(('XR_CURVE_EDIT', obj.name, obj.data.name,
+                                  obj, obj.data, before, after))
+        except Exception:
+            # A history failure cannot strand a saved-looking edit with no
+            # reversible operation in the XR session.
+            _restore(obj, before)
+            session._xr_curve_index = index
+            raise
     _page(session, context, session.menu.page)
-    return not _float_equal(before, after)
+    return changed
 
 
 def _arm(session, context, action):
@@ -267,16 +284,15 @@ def _input_sample(session, context):
     if state is None or not bpy.types.XrSessionState.is_running(context):
         raise ValueError('XR tracking ended while placing a Curve point')
     from . import input_safety_v086
-    pose = Quaternion(state.controller_aim_rotation_get(context, session.dom))
-    origin = Vector(state.controller_aim_location_get(context, session.dom))
-    input_safety_v086.validate_pose(pose, origin)
-    # The owner preflight captures the only accepted input snapshot for this
-    # XR frame; do not read a second packet and misinterpret dropouts as
-    # trigger release while painting, aiming lights or placing points.
+    # Specialized edit handlers run after guard_specialized_frame has
+    # validated both hands. Reuse its exact pose and button sample so a
+    # second OpenXR read cannot move a point after tracking has dropped.
+    poses = getattr(session, '_xr_validated_poses', None)
     sample = getattr(session, '_xr_validated_controls', None)
-    if sample is None:
-        sample = input_safety_v086.controller_sample(
-            context, getattr(session, 'bridge', None))
+    if not poses or session.dom not in poses or sample is None:
+        raise ValueError('Validated controller frame is missing')
+    pose, origin = poses[session.dom][0]
+    input_safety_v086.validate_pose(pose, origin)
     held = sample[session.dom][0]
     cancel = sample[session.off][0] >= .6
     direction = pose @ Vector((0, 0, -1))

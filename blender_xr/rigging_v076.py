@@ -334,8 +334,15 @@ def _write_weight(group, index, value):
         group.add([index], max(0.0, min(1.0, float(value))), 'REPLACE')
 
 
+def _same_weight(a, b):
+    """Compare real Blender assignments, including the distinction from zero."""
+    if a is None or b is None:
+        return a is b
+    return abs(a - b) <= 1e-5
+
+
 class WeightStroke:
-    """Collect only touched native group assignments, not a whole mesh copy."""
+    """Keep a guarded, rollback-capable native vertex-group transaction."""
 
     def __init__(self, obj):
         group = active_group(obj)
@@ -347,42 +354,94 @@ class WeightStroke:
         self.mesh_data = obj.data
         self.group = group
         self.group_name = group.name
+        self.object_name = obj.name
+        self.mesh_name = obj.data.name
+        self.mesh_shape = (len(obj.data.vertices), len(obj.data.edges),
+                           len(obj.data.polygons))
         self.before = {}
+        self.written = {}
+        self.positions = {}
+
+    def _assert_target(self):
+        obj = self.object
+        if (obj.type != 'MESH' or obj.data != self.mesh_data
+                or obj.name != self.object_name
+                or self.mesh_data.name != self.mesh_name
+                or (len(self.mesh_data.vertices), len(self.mesh_data.edges),
+                    len(self.mesh_data.polygons)) != self.mesh_shape
+                or obj.vertex_groups.get(self.group_name) != self.group
+                or obj.library or self.mesh_data.library
+                or self.mesh_data.users != 1):
+            raise ValueError('Paint mesh topology, datablock or group changed')
+        if self.group.lock_weight:
+            raise ValueError('Paint vertex group was locked during the stroke')
+
+    def _check_vertex(self, index):
+        if tuple(self.mesh_data.vertices[index].co) != self.positions[index]:
+            raise ValueError('Painted vertex positions changed outside XR')
+        if not _same_weight(_vertex_weight(self.group, index),
+                            self.written.get(index, self.before[index])):
+            raise ValueError('Painted weights changed outside XR')
+
+    def _preflight(self):
+        # Check every affected vertex before rolling anything back. External
+        # edits must not be overwritten by an interrupted XR brush.
+        self._assert_target()
+        for index in self.before:
+            self._check_vertex(index)
 
     def record(self, index):
+        self._assert_target()
         if index not in self.before:
+            self.positions[index] = tuple(self.mesh_data.vertices[index].co)
             self.before[index] = _vertex_weight(self.group, index)
+        else:
+            self._check_vertex(index)
+
+    def mark_written(self, index):
+        # Store the actual Blender-assigned value rather than a rounded input.
+        self.written[index] = _vertex_weight(self.group, index)
 
     def unchanged_target(self, context):
         obj = context.view_layer.objects.active
         return (obj == self.object and obj.data == self.mesh_data
-                and obj.mode == 'WEIGHT_PAINT'
+                and obj.name == self.object_name and obj.mode == 'WEIGHT_PAINT'
                 and obj.vertex_groups.get(self.group_name) == self.group
                 and obj.vertex_groups.active == self.group
-                and not self.group.lock_weight and not obj.hide_select)
+                and not self.group.lock_weight and not obj.hide_select
+                and not obj.library and not self.mesh_data.library
+                and self.mesh_data.users == 1
+                and (len(self.mesh_data.vertices), len(self.mesh_data.edges),
+                     len(self.mesh_data.polygons)) == self.mesh_shape)
+
+    def discard(self):
+        self.before.clear()
+        self.written.clear()
+        self.positions.clear()
 
     def cancel(self):
         if not self.before:
             return
-        try:
-            if self.object.data != self.mesh_data:
-                return
-            for index, value in self.before.items():
-                _write_weight(self.group, index, value)
-            self.mesh_data.update()
-            bpy.context.view_layer.update()
-        finally:
-            self.before.clear()
+        self._preflight()
+        for index, value in self.before.items():
+            _write_weight(self.group, index, value)
+        self.mesh_data.update()
+        bpy.context.view_layer.update()
+        self.discard()
 
     def finish(self):
+        # Keep before-values alive until the session history push succeeds.
+        # A failed history write must still be able to undo the live stroke.
+        self._preflight()
         changes = []
         for index, value in sorted(self.before.items()):
-            after = _vertex_weight(self.group, index)
-            if value != after:
+            after = self.written.get(index, value)
+            if not _same_weight(value, after):
                 changes.append((index, value, after))
-        self.before.clear()
-        return ('WEIGHT_STROKE', self.object.name, self.mesh_data.name,
-                self.group_name, tuple(changes)) if changes else None
+        return ('WEIGHT_STROKE', self.object_name, self.mesh_name,
+                self.group_name, tuple(changes), self.object, self.mesh_data,
+                self.group, self.mesh_shape,
+                tuple(sorted(self.positions.items()))) if changes else None
 
 
 def install_weight_history():
@@ -397,7 +456,7 @@ def install_weight_history():
         source, dest = (self.undo, self.redo) if backwards else (self.redo, self.undo)
         if not source or source[-1][0] != 'WEIGHT_STROKE':
             return previous_step(self, backwards)
-        _kind, object_name, mesh_name, group_name, changes = source[-1]
+        _kind, object_name, mesh_name, group_name, changes = source[-1][:5]
         obj = bpy.data.objects.get(object_name)
         if (obj is None or obj.type != 'MESH' or obj.data.name != mesh_name
                 or obj.mode not in {'OBJECT', 'WEIGHT_PAINT'} or obj.hide_select
@@ -406,6 +465,17 @@ def install_weight_history():
         group = obj.vertex_groups.get(group_name)
         if group is None or group.lock_weight:
             raise ValueError('Original weight group was removed or locked')
+        if len(source[-1]) >= 10:
+            identity, original_data, original_group, shape, positions = source[-1][5:10]
+            if (obj != identity or obj.data != original_data or
+                    group != original_group or
+                    (len(obj.data.vertices), len(obj.data.edges),
+                     len(obj.data.polygons)) != shape):
+                raise ValueError('Paint topology or datablock changed outside XR')
+            for index, original_position in positions:
+                if (index >= len(obj.data.vertices) or
+                        tuple(obj.data.vertices[index].co) != original_position):
+                    raise ValueError('Painted vertex positions changed outside XR')
         # Fail without a partial overwrite if another editor changed these weights.
         for index, before, after in changes:
             if index >= len(obj.data.vertices):
@@ -475,6 +545,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
         if recorder is not None:
             recorder.record(index)
         group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
+        if recorder is not None:
+            recorder.mark_written(index)
         changes += 1
         if changes >= 256:
             break
@@ -495,6 +567,8 @@ def paint_vertices(obj, world_origin, world_direction, radius, strength, erase=F
             if recorder is not None:
                 recorder.record(index)
             group.add([index], max(0.0, min(1.0, result)), 'REPLACE')
+            if recorder is not None:
+                recorder.mark_written(index)
             changes = 1
     if changes:
         obj.data.update()
@@ -645,30 +719,57 @@ def patch_runtime(Runtime):
         stroke = getattr(self, '_weight_stroke', None)
         if stroke is None:
             return
-        self._weight_stroke = None
-        entry = stroke.finish()
-        if entry:
-            history = getattr(self, 'history', None)
-            if history is not None:
+        try:
+            if not stroke.unchanged_target(self.context):
+                raise ValueError('Weight target changed before stroke release')
+            entry = stroke.finish()
+            if entry:
+                history = getattr(self, 'history', None)
+                if history is None:
+                    raise ValueError('Weight history unavailable; cannot commit')
                 history.push(entry)
+        except Exception:
+            try:
+                stroke.cancel()
+            finally:
+                self._weight_stroke = None
+            raise
+        self._weight_stroke = None
+        stroke.discard()
+        if entry:
             self.status = 'WEIGHT STROKE / ' + str(len(entry[4])) + ' VERTICES / UNDO READY'
 
     def cancel_work(self):
-        cancel_stroke(self)
-        return original_cancel(self)
+        rollback_blocked = False
+        try:
+            cancel_stroke(self)
+        except (ValueError, RuntimeError, ReferenceError):
+            # Another editor may have changed a painted vertex. Do not
+            # overwrite it, but still cancel every other XR gesture owner.
+            rollback_blocked = True
+        try:
+            return original_cancel(self)
+        finally:
+            if rollback_blocked:
+                self.status = 'WEIGHT ROLLBACK BLOCKED / EXTERNAL CHANGES / REVIEW MESH'
 
     def stroke_sample(self, obj, origin, direction):
         stroke = getattr(self, '_weight_stroke', None)
         if stroke is None:
             stroke = WeightStroke(obj)
             self._weight_stroke = stroke
-        if not stroke.unchanged_target(self.context):
+        try:
+            if not stroke.unchanged_target(self.context):
+                raise ValueError('Weight group or painted object changed during stroke')
+            return paint_vertices(
+                obj, origin, direction, self.settings.weight_brush_radius,
+                self.settings.weight_brush_strength, self.settings.weight_erase,
+                recorder=stroke)
+        except Exception:
+            # A brush dab can fail after modifying an earlier vertex; keep
+            # its before-values until cancellation has attempted rollback.
             cancel_stroke(self)
-            raise ValueError('Weight group or painted object changed during stroke')
-        return paint_vertices(
-            obj, origin, direction, self.settings.weight_brush_radius,
-            self.settings.weight_brush_strength, self.settings.weight_erase,
-            recorder=stroke)
+            raise
 
     def select(self, context, origin, direction, additive=False):
         obj = context.view_layer.objects.active
