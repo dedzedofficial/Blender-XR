@@ -11,12 +11,13 @@ import math
 from mathutils import Vector
 
 from . import (input_ownership_v080, menus, mesh, mesh_snap_v086,
-               selection, v065)
+               mesh_axis_snap_v090, selection, v065)
 
 _PAGE = 'XR_FLAT_PLANES_086'
 _SPACES = {'XR_FLAT_LOCAL': 'LOCAL', 'XR_FLAT_WORLD': 'WORLD'}
 _ANCHORS = {'XR_FLAT_CENTER': 'CENTER', 'XR_FLAT_MIN': 'MIN',
-            'XR_FLAT_MAX': 'MAX', 'XR_FLAT_CURSOR': 'CURSOR'}
+            'XR_FLAT_MAX': 'MAX', 'XR_FLAT_CURSOR': 'CURSOR',
+            'XR_FLAT_ACTIVE': 'ACTIVE'}
 _AXES = {'XR_FLAT_X': 0, 'XR_FLAT_Y': 1, 'XR_FLAT_Z': 2}
 
 
@@ -37,7 +38,7 @@ def _editable(context):
 def _settings(session):
     space = getattr(session, '_xr_flat_space', 'LOCAL')
     anchor = getattr(session, '_xr_flat_anchor', 'CENTER')
-    if space not in {'LOCAL', 'WORLD'} or anchor not in {'CENTER', 'MIN', 'MAX', 'CURSOR'}:
+    if space not in {'LOCAL', 'WORLD'} or anchor not in {'CENTER', 'MIN', 'MAX', 'CURSOR', 'ACTIVE'}:
         raise ValueError('Unsupported plane alignment settings')
     return space, anchor
 
@@ -74,6 +75,11 @@ def _plan(context, obj, axis, space, anchor):
     elif anchor == 'CURSOR':
         cursor = Vector(context.scene.cursor.location)
         plane = (cursor if space == 'WORLD' else inverse_cursor(matrix, cursor))[axis]
+    elif anchor == 'ACTIVE':
+        # Unlike Axis Snap this changes *all* selected axis coordinates to
+        # the active element's coordinate, keeping the other axes unchanged.
+        world, _identity = mesh_axis_snap_v090._reference(context, obj, 'ACTIVE')
+        plane = (world if space == 'WORLD' else inverse_cursor(matrix, world))[axis]
     else:
         raise ValueError('Unknown plane reference')
 
@@ -104,6 +110,10 @@ def _apply(session, context, axis):
     space, anchor = _settings(session)
     stamp_operation = 'CENTER_CURSOR' if anchor == 'CURSOR' else 'LOCAL_CENTER'
     before = mesh_snap_v086._native_selection_stamp(context, obj, stamp_operation)
+    # Selection signatures do not encode select_history.active: capture it
+    # separately so changing the anchor between planning and Undo fails closed.
+    active_identity = (mesh_axis_snap_v090._reference(context, obj, 'ACTIVE')[1]
+                       if anchor == 'ACTIVE' else None)
     targets = _plan(context, obj, axis, space, anchor)
     if targets is None:
         session.status = 'FLATTEN / SELECTED GEOMETRY ALREADY ON THAT PLANE'
@@ -122,7 +132,10 @@ def _apply(session, context, axis):
     def operation():
         if (_editable(context) != obj or
                 mesh_snap_v086._native_selection_stamp(
-                    context, obj, stamp_operation) != before):
+                    context, obj, stamp_operation) != before or
+                (anchor == 'ACTIVE' and
+                 mesh_axis_snap_v090._reference(context, obj, 'ACTIVE')[1]
+                 != active_identity)):
             raise ValueError('Plane target, mesh or selection changed; preview again')
         bm = mesh.editable(obj)
         bm.verts.ensure_lookup_table()
@@ -155,6 +168,7 @@ def install_pages():
         ('LOCAL', 'XR_FLAT_LOCAL'), ('WORLD', 'XR_FLAT_WORLD'),
         ('CENTRE', 'XR_FLAT_CENTER'), ('MINIMUM', 'XR_FLAT_MIN'),
         ('MAXIMUM', 'XR_FLAT_MAX'), ('3D CURSOR', 'XR_FLAT_CURSOR'),
+        ('ACTIVE', 'XR_FLAT_ACTIVE'),
         ('BACK', 'BACK'),
     )
     menus.TITLES[_PAGE] = 'FLATTEN SELECTED'
@@ -171,6 +185,8 @@ def install_pages():
         'XR_FLAT_MIN': ('Align to Minimum', 'Use the minimum selected coordinate'),
         'XR_FLAT_MAX': ('Align to Maximum', 'Use the maximum selected coordinate'),
         'XR_FLAT_CURSOR': ('Align to 3D Cursor', 'Use the native Blender 3D cursor coordinate'),
+        'XR_FLAT_ACTIVE': ('Align to Active Element',
+                           'Flatten selected native vertices along X/Y/Z to the active vertex, edge midpoint or face centre'),
     })
 
 
