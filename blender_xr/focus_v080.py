@@ -8,26 +8,66 @@ import bpy
 from . import menus, armature_v076, input_ownership_v080
 
 
-def focus_targets(context):
-    selection = {o for o in context.selected_objects if o.visible_get()}
-    if not selection:
-        raise ValueError('Select an object before isolating the scene')
-    # Keep each mesh and the armature that deforms it visible together.
+def _in_view_layer(obj, view_layer):
+    """Return true only for the same live object in the target view layer."""
+    try:
+        return (bpy.data.objects.get(obj.name) == obj and
+                view_layer.objects.get(obj.name) == obj)
+    except (AttributeError, ReferenceError, RuntimeError, TypeError, ValueError):
+        return False
+
+
+def _with_deforming_pairs(context, targets):
+    """Keep a selected mesh and its real deforming armature visible together."""
+    selection = {obj for obj in targets if _in_view_layer(obj, context.view_layer)}
     for obj in tuple(selection):
         if obj.type == 'MESH':
-            if obj.parent is not None and obj.parent.type == 'ARMATURE':
-                selection.add(obj.parent)
+            parent = obj.parent
+            if parent is not None and parent.type == 'ARMATURE':
+                if _in_view_layer(parent, context.view_layer):
+                    selection.add(parent)
             for mod in obj.modifiers:
-                if mod.type == 'ARMATURE' and mod.object is not None:
-                    selection.add(mod.object)
+                arm = mod.object if mod.type == 'ARMATURE' else None
+                if arm is not None and _in_view_layer(arm, context.view_layer):
+                    selection.add(arm)
         elif obj.type == 'ARMATURE':
             for other in context.view_layer.objects:
-                if other.type == 'MESH' and (
-                    other.parent == obj or any(
-                        m.type == 'ARMATURE' and m.object == obj
-                        for m in other.modifiers)):
+                if (other.type == 'MESH' and _in_view_layer(other, context.view_layer)
+                        and (other.parent == obj or any(
+                            m.type == 'ARMATURE' and m.object == obj
+                            for m in other.modifiers))):
                     selection.add(other)
     return selection
+
+
+def focus_targets(context):
+    selection = {obj for obj in context.selected_objects
+                 if obj.visible_get(view_layer=context.view_layer)}
+    if not selection:
+        raise ValueError('Select an object before isolating the scene')
+    return _with_deforming_pairs(context, selection)
+
+
+def collection_focus_targets(context):
+    """Resolve the active Outliner collection and retain its nested contents."""
+    layer_collection = getattr(context.view_layer, 'active_layer_collection', None)
+    collection = getattr(layer_collection, 'collection', None)
+    if collection is None or collection == context.scene.collection:
+        raise ValueError('Choose a child collection in the Outliner before isolating it')
+    targets = {
+        obj for obj in collection.all_objects
+        if _in_view_layer(obj, context.view_layer)
+    }
+    if not targets:
+        raise ValueError('The active collection has no objects in this view layer')
+    keep = _with_deforming_pairs(context, targets)
+    visible = {
+        obj for obj in context.view_layer.objects
+        if not obj.hide_get(view_layer=context.view_layer)
+    }
+    if not (visible - keep):
+        raise ValueError('The active collection already contains every visible object')
+    return keep
 
 
 def scene_pulse(context):
@@ -48,15 +88,15 @@ class FocusState:
         self.xray_before = None
         self.armatures_before = None
         self.select_through = False
+        self.selected_before = None
+        self.active_before = None
 
-    def isolate(self, context):
-        if self.hidden is not None:
-            self.restore_isolation()
-            return False
-        keep = focus_targets(context)
+    def _apply_isolation(self, context, keep):
         view_layer = context.view_layer
         snapshot = [(obj, obj.hide_get(view_layer=view_layer))
                     for obj in view_layer.objects]
+        selected_before = tuple(context.selected_objects)
+        active_before = view_layer.objects.active
         try:
             for obj, hidden in snapshot:
                 if obj not in keep and not hidden:
@@ -70,21 +110,55 @@ class FocusState:
             raise
         self.hidden = snapshot
         self.view_layer = view_layer
+        self.selected_before = selected_before
+        self.active_before = active_before
         return True
+
+    def isolate(self, context):
+        if self.hidden is not None:
+            self.restore_isolation()
+            return False
+        return self._apply_isolation(context, focus_targets(context))
+
+    def isolate_collection(self, context):
+        if self.hidden is not None:
+            self.restore_isolation()
+            return False
+        return self._apply_isolation(context, collection_focus_targets(context))
 
     def restore_isolation(self):
         if self.hidden is None:
             return
         snapshot, view_layer = self.hidden, self.view_layer
+        selected_before, active_before = self.selected_before, self.active_before
         self.hidden = None
         self.view_layer = None
+        self.selected_before = None
+        self.active_before = None
         for obj, hidden in snapshot:
             try:
                 # Deleted objects are never recreated merely to restore a view.
-                if bpy.data.objects.get(obj.name) == obj:
+                if _in_view_layer(obj, view_layer):
                     obj.hide_set(hidden, view_layer=view_layer)
             except (RuntimeError, ReferenceError, TypeError, ValueError):
                 pass
+        if selected_before is None:
+            return
+        try:
+            # Restore the exact pre-isolation selection after restoring visibility.
+            for obj in tuple(view_layer.objects):
+                obj.select_set(False, view_layer=view_layer)
+            for obj in selected_before:
+                if (_in_view_layer(obj, view_layer)
+                        and not obj.hide_get(view_layer=view_layer)):
+                    obj.select_set(True, view_layer=view_layer)
+            if (active_before is not None and _in_view_layer(active_before, view_layer)
+                    and not active_before.hide_get(view_layer=view_layer)):
+                view_layer.objects.active = active_before
+            else:
+                view_layer.objects.active = None
+        except (AttributeError, ReferenceError, RuntimeError, TypeError, ValueError):
+            pass
 
     def toggle_xray(self, context):
         area = context.area
@@ -133,7 +207,9 @@ def install_menu():
         list(menus.PAGES['TRAVEL'][:-1])
         + [('FOCUS', 'FOCUS_MENU'), ('TOOLS', 'BACK')])
     menus.PAGES['FOCUS_MENU'] = (
-        ('ISOLATE', 'FOCUS_ISOLATE'), ('RESTORE', 'FOCUS_RESTORE'),
+        ('ISOLATE', 'FOCUS_ISOLATE'),
+        ('ISOLATE COLLECTION', 'FOCUS_COLLECTION'),
+        ('RESTORE', 'FOCUS_RESTORE'),
         ('X-RAY', 'FOCUS_XRAY'), ('PICK BONE', 'FOCUS_PICK'),
         ('SCENE PULSE', 'FOCUS_STATS'),
         ('INPUT STATE', 'FOCUS_INPUT'), ('BACK', 'BACK'))
@@ -158,13 +234,13 @@ def patch_runtime(Runtime):
             if input_ownership_v080.is_editing(self):
                 raise ValueError('Finish the active edit before opening Focus')
             self.menu.page = 'FOCUS_MENU'
-            self.status = 'FOCUS / REVEAL, X-RAY, PICK, SCENE PULSE'
+            self.status = 'FOCUS / SELECTION, COLLECTION, X-RAY, PICK'
             return
         if action == 'BACK' and self.menu.page == 'FOCUS_MENU':
             self.menu.page = 'TRAVEL'
             return
-        if action in {'FOCUS_ISOLATE', 'FOCUS_RESTORE', 'FOCUS_XRAY',
-                      'FOCUS_PICK', 'FOCUS_STATS', 'FOCUS_INPUT'}:
+        if action in {'FOCUS_ISOLATE', 'FOCUS_COLLECTION', 'FOCUS_RESTORE',
+                      'FOCUS_XRAY', 'FOCUS_PICK', 'FOCUS_STATS', 'FOCUS_INPUT'}:
             state = getattr(self, 'focus_state', None)
             if state is None:
                 state = self.focus_state = FocusState()
@@ -179,6 +255,9 @@ def patch_runtime(Runtime):
             if action == 'FOCUS_ISOLATE':
                 enabled = state.isolate(context)
                 self.status = 'FOCUS ON / SELECTED RIG AND MESH' if enabled else 'FOCUS OFF / SCENE RESTORED'
+            elif action == 'FOCUS_COLLECTION':
+                enabled = state.isolate_collection(context)
+                self.status = 'FOCUS ON / ACTIVE COLLECTION' if enabled else 'FOCUS OFF / SCENE RESTORED'
             elif action == 'FOCUS_RESTORE':
                 state.restore()
                 self.status = 'FOCUS / ORIGINAL VISIBILITY RESTORED'
