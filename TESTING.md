@@ -1,5 +1,28 @@
 # Mesh XR testing
 
+
+## Current CI and release-gate status — 2026-11-24
+
+**Current `main` has no active GitHub Actions workflows.** Commit [`8a8c7a8`](https://github.com/dedzedofficial/Blender-XR/commit/8a8c7a8320ceded73a616fe699bdb01ffb8e3baf), dated 18 November 2026, removed `.github/workflows/check.yml`, `.github/workflows/release.yml` and `.github/workflows/build-icon-textures.yml`. The matrix and release instructions below therefore describe the last recorded workflow design; they are not active checks or a current release gate.
+
+### Last verified automated results
+
+- [Validate Mesh XR run #42863367176](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367176), 10 November 2026, commit [`52e2eb8`](https://github.com/dedzedofficial/Blender-XR/commit/52e2eb8acdd3830717e1cd7abc65e097ff7174b2): Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 validation jobs all succeeded.
+- In that same run, the Windows 2022 package job, macOS 15 Apple Silicon package/integration job (Blender 5.2.2), and macOS 15 Intel package/integration job (Blender 4.5.15) all succeeded. The `preview-package` job was skipped because this was a push run.
+- [Package and release Mesh XR run #42863367369](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367369), on the same commit, completed its validation jobs and release job successfully.
+- The macOS jobs ran Blender in background mode on hosted macOS runners. They verify packaging and the listed Blender integration tests, **not** interactive GUI rendering, a physical OpenXR headset, Quest 3 tracking, or SteamVR controller ergonomics.
+- No workflow runs were associated with the sampled open draft PR heads #110, #162, #163, #165, #166, #167 or #168 when checked on 24 November 2026. Treat those branches as unvalidated until their tests are actually run.
+- GitHub reports the `main` branch as unprotected. There is currently no required-check branch-protection gate.
+- The branch inventory returned 177 branch refs. The open-draft PR search returned 100 results (the query limit), so this is a large active backlog rather than a small release candidate set.
+
+### What must happen before the next merge or release
+
+1. Restore or replace the validation workflow and add explicit `pull_request` and `push` triggers. The workflow definition removed on 18 November only declared `workflow_dispatch` and `workflow_call`; restoring it unchanged would not automatically validate pull requests.
+2. Restore the icon-generation workflow or document and run its replacement as part of package preparation.
+3. Enable branch protection on `main` and require the Blender-version and desktop-package checks before merging.
+4. Run the complete Blender matrix and platform packaging checks against the exact candidate commit. Do not use the 10 November result as evidence for later source changes.
+5. Complete the manual OpenXR/Quest 3/SteamVR acceptance checklist below and record the exact headset, controller, transport and runtime versions before claiming hardware support.
+
 ## v0.7.6 Weight Paint Mode and Ctrl+P parenting acceptance
 
 - Use the existing **Mode** menu and select **Weight Paint** while a rig or mesh is selected. Verify the Blender viewport actually enters Weight Paint mode and the VR hand menu changes to the Paint/Erase/Group/Strength/Size controls.
@@ -56,7 +79,7 @@
 **Icon completion criteria:** all seven desktop workspaces, their advanced subpanels and every actionable in-headset page must show a symbol. Test both with texture images working normally and (where practical) when individual texture loading fails, to verify vector fallback. Hover and active highlighting must never paint over the icons. The six intentionally blank HSL slider cells are permitted, because they are slider overlays rather than menu buttons. Keep this at v0.7.6 and draft-only until the checks pass on real OpenXR hardware.
 
 
-Install the **mesh-xr-v0.7.6.zip** produced by the draft pull request's `preview-package` Actions job (not the GitHub repository source ZIP). In Blender's 3D View sidebar open **Blender XR**.
+The historical v0.7.6 preview used the installable `mesh-xr-v0.7.6.zip` from the `preview-package` Actions job, not the GitHub repository source ZIP. That job is not currently available on `main`; see **Current CI and release-gate status** above. For a local candidate, generate the icon textures, run `python scripts/build.py`, and install the resulting `dist/mesh-xr-v<version>.zip` into a clean Blender profile.
 
 - Visit all seven native-icon workspaces at narrow and wide sidebar sizes; check hover tooltips and keyboard navigation.
 - Start and stop a headset session, change controller/hand settings while stopped, toggle the PC headset mirror while running, and recover from tracking loss.
@@ -71,7 +94,7 @@ Install the **mesh-xr-v0.7.6.zip** produced by the draft pull request's `preview
 
 Automated command: `blender --background --factory-startup --python-exit-code 1 --python tests/test_ui_v076.py`.
 
-CI must pass in Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, and headset testing must be reviewed before merging this preview into main.
+Before merging a new preview, restore an automatic CI workflow and require passing Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2 checks. Headset testing must be reviewed separately; the historical green matrix is not evidence for new commits.
 
 ---
 
@@ -79,9 +102,9 @@ CI must pass in Blender 4.2.0, 4.5.0, 5.0.0 and 5.2.2, and headset testing must 
 
 Mesh XR uses automated Blender regression tests plus manual headset/runtime checks. Background Blender can validate geometry, data, UI registration and package behavior, but it cannot prove stereo readability, physical controller feel or runtime-specific tracking behavior.
 
-## Automated matrix
+## Historical automated matrix
 
-GitHub Actions validates the generated extension ZIP with official Linux Blender binaries:
+The last recorded successful GitHub Actions matrix (10 November 2026, run [#42863367176](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367176)) used official Linux Blender binaries for:
 
 - Blender 4.2.0
 - Blender 4.5.0
@@ -90,7 +113,7 @@ GitHub Actions validates the generated extension ZIP with official Linux Blender
 
 Blender 5.0.1 remains intentionally blocked because of its known VR crash.
 
-Every matrix job builds the actual installer, installs it into a clean extension profile, verifies registration, then runs the modeling/navigation/material/UV regression suites.
+In the removed workflow, every matrix job built the installer, installed it into a clean extension profile, verified registration, and ran the modeling/navigation/material/UV regression suites. These steps are not currently scheduled by GitHub Actions on `main`.
 
 ## Core regression coverage
 
@@ -130,7 +153,7 @@ Automated checks cover:
 - UV preview-segment generation.
 - VR page navigation among Materials, properties, UV transform and UV preview.
 
-The v0.6 suite runs on all four supported CI Blender versions. Release publishing separately runs it on Blender 5.2.2 before GitHub/Blender Extensions upload.
+Historically, the v0.6 suite was included in all four Blender matrix jobs, and the release workflow separately ran it on Blender 5.2.2 before GitHub/Blender Extensions upload. Those workflows were removed from `main` on 18 November 2026.
 
 ## v0.6.5 modeling + icon UI regression suite
 
@@ -149,7 +172,7 @@ The v0.6.5 coverage verifies the new modeling and interface layer in addition to
 - Separation of Delete Object from Edit Mode Delete Geometry.
 - Delete Object Undo/Redo restoration behavior.
 
-Release publishing runs the v0.6.5 regression coverage before creating or refreshing the GitHub release and before submitting the package to Blender Extensions.
+The historical release workflow ran the v0.6.5 regression coverage before creating or refreshing a GitHub release and submitting the package to Blender Extensions. The release workflow is not currently present on `main`.
 
 ## v0.7.5 PC View Mode validation
 
@@ -164,7 +187,7 @@ Automated package checks verify that the Mesh XR sidebar uses Blender's native `
 
 ## v0.7.5 workflow expansion
 
-`tests/test_v075_features.py` checks the read-only asset audit, open-boundary versus true non-manifold classification, base versus modifier-evaluated triangle counts, standard starter-rig bone names, two-hand scaling pivot math, operator registration and rig-preflight failure recovery. CI runs it across the supported Blender matrix.
+`tests/test_v075_features.py` checks the read-only asset audit, open-boundary versus true non-manifold classification, base versus modifier-evaluated triangle counts, standard starter-rig bone names, two-hand scaling pivot math, operator registration and rig-preflight failure recovery. This test was included in the historical supported-Blender matrix; no current workflow runs it automatically.
 
 Manual checks still required:
 
@@ -182,7 +205,7 @@ The starter rig is not a production auto-rigger. Complex anatomy, multiple disco
 
 ## v0.7.1 regression and validation
 
-`tests/test_v071.py` validates object rotation, grid snapping, modifier history, modifier-preserving object duplication, safe material deletion, selected-geometry rotation and UV command history. The release workflow calls the entire reusable `check.yml` matrix and must not publish if any supported Blender-version check fails.
+`tests/test_v071.py` validates object rotation, grid snapping, modifier history, modifier-preserving object duplication, safe material deletion, selected-geometry rotation and UV command history. The removed release workflow called the reusable `check.yml` matrix; restore an equivalent required gate before publishing another version.
 
 **Known release gate:** The v0.6.5 modeling/UI regression previously triggered a Blender 4.2 process crash. Before publishing v0.7.1, isolate and resolve this crash on the CI matrix; do not waive that test.
 
