@@ -127,6 +127,12 @@ def _model(layout, context, settings):
                                           icon='TRANSFORM_MOVE')
                 op.axis = axis
                 op.space = space
+        if context.tool_settings.mesh_select_mode[1]:
+            chain_row = layout.row(align=True)
+            chain_row.enabled = runtime.CURRENT is None
+            chain_row.operator('blender_xr.edge_chain_spacing',
+                               text='Preview Edge Chain Spacing',
+                               icon='TRANSFORM_MOVE')
         _header(layout, 'Select Similar', 'RESTRICT_SELECT_OFF')
         obj = context.view_layer.objects.active
         if obj and obj.type == 'MESH':
