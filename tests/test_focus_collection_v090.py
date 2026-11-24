@@ -56,6 +56,7 @@ def run():
     blender_xr.register()
     context = bpy.context
     state = focus_v080.FocusState()
+    session = None
     created_objects = []
     created_collections = []
     try:
@@ -132,9 +133,10 @@ def run():
 
         # Deleted scene objects are skipped, never recreated during restore.
         assert state.isolate_collection(context)
+        deleted_name = deleted_during_focus.name
         bpy.data.objects.remove(deleted_during_focus, do_unlink=True)
         state.restore_isolation()
-        assert bpy.data.objects.get(deleted_during_focus.name) is None
+        assert bpy.data.objects.get(deleted_name) is None
 
         # A collection containing only pre-hidden objects must not hide the
         # rest of the scene and leave the creator with an empty viewport.
@@ -183,6 +185,8 @@ def run():
         print("PASS collection-aware XR focus, nested contents, rig pairing, visibility and selection restore")
     finally:
         state.restore()
+        if session is not None:
+            session.focus_state.restore()
         for obj in reversed(created_objects):
             try:
                 if bpy.data.objects.get(obj.name) == obj:
