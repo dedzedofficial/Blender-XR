@@ -136,6 +136,23 @@ def run():
         state.restore_isolation()
         assert bpy.data.objects.get(deleted_during_focus.name) is None
 
+        # A collection containing only pre-hidden objects must not hide the
+        # rest of the scene and leave the creator with an empty viewport.
+        hidden_group = bpy.data.collections.new("XR Focus Hidden Only Test")
+        root.children.link(hidden_group)
+        created_collections.append(hidden_group)
+        hidden_only = _new_mesh("XR Focus Hidden Only Item", hidden_group)
+        created_objects.append(hidden_only)
+        hidden_only.hide_set(True, view_layer=context.view_layer)
+        hidden_layer = _find_layer_collection(context.view_layer.layer_collection, hidden_group)
+        assert hidden_layer is not None
+        context.view_layer.active_layer_collection = hidden_layer
+        _expect_refusal(
+            lambda: state.isolate_collection(context),
+            "no visible objects",
+        )
+        assert not outside_item.hide_get(view_layer=context.view_layer)
+
         # The master scene collection is intentionally rejected as a no-op.
         context.view_layer.active_layer_collection = context.view_layer.layer_collection
         _expect_refusal(
