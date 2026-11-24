@@ -60,6 +60,12 @@ def collection_focus_targets(context):
     }
     if not targets:
         raise ValueError('The active collection has no objects in this view layer')
+    visible_members = {
+        obj for obj in targets
+        if not obj.hide_get(view_layer=context.view_layer)
+    }
+    if not visible_members:
+        raise ValueError('The active collection has no visible objects to focus')
     keep = _with_deforming_pairs(context, targets)
     visible = {
         obj for obj in context.view_layer.objects
