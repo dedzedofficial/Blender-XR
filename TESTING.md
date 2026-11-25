@@ -11,7 +11,7 @@
 - In that same run, the Windows 2022 package job, macOS 15 Apple Silicon package/integration job (Blender 5.2.2), and macOS 15 Intel package/integration job (Blender 4.5.15) all succeeded. The `preview-package` job was skipped because this was a push run.
 - [Package and release Mesh XR run #42863367369](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367369), on the same commit, completed its validation jobs and release job successfully.
 - The macOS jobs ran Blender in background mode on hosted macOS runners. They verify packaging and the listed Blender integration tests, **not** interactive GUI rendering, a physical OpenXR headset, Quest 3 tracking, or SteamVR controller ergonomics.
-- No workflow runs were associated with the sampled open draft PR heads #110, #165, #168 or #169 when checked on 25 November 2026. The older sample (#162, #163, #166 and #167) was also empty on 24 November. Treat these branches as unvalidated until their tests are actually run.
+- No workflow runs were associated with the sampled open draft PR heads #110, #165, #168, #169 or #170 when checked on 25 November 2026. The older sample (#162, #163, #166 and #167) was also empty on 24 November. Treat these branches as unvalidated until their tests are actually run.
 - Branch-protection status could not be independently read through the connected GitHub API permissions during the 25 November pass (the endpoint returned HTTP 403). Verify `main` protection in repository settings and require the Blender-version and package checks before merging.
 - The branch inventory returned 178 branch refs (100 on page 1 and 78 on page 2). GitHub reports 101 open draft PRs in the repository. This is a large active backlog rather than a small release candidate set.
 
