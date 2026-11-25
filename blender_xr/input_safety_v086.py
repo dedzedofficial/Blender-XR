@@ -188,6 +188,11 @@ def advance_rearm(session, context, samples):
     A malformed stick invalidates the entire frame and restarts the neutral
     count; it never produces an accidental selection.
     """
+    if getattr(session, '_xr_rollback_blocked', False):
+        session._xr_rearm_required = True
+        session._xr_neutral_count = 0
+        session.status = 'XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+        return True
     if not getattr(session, '_xr_rearm_required', False):
         return False
     try:
@@ -235,6 +240,12 @@ def preflight_controller_frame(session, context):
     session._xr_validated_controls = None
     session._xr_validated_poses = None
     session._xr_validated_sticks = None
+    # Failed Undo/cancel must not be converted into a harmless neutral
+    # rearm on the next controller tick. Require a fresh XR runtime session.
+    if getattr(session, '_xr_rollback_blocked', False):
+        session._xr_rearm_required = True
+        session.status = 'XR ROLLBACK BLOCKED / REVIEW SCENE / RESTART XR'
+        return False
     try:
         state = context.window_manager.xr_session_state
         if state is None or not bpy.types.XrSessionState.is_running(context):
