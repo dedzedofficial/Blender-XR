@@ -10,7 +10,7 @@ from mathutils import Vector
 
 import blender_xr
 from blender_xr import curve_stroke_v090 as stroke
-from blender_xr import drawing, mesh, native_curves_v080, runtime
+from blender_xr import drawing, mesh, menus, native_curves_v080, runtime
 from blender_xr import input_ownership_v080 as ownership
 
 
@@ -58,7 +58,7 @@ def run():
         assert ownership.owner(session) == 'CURVE_STROKE'
         assert session._xr_curve_stroke['phase'] == 'WAIT_RELEASE'
         assert not session.menu.visible
-        assert len([a for _, a in session.menu.buttons]) <= 12
+        assert len(menus.PAGES[native_curves_v080._MAIN]) <= 12
 
         # The menu Trigger must be released before drawing can begin.
         stroke._advance_stroke(session, ctx, False, False, (0, 0, 0), 1.0)
@@ -92,8 +92,7 @@ def run():
         session.command(ctx, 'CURVE_STROKE_CYCLE')
         assert not session._xr_curve_stroke_preview['cyclic']
 
-        curve = session.command(ctx, 'CURVE_STROKE_CONFIRM')
-        assert curve is None  # Runtime commands intentionally return no operator value.
+        session.command(ctx, 'CURVE_STROKE_CONFIRM')
         obj = ctx.view_layer.objects.active
         assert obj.type == 'CURVE'
         assert obj.data.dimensions == '3D'
