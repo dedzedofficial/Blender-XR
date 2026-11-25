@@ -90,6 +90,9 @@ def _begin_stroke(session, context):
         'menu_visible': bool(menu.visible),
     }
     menu.visible = False
+    for field in ('pointer', 'hover', 'target', 'gizmo', 'gizmo_hover'):
+        if hasattr(session, field):
+            setattr(session, field, None)
     session.status = 'CURVE DRAW / RELEASE TRIGGER, THEN HOLD TO DRAW'
 
 
