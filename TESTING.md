@@ -12,7 +12,7 @@
 - [Package and release Mesh XR run #42863367369](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367369), on the same commit, completed its validation jobs and release job successfully.
 - The macOS jobs ran Blender in background mode on hosted macOS runners. They verify packaging and the listed Blender integration tests, **not** interactive GUI rendering, a physical OpenXR headset, Quest 3 tracking, or SteamVR controller ergonomics.
 - No workflow runs were associated with the sampled open draft PR heads #110, #165, #168 or #169 when checked on 25 November 2026. The older sample (#162, #163, #166 and #167) was also empty on 24 November. Treat these branches as unvalidated until their tests are actually run.
-- GitHub reports the `main` branch as unprotected. There is currently no required-check branch-protection gate.
+- Branch-protection status could not be independently read through the connected GitHub API permissions during the 25 November pass (the endpoint returned HTTP 403). Verify `main` protection in repository settings and require the Blender-version and package checks before merging.
 - The branch inventory returned 178 branch refs (100 on page 1 and 78 on page 2). GitHub reports 101 open draft PRs in the repository. This is a large active backlog rather than a small release candidate set.
 
 ### What must happen before the next merge or release
