@@ -192,8 +192,8 @@ def _capture_tick(session, context):
         poses = getattr(session, '_xr_validated_poses', None)
         controls = getattr(session, '_xr_validated_controls', None)
         viewer = getattr(session, '_xr_validated_viewer', None)
-        if (not poses or session.dom not in poses or
-                session.off not in controls or controls is None or
+        if (not poses or controls is None or session.dom not in poses or
+                session.dom not in controls or session.off not in controls or
                 viewer is None):
             raise ValueError('Validated controller frame is missing')
         aim_rotation, aim_position = poses[session.dom][0]
