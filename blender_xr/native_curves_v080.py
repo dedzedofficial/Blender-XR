@@ -445,17 +445,22 @@ def install_pages():
 def patch_runtime(Runtime):
     if getattr(Runtime, '_xr_native_curves_patched', False):
         return
+    from . import curve_stroke_v090
     _patch_history()
     install_pages()
+    curve_stroke_v090.install_pages()
     previous_command = Runtime.command
     previous_tick = Runtime.tick
     previous_cancel = Runtime.cancel_work
 
     def cancel_work(self):
+        curve_stroke_v090.cancel(self)
         _cancel_pending(self)
         return previous_cancel(self)
 
     def tick(self, context):
+        if curve_stroke_v090.handle_tick(self, context):
+            return
         if (getattr(self, '_xr_curve_pending', None) is not None or
                 getattr(self, '_xr_curve_release_required', False)):
             from . import input_safety_v086
@@ -466,6 +471,8 @@ def patch_runtime(Runtime):
         return previous_tick(self, context)
 
     def command(self, context, action):
+        if curve_stroke_v090.handle_command(self, context, action):
+            return
         menu = getattr(self, 'menu', None)
         if menu is None:
             return previous_command(self, context, action)
