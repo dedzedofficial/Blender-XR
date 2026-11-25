@@ -12,19 +12,23 @@ SPEC.loader.exec_module(ownership)
 
 
 class Radial:
-    def __init__(self, active=False):
+    def __init__(self, active=False, fail_reset=False):
         self.active = active
         self.reset_calls = 0
         self.require_release = False
+        self.fail_reset = fail_reset
 
     def reset(self, require_release=False):
         self.reset_calls += 1
         self.require_release = require_release
+        if self.fail_reset:
+            raise IndexError("radial state disappeared during reset")
         self.active = False
 
 
-def make_session(*, conflict=False, live=True, fail=True, blocked=False):
-    radial = Radial()
+def make_session(*, conflict=False, live=True, fail=True, blocked=False,
+                 reset_fails=False, cancel_error=None):
+    radial = Radial(fail_reset=reset_fails)
     session = NS(
         radial=radial,
         _weight_stroke=object() if live else None,
@@ -51,6 +55,8 @@ def make_session(*, conflict=False, live=True, fail=True, blocked=False):
 
     def cancel_work():
         session.cancel_calls += 1
+        if cancel_error is not None:
+            raise cancel_error
         if fail:
             raise ValueError("external Blender edit changed the rollback target")
 
@@ -130,6 +136,36 @@ class RollbackLatchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ownership.validate_command(session, "UNDO")
 
+
+
+    def test_unexpected_session_loss_cancel_exception_latches_rollback(self):
+        session = make_session(fail=False, cancel_error=IndexError("unexpected cancel bug"))
+        self.assertTrue(ownership.cancel_session_loss(session))
+        self.assert_latched(session)
+        self.assertEqual(session.cancel_calls, 1)
+        self.assertEqual(session.radial.reset_calls, 1)
+
+    def test_unexpected_conflict_cancel_exception_latches_rollback(self):
+        session = make_session(conflict=True, fail=False,
+                               cancel_error=IndexError("unexpected cancel bug"))
+        self.assertTrue(ownership.cancel_conflict(session))
+        self.assert_latched(session)
+        self.assertEqual(session.cancel_calls, 1)
+        self.assertEqual(session.radial.reset_calls, 1)
+
+    def test_session_loss_radial_reset_exception_keeps_runtime_blocked(self):
+        session = make_session(fail=False, reset_fails=True)
+        self.assertTrue(ownership.cancel_session_loss(session))
+        self.assert_latched(session)
+        self.assertEqual(session.cancel_calls, 1)
+        self.assertEqual(session.radial.reset_calls, 1)
+
+    def test_conflict_radial_reset_exception_keeps_runtime_blocked(self):
+        session = make_session(conflict=True, fail=False, reset_fails=True)
+        self.assertTrue(ownership.cancel_conflict(session))
+        self.assert_latched(session)
+        self.assertEqual(session.cancel_calls, 1)
+        self.assertEqual(session.radial.reset_calls, 1)
 
 if __name__ == "__main__":
     unittest.main()
