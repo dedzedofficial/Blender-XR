@@ -5,7 +5,7 @@
 
 The latest recorded successful desktop CI evidence is [run #42863367176](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367176) on 10 November 2026, commit [`52e2eb8`](https://github.com/dedzedofficial/Blender-XR/commit/52e2eb8acdd3830717e1cd7abc65e097ff7174b2). Its Windows 2022 package job and macOS 15 Apple Silicon (Blender 5.2.2) and Intel (Blender 4.5.15) package/integration jobs all succeeded. The four-version Linux Blender validation matrix (4.2.0, 4.5.0, 5.0.0 and 5.2.2) also succeeded.
 
-This evidence is historical, not a current guarantee: commit [`8a8c7a8`](https://github.com/dedzedofficial/Blender-XR/commit/8a8c7a8320ceded73a616fe699bdb01ffb8e3baf) removed the repository's GitHub Actions workflow files on 18 November 2026. No automatic platform checks currently run on `main`; the sampled open draft PR heads #110, #165, #168 and #169 also have no associated workflow runs as of 25 November 2026.
+This evidence is historical, not a current guarantee: commit [`8a8c7a8`](https://github.com/dedzedofficial/Blender-XR/commit/8a8c7a8320ceded73a616fe699bdb01ffb8e3baf) removed the repository's GitHub Actions workflow files on 18 November 2026. No automatic platform checks currently run on `main`; the sampled open draft PR heads #110, #165, #168, #169 and #170 also have no associated workflow runs as of 25 November 2026.
 
 These hosted macOS jobs ran Blender in background mode. They do not verify interactive macOS viewport rendering or a physical macOS OpenXR headset runtime. Quest 3 PC-VR, SteamVR controllers, tracked fingers and real headset performance remain separate, unverified acceptance gates.
 
