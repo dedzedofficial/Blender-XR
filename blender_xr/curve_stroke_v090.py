@@ -393,6 +393,8 @@ def patch_runtime(Runtime):
         if getattr(self, '_xr_curve_stroke', None) is not None:
             from . import input_safety_v086
             if not input_safety_v086.guard_specialized_frame(self, context):
+                if getattr(self, '_xr_curve_stroke', None) is not None:
+                    _clear_stroke(self, 'CURVE DRAW CANCELLED / INPUT REARM REQUIRED')
                 return
             _capture_tick(self, context)
             return
