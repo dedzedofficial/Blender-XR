@@ -17,6 +17,8 @@
 
 ### What must happen before the next merge or release
 
+A draft workflow restoration is now proposed in [PR #170](https://github.com/dedzedofficial/Blender-XR/pull/170). It restores the Blender matrix and desktop package validation without restoring any release/publishing workflow. It has no fresh Actions run yet; keep it draft until a user-authored push or a later merged-base run validates it.
+
 1. Restore or replace the validation workflow and add explicit `pull_request` and `push` triggers. The workflow definition removed on 18 November only declared `workflow_dispatch` and `workflow_call`; restoring it unchanged would not automatically validate pull requests.
 2. Restore the icon-generation workflow or document and run its replacement as part of package preparation.
 3. Enable branch protection on `main` and require the Blender-version and desktop-package checks before merging.
