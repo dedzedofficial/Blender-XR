@@ -37,6 +37,7 @@ def run():
         bpy.ops.object.delete(use_global=False)
         bpy.ops.mesh.primitive_cube_add()
         cube = ctx.object
+        curves_before = len(bpy.data.curves)
 
         session = runtime.Runtime.__new__(runtime.Runtime)
         session.menu = drawing.Menu()
@@ -75,6 +76,7 @@ def run():
         assert session.menu.page == stroke._PAGE
         assert session.menu.visible
         assert ownership.owner(session) == 'IDLE'
+        assert len(bpy.data.curves) == curves_before  # GPU preview only; no scene data yet.
 
         # A changed selection invalidates the preview before native data is created.
         bpy.ops.mesh.primitive_cube_add(location=(2, 0, 0))
@@ -103,6 +105,8 @@ def run():
         assert all(point.handle_left_type == 'AUTO' for point in spline.bezier_points)
         assert near(obj.location, (0, 0, 0))
         assert history.undo[-1][0] == 'XR_CURVE_CREATE'
+        assert len(bpy.data.curves) == curves_before + 1
+        assert not spline.use_cyclic_u
         assert cube.data is not None
 
         curve_name = obj.name
@@ -125,8 +129,19 @@ def run():
             assert len(restored.data.splines[0].bezier_points) == 3
             assert restored.data.splines[0].type == 'BEZIER'
 
-        # Offhand Trigger cancels a live stroke and requires neutral rearm.
+        # The explicit preview Cancel discards the path without adding data.
         session.command(ctx, 'CURVE_MENU')
+        session.command(ctx, 'CURVE_STROKE_START')
+        stroke._advance_stroke(session, ctx, False, False, (0, 0, 0), 1.0)
+        stroke._advance_stroke(session, ctx, True, False, (0, 0, 0), 1.0)
+        stroke._advance_stroke(session, ctx, True, False, (0.03, 0, 0), 1.0)
+        stroke._advance_stroke(session, ctx, False, False, (0.03, 0, 0), 1.0)
+        assert session._xr_curve_stroke_preview is not None
+        session.command(ctx, 'CURVE_STROKE_CANCEL')
+        assert session._xr_curve_stroke_preview is None
+        assert len(bpy.data.curves) == curves_before + 1
+
+        # Offhand Trigger cancels a live stroke and requires neutral rearm.
         session.command(ctx, 'CURVE_STROKE_START')
         stroke._advance_stroke(session, ctx, False, False, (0, 0, 0), 1.0)
         stroke._advance_stroke(session, ctx, True, False, (0, 0, 0), 1.0)
