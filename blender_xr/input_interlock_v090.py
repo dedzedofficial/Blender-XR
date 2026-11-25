@@ -82,11 +82,13 @@ def expire_pending_approvals(session):
         '_xr_uv_texel_resolution',
         '_xr_uv_texel_mode',
         '_xr_numeric_move_state',
+        '_xr_curve_stroke',
         '_xr_curve_stroke_preview',
         # Saved ray hits cannot be reused after tracking/session loss.
         '_xr_precision_last_ray',
     )
     had_tokens = any(getattr(session, name, None) is not None for name in fields)
+    stroke_state = getattr(session, '_xr_curve_stroke', None)
     source = getattr(session, '_xr_interp_source', None)
     for field in fields:
         if hasattr(session, field):
@@ -104,6 +106,9 @@ def expire_pending_approvals(session):
                      if source == 'SHAPE' else 'XR_INTERP_PICK_090')
     if next_page is not None:
         menu.page = next_page
+    if stroke_state is not None:
+        menu.page = 'XR_CURVE_MAIN'
+        menu.visible = bool(stroke_state.get('menu_visible', True))
     if hasattr(menu, 'tooltip_action'):
         menu.tooltip_action = None
     return had_tokens or (next_page is not None)
