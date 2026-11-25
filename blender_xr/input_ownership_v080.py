@@ -53,6 +53,20 @@ def owner(session):
     return _gesture_owner(session)
 
 
+def _reset_radial(session):
+    """Best-effort release of radial capture; failure must keep XR blocked."""
+    radial = getattr(session, 'radial', None)
+    if radial is None:
+        return True
+    try:
+        radial.reset(require_release=True)
+    except Exception:
+        # A failed input reset is as unsafe as a failed native-data rollback:
+        # do not allow a later neutral frame to resume editing.
+        return False
+    return True
+
+
 def cancel_conflict(session):
     """Roll back incompatible concurrent gestures before another XR tick.
 
@@ -69,20 +83,19 @@ def cancel_conflict(session):
     failed = False
     try:
         session.cancel_work()
-    except (RuntimeError, ValueError, TypeError, AttributeError, ReferenceError):
+    except Exception:
         # A refused restore means another Blender edit changed the target.
         # Preserve that external edit and latch rearm even when the rollback
         # cannot safely complete. Never leak a live input sample after this.
         failed = True
     finally:
-        radial = getattr(session, 'radial', None)
-        if radial is not None:
-            radial.reset(require_release=True)
+        radial_reset_ok = _reset_radial(session)
         session._xr_validated_controls = None
         session._xr_validated_poses = None
         session._xr_validated_sticks = None
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
+        failed = failed or not radial_reset_ok
         session._xr_rollback_blocked = failed
         session.status = ('INPUT CONFLICT / ROLLBACK BLOCKED / REVIEW SCENE'
                           if failed else
@@ -197,13 +210,13 @@ def cancel_session_loss(session):
     try:
         if has_mutation or radial_active:
             session.cancel_work()
-    except (RuntimeError, ValueError, TypeError, AttributeError, ReferenceError):
+    except Exception:
         failed = True
     finally:
-        if radial is not None:
-            radial.reset(require_release=True)
+        radial_reset_ok = _reset_radial(session)
         session._xr_rearm_required = True
         session._xr_neutral_count = 0
+        failed = failed or not radial_reset_ok
         session._xr_rollback_blocked = failed
         session.status = ('XR ROLLBACK BLOCKED / REVIEW BLENDER SCENE'
                           if failed else
