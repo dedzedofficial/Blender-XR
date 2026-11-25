@@ -402,6 +402,13 @@ Object Mode includes a dedicated **Delete Object** action. This is intentionally
 
 **Quick Layout (new):** In Object Mode, select two or more mesh objects and keep the reference object active. Open **Object Tools → Layout** in VR, or **Model → Quick Layout** on the desktop. **Align X/Y/Z** moves selected origins to the active object's origin along that world axis; the active object stays in place. With three or more objects, **Space X/Y/Z** evenly distributes origins along the axis between the two outermost selected objects. Rotation, scaling, mesh geometry, UVs, modifiers, materials and rigging stay untouched. VR actions use one grouped Undo/Redo entry. Linked, locked, constrained and parented objects are rejected rather than moved unpredictably. The feature uses object origins, not bounding-box edges.
 
+## Experimental controller-drawn Curves (development preview)
+
+Open **Shapes → Curve → Draw Path**. Release the dominant Trigger to arm the stroke, then hold it and move the controller grip through the scene. Releasing Trigger shows an orange GPU-only preview. **Confirm** creates one editable native 3D Bézier spline, **Close Path** toggles a cyclic spline, and **Cancel** discards the preview. No Curve datablock or helper object is created before confirmation.
+
+The stroke uses the validated controller grip pose, filters very short samples, applies a light smoothing pass and is capped at 128 points. Creation is one Mesh XR Undo/Redo entry; the Curve is saved as ordinary Blender data and can be edited with the existing Curve point/handle tools. Tracking loss cancels an unfinished stroke and uses the existing neutral-input rearm.
+
+This is a **draft development-branch feature in [PR #171](https://github.com/dedzedofficial/Blender-XR/pull/171)**, not part of a published release. Blender-version regression execution and real Quest 3/SteamVR acceptance remain outstanding. See [controller-drawn Curve authoring](docs/CURVE_STROKE_AUTHORING_V090.md) for the detailed workflow and safety boundaries.
 
 Use **Travel** for Fly/Walk, Turbo, Faster/Slower, Snap/Smooth turning and Reset View. The left stick controls movement and the right stick handles turning and vertical travel.
 

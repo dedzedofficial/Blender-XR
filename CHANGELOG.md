@@ -1,5 +1,14 @@
 # Mesh XR changelog
 
+## v0.9.0 development — controller-drawn native Curves (unreleased)
+
+- Added a dominant-controller grip stroke workflow to the existing Shapes → Curve menu.
+- Added a GPU-only preview with explicit Confirm, Close Path and Cancel; no scene data is created before confirmation.
+- Creates a native editable 3D Bézier spline with smoothing, a 128-point cap and one existing XR Curve creation history entry.
+- Added scene/selection fingerprint checks, offhand cancellation, tracking-loss cancellation and neutral-input rearm.
+- Added Blender integration coverage for sampling, jitter filtering, stale-selection refusal, preview cancellation, Undo/Redo and .blend save/reopen.
+- **Not yet validated:** the new Blender integration test has not been run in this session; Blender 4.2/4.5/5.0/5.2 and Quest 3/SteamVR acceptance remain outstanding. This is draft branch code, not a release.
+
 ## 0.8.5 completion branch — unreleased
 
 - Wrist hierarchy search, native Curve modifier references and signed axes.

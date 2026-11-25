@@ -13,6 +13,10 @@ _ICON_BY_ACTION = {
     # 0.8.5 authoring and wrist keyboard actions.
     'MOD_CURVE_EDIT_MENU': 'modifier',
     'XR_CURVE_NEW': 'add',
+    'CURVE_STROKE_START': 'curve_data',
+    'CURVE_STROKE_CONFIRM': 'checkmark',
+    'CURVE_STROKE_CYCLE': 'curve_data',
+    'CURVE_STROKE_CANCEL': 'cancel',
     'XR_CURVE_NEXT': 'properties',
     'XR_CURVE_TARGET': 'cursor',
     'XR_CURVE_TARGET_CLEAR': 'cancel',
@@ -1112,6 +1116,12 @@ def draw(runtime):
                         for edge in face.edges:
                             points.extend(obj.matrix_world@v.co for v in edge.verts)
             draw_batch(shader,'LINES',points,(1,0.6,0.08,1))
+        try:
+            from . import curve_stroke_v090
+            curve_stroke_v090.draw_preview(runtime, shader, draw_batch)
+        except (RuntimeError, ValueError, TypeError, AttributeError, ReferenceError):
+            # Preview rendering is optional; a GPU failure must not stop XR UI.
+            pass
         from . import hands_v080
         hands_v080.draw(runtime, shader)
     finally:

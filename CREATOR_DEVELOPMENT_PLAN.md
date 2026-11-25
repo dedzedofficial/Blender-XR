@@ -28,7 +28,7 @@ It does not silently reopen features deliberately excluded from v0.8.
 | Reversible Isolation/X-Ray and see-through selection | **Not implemented as a complete VR workflow** | Planned in `V0_8_PLAN.md`. Native hide/visibility and overlapping-target selection exist only in part. |
 | Controller-driven IK end-effector positioning | **Not implemented** | Bone transforms and Pose Mode already exist; an explicit IK target/chain workflow does not. |
 | Advanced geometry selection, numeric transform input, snap to real surfaces | **Not complete** | Some distance-aware picking, fine grab, grid snapping and existing gizmos are present. |
-| Controller-drawn editable native Blender curves | **Not implemented** | Planned as conditional v0.8.x work; no separate sculpt engine required. |
+| Controller-drawn editable native Blender curves | **Draft PR #171; not merged or headset-validated** | GPU-only stroke preview creates a native 3D Bézier spline only after confirmation; regression and save/reopen coverage added. |
 
 **Important status distinction:** a green CI job proves tested Blender/package paths, **not**
 physical headset comfort, correct pose tracking, or shipping a stable v0.8 release.

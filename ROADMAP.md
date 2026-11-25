@@ -153,6 +153,7 @@ testing and is not a shipped release.
 - Repeat Stamp: explicit independent copies vs linked native instances, preview and undo.
 - Collection assemblies and multi-object manipulation; modular snap connectors.
 - Continuous controller-drawn curves with smoothing; repeat along a path/radial arrangements.
+- Initial native controller-drawn Curve stroke slice is in a draft branch: validated grip sampling, GPU preview, confirm/cancel and native Bézier creation. Not merged or released.
 - Measure → Apply, spatial rulers, alignment guides and architectural floor/wall helpers.
 - Eye-height/world-scale review, navigation bookmarks and layout/readability checks.
 - Native text, reference boards, spatial notes and optional decal placement.
