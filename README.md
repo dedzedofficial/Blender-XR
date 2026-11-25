@@ -408,7 +408,7 @@ Open **Shapes → Curve → Draw Path**. Release the dominant Trigger to arm the
 
 The stroke uses the validated controller grip pose, filters very short samples, applies a light smoothing pass and is capped at 128 points. Creation is one Mesh XR Undo/Redo entry; the Curve is saved as ordinary Blender data and can be edited with the existing Curve point/handle tools. Tracking loss cancels an unfinished stroke and uses the existing neutral-input rearm.
 
-This is a **draft development-branch feature**, not part of a published release. Blender-version regression execution and real Quest 3/SteamVR acceptance remain outstanding.
+This is a **draft development-branch feature**, not part of a published release. Blender-version regression execution and real Quest 3/SteamVR acceptance remain outstanding. See [controller-drawn Curve authoring](docs/CURVE_STROKE_AUTHORING_V090.md) for the detailed workflow and safety boundaries.
 
 Use **Travel** for Fly/Walk, Turbo, Faster/Slower, Snap/Smooth turning and Reset View. The left stick controls movement and the right stick handles turning and vertical travel.
 
