@@ -1,7 +1,7 @@
 # Mesh XR testing
 
 
-## Current CI and release-gate status — 2026-11-24
+## Current CI and release-gate status — 2026-11-25
 
 **Current `main` has no active GitHub Actions workflows.** Commit [`8a8c7a8`](https://github.com/dedzedofficial/Blender-XR/commit/8a8c7a8320ceded73a616fe699bdb01ffb8e3baf), dated 18 November 2026, removed `.github/workflows/check.yml`, `.github/workflows/release.yml` and `.github/workflows/build-icon-textures.yml`. The matrix and release instructions below therefore describe the last recorded workflow design; they are not active checks or a current release gate.
 
@@ -11,9 +11,9 @@
 - In that same run, the Windows 2022 package job, macOS 15 Apple Silicon package/integration job (Blender 5.2.2), and macOS 15 Intel package/integration job (Blender 4.5.15) all succeeded. The `preview-package` job was skipped because this was a push run.
 - [Package and release Mesh XR run #42863367369](https://github.com/dedzedofficial/Blender-XR/actions/runs/42863367369), on the same commit, completed its validation jobs and release job successfully.
 - The macOS jobs ran Blender in background mode on hosted macOS runners. They verify packaging and the listed Blender integration tests, **not** interactive GUI rendering, a physical OpenXR headset, Quest 3 tracking, or SteamVR controller ergonomics.
-- No workflow runs were associated with the sampled open draft PR heads #110, #162, #163, #165, #166, #167 or #168 when checked on 24 November 2026. Treat those branches as unvalidated until their tests are actually run.
+- No workflow runs were associated with the sampled open draft PR heads #110, #165, #168 or #169 when checked on 25 November 2026. The older sample (#162, #163, #166 and #167) was also empty on 24 November. Treat these branches as unvalidated until their tests are actually run.
 - GitHub reports the `main` branch as unprotected. There is currently no required-check branch-protection gate.
-- The branch inventory returned 177 branch refs. The open-draft PR search returned 100 results (the query limit), so this is a large active backlog rather than a small release candidate set.
+- The branch inventory returned 178 branch refs (100 on page 1 and 78 on page 2). GitHub reports 101 open draft PRs in the repository. This is a large active backlog rather than a small release candidate set.
 
 ### What must happen before the next merge or release
 
