@@ -1,7 +1,7 @@
 name: Validate Mesh XR
 on:
   push:
-    branches: [main, ci/restore-pr-validation-2026-11-25]
+    branches: [main, 'ci/**']
   pull_request:
   workflow_dispatch:
   workflow_call:
