@@ -36,6 +36,7 @@ _SAFE_PAGE_AFTER_LOSS = {
     'XR_CHAIN_SPACING_CONFIRM_090': 'XR_CHAIN_SPACING_090',
     'XR_ACTIVE_FACE_PLANE_CONFIRM_090': 'XR_ACTIVE_FACE_PLANE_090',
     'XR_STRAIGHT_CHAIN_CONFIRM_090': 'XR_STRAIGHT_CHAIN_090',
+    'XR_CURVE_STROKE_PREVIEW_090': 'XR_CURVE_MAIN',
     'XR_NUMERIC_MOVE_090': 'XR_SNAP_AXIS_090',
     'XR_NUMERIC_MOVE_DIGITS_090': 'XR_SNAP_AXIS_090',
 }
@@ -81,6 +82,7 @@ def expire_pending_approvals(session):
         '_xr_uv_texel_resolution',
         '_xr_uv_texel_mode',
         '_xr_numeric_move_state',
+        '_xr_curve_stroke_preview',
         # Saved ray hits cannot be reused after tracking/session loss.
         '_xr_precision_last_ray',
     )
