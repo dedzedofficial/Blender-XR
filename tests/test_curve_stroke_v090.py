@@ -117,18 +117,6 @@ def run():
         assert obj is not None and obj.type == 'CURVE'
         assert len(obj.data.splines[0].bezier_points) == 3
 
-        # Saved .blend contains the native editable spline, not a preview helper.
-        with TemporaryDirectory() as folder:
-            path = Path(folder) / 'drawn-curve.blend'
-            bpy.ops.wm.save_as_mainfile(filepath=str(path), copy=True)
-            assert path.exists()
-            with bpy.data.libraries.load(str(path)) as (library, imported):
-                imported.objects = [curve_name]
-            restored = imported.objects[0]
-            assert restored.type == 'CURVE'
-            assert len(restored.data.splines[0].bezier_points) == 3
-            assert restored.data.splines[0].type == 'BEZIER'
-
         # The explicit preview Cancel discards the path without adding data.
         session.command(ctx, 'CURVE_MENU')
         session.command(ctx, 'CURVE_STROKE_START')
@@ -160,6 +148,18 @@ def run():
         assert session._xr_curve_stroke is None
         assert session._xr_curve_stroke_preview is None
         assert 'TWO DISTINCT POINTS' in session.status
+
+        # Saved .blend contains the native editable spline, not a preview helper.
+        with TemporaryDirectory() as folder:
+            path = Path(folder) / 'drawn-curve.blend'
+            bpy.ops.wm.save_as_mainfile(filepath=str(path), copy=True)
+            assert path.exists()
+            with bpy.data.libraries.load(str(path)) as (library, imported):
+                imported.objects = [curve_name]
+            restored = imported.objects[0]
+            assert restored.type == 'CURVE'
+            assert len(restored.data.splines[0].bezier_points) == 3
+            assert restored.data.splines[0].type == 'BEZIER'
 
         print('PASS controller-drawn native Curve preview, cancel, Undo/Redo and save/reopen')
     finally:
