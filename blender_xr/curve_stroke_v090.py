@@ -377,61 +377,52 @@ def draw_preview(session, shader, draw_batch):
     draw_batch(shader, 'LINES', segments, (1.0, 0.58, 0.12, 1.0))
 
 
-def patch_runtime(Runtime):
-    if getattr(Runtime, '_xr_curve_stroke_patched', False):
-        return
-    install_pages()
-    previous_command = Runtime.command
-    previous_tick = Runtime.tick
-    previous_cancel = Runtime.cancel_work
+def cancel(session):
+    """Discard an unfinished stroke or preview during the shared cancel path."""
+    _clear_stroke(session)
 
-    def cancel_work(self):
-        _clear_stroke(self)
-        return previous_cancel(self)
 
-    def tick(self, context):
-        if getattr(self, '_xr_curve_stroke', None) is not None:
-            from . import input_safety_v086
-            if not input_safety_v086.guard_specialized_frame(self, context):
-                if getattr(self, '_xr_curve_stroke', None) is not None:
-                    _clear_stroke(self, 'CURVE DRAW CANCELLED / INPUT REARM REQUIRED')
-                return
-            _capture_tick(self, context)
-            return
-        return previous_tick(self, context)
+def handle_tick(session, context):
+    """Handle the live stroke inside the existing native Curve tick route."""
+    if getattr(session, '_xr_curve_stroke', None) is None:
+        return False
+    from . import input_safety_v086
+    if not input_safety_v086.guard_specialized_frame(session, context):
+        if getattr(session, '_xr_curve_stroke', None) is not None:
+            _clear_stroke(session, 'CURVE DRAW CANCELLED / INPUT REARM REQUIRED')
+        return True
+    _capture_tick(session, context)
+    return True
 
-    def command(self, context, action):
-        menu = getattr(self, 'menu', None)
-        if menu is None:
-            return previous_command(self, context, action)
-        preview = getattr(self, '_xr_curve_stroke_preview', None)
-        if preview is not None:
-            if action == 'CURVE_STROKE_CONFIRM':
-                _commit_preview(self, context)
-                return
-            if action == 'CURVE_STROKE_CANCEL':
-                _cancel_preview(self)
-                return
-            if action == 'CURVE_STROKE_CYCLE':
-                if len(preview['points']) < 3:
-                    raise ValueError('Draw at least three points to close a Curve')
-                preview['cyclic'] = not bool(preview.get('cyclic'))
-                self.status = 'CURVE PREVIEW / ' + (
-                    'CLOSED' if preview['cyclic'] else 'OPEN'
-                )
-                return
-            if action == 'STOP':
-                _clear_stroke(self)
-                return previous_command(self, context, action)
-            raise ValueError('Confirm or cancel the current Curve preview first')
-        if action == 'CURVE_STROKE_START' and menu.page == native_curves_v080._MAIN:
-            _begin_stroke(self, context)
-            return
-        if action in _DRAW_ACTIONS:
-            raise ValueError('No drawn Curve preview is active')
-        return previous_command(self, context, action)
 
-    Runtime.cancel_work = cancel_work
-    Runtime.command = command
-    Runtime.tick = tick
-    Runtime._xr_curve_stroke_patched = True
+def handle_command(session, context, action):
+    """Handle stroke actions before the existing native Curve command route."""
+    menu = getattr(session, 'menu', None)
+    if menu is None:
+        return False
+    preview = getattr(session, '_xr_curve_stroke_preview', None)
+    if preview is not None:
+        if action == 'CURVE_STROKE_CONFIRM':
+            _commit_preview(session, context)
+            return True
+        if action == 'CURVE_STROKE_CANCEL':
+            _cancel_preview(session)
+            return True
+        if action == 'CURVE_STROKE_CYCLE':
+            if len(preview['points']) < 3:
+                raise ValueError('Draw at least three points to close a Curve')
+            preview['cyclic'] = not bool(preview.get('cyclic'))
+            session.status = 'CURVE PREVIEW / ' + (
+                'CLOSED' if preview['cyclic'] else 'OPEN'
+            )
+            return True
+        if action == 'STOP':
+            _clear_stroke(session)
+            return False
+        raise ValueError('Confirm or cancel the current Curve preview first')
+    if action == 'CURVE_STROKE_START' and menu.page == native_curves_v080._MAIN:
+        _begin_stroke(session, context)
+        return True
+    if action in _DRAW_ACTIONS:
+        raise ValueError('No drawn Curve preview is active')
+    return False
